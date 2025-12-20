@@ -5,6 +5,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 function DashboardContent() {
   const { user, logout } = useAuth();
@@ -93,9 +94,13 @@ function DashboardContent() {
             <CardDescription>Get started with common tasks</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-4">
-            <Button className="btn-gradient">Create New Design</Button>
+            <Link href="/design/new">
+              <Button className="btn-gradient">Create New Design</Button>
+            </Link>
+            <Link href="/design/my-designs">
+              <Button variant="outline">My Designs</Button>
+            </Link>
             <Button variant="outline">View Orders</Button>
-            <Button variant="outline">Browse Templates</Button>
             {user?.userType === 'PRINTER_ADMIN' && (
               <Button variant="secondary">Admin Panel</Button>
             )}

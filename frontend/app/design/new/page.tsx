@@ -1,0 +1,277 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { FileUpload } from '@/components/design/FileUpload';
+import { MaterialSelector } from '@/components/design/MaterialSelector';
+import { SizeSelector } from '@/components/design/SizeSelector';
+import { designsService, Material, PrintSize, Orientation } from '@/lib/api/designs';
+import Link from 'next/link';
+
+function DesignEditorContent() {
+  const router = useRouter();
+  const { user } = useAuth();
+
+  // Design state
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string>('');
+  const [material, setMaterial] = useState<Material>('GLOSSY_PAPER');
+  const [printSize, setPrintSize] = useState<PrintSize>('A4');
+  const [orientation, setOrientation] = useState<Orientation>('PORTRAIT');
+  const [customWidth, setCustomWidth] = useState<number>(0);
+  const [customHeight, setCustomHeight] = useState<number>(0);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+    setError('');
+
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async () => {
+    setError('');
+
+    // Validation
+    if (!name.trim()) {
+      setError('Please enter a name for your design');
+      return;
+    }
+
+    if (!selectedFile) {
+      setError('Please upload an image');
+      return;
+    }
+
+    if (printSize === 'CUSTOM' && (!customWidth || !customHeight)) {
+      setError('Please enter custom dimensions');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // TODO: Upload file to backend storage and get URL
+      // For now, using preview URL as placeholder
+      const imageUrl = preview; // This will be replaced with actual upload logic
+
+      await designsService.create({
+        name,
+        description: description || undefined,
+        imageUrl,
+        printSize,
+        material,
+        orientation,
+        customWidth: printSize === 'CUSTOM' ? customWidth : undefined,
+        customHeight: printSize === 'CUSTOM' ? customHeight : undefined,
+      });
+
+      // Redirect to designs gallery
+      router.push('/design/my-designs');
+    } catch (err: any) {
+      setError(err?.error || err?.message || 'Failed to save design');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="sm">
+                ← Back
+              </Button>
+            </Link>
+            <h1 className="text-2xl font-bold">
+              <span className="text-neon-gradient">Create Design</span>
+            </h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <Button variant="outline" onClick={() => router.push('/design/my-designs')}>
+              My Designs
+            </Button>
+            <Button
+              className="btn-gradient"
+              onClick={handleSave}
+              disabled={loading || !selectedFile || !name}
+            >
+              {loading ? 'Saving...' : 'Save Design'}
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        {error && (
+          <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm mb-6">
+            {error}
+          </div>
+        )}
+
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Left Column - Configuration */}
+          <div className="space-y-8">
+            {/* Design Info */}
+            <Card className="card-glow">
+              <CardHeader>
+                <CardTitle>Design Details</CardTitle>
+                <CardDescription>Give your design a name and description</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
+                    Design Name *
+                  </label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="My Awesome Design"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="bg-card/50"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-medium text-foreground mb-2"
+                  >
+                    Description (Optional)
+                  </label>
+                  <Input
+                    id="description"
+                    type="text"
+                    placeholder="Add a description..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="bg-card/50"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Material Selection */}
+            <Card className="card-glow">
+              <CardHeader>
+                <CardTitle>Choose Material</CardTitle>
+                <CardDescription>Select the material for your print</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MaterialSelector selected={material} onSelect={setMaterial} />
+              </CardContent>
+            </Card>
+
+            {/* Size Selection */}
+            <Card className="card-glow">
+              <CardHeader>
+                <CardTitle>Size & Orientation</CardTitle>
+                <CardDescription>Choose the size and orientation for your print</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SizeSelector
+                  selectedSize={printSize}
+                  selectedOrientation={orientation}
+                  customWidth={customWidth}
+                  customHeight={customHeight}
+                  onSizeSelect={setPrintSize}
+                  onOrientationSelect={setOrientation}
+                  onCustomDimensionsChange={(w, h) => {
+                    setCustomWidth(w);
+                    setCustomHeight(h);
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Upload & Preview */}
+          <div className="space-y-8">
+            {/* File Upload */}
+            <Card className="card-glow">
+              <CardHeader>
+                <CardTitle>Upload Image</CardTitle>
+                <CardDescription>
+                  Upload your design or choose from templates
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FileUpload onFileSelect={handleFileSelect} preview={preview} />
+              </CardContent>
+            </Card>
+
+            {/* Preview */}
+            {preview && (
+              <Card className="card-glow">
+                <CardHeader>
+                  <CardTitle>Preview</CardTitle>
+                  <CardDescription>How your design will look</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="aspect-square w-full bg-card/30 rounded-lg overflow-hidden flex items-center justify-center">
+                      <img
+                        src={preview}
+                        alt="Design preview"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Material</p>
+                        <p className="font-medium text-primary">{material.replace('_', ' ')}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Size</p>
+                        <p className="font-medium text-secondary">{printSize}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Orientation</p>
+                        <p className="font-medium text-accent">{orientation}</p>
+                      </div>
+                      {printSize === 'CUSTOM' && (
+                        <div>
+                          <p className="text-muted-foreground">Dimensions</p>
+                          <p className="font-medium">
+                            {customWidth} × {customHeight} cm
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default function NewDesignPage() {
+  return (
+    <ProtectedRoute>
+      <DesignEditorContent />
+    </ProtectedRoute>
+  );
+}

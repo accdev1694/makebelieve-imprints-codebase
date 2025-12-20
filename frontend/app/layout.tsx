@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Poppins } from 'next/font/google';
 import './globals.css';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 // Configure Inter font (body text)
 const inter = Inter({
@@ -31,8 +32,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
-      <body className={`${inter.className} antialiased bg-slate-50 text-slate-900`}>
-        {children}
+      <body className={`${inter.className} antialiased`}>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

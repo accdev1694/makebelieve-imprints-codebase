@@ -1,46 +1,22 @@
-import React from 'react';
+import * as React from "react"
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string;
-  helperText?: string;
-}
+import { cn } from "@/lib/utils"
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, className = '', id, ...props }, ref) => {
-    const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
-
+const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
+  ({ className, type, ...props }, ref) => {
     return (
-      <div className="w-full">
-        {label && (
-          <label
-            htmlFor={inputId}
-            className="block text-sm font-medium text-slate-700 mb-2"
-          >
-            {label}
-          </label>
+      <input
+        type={type}
+        className={cn(
+          "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          className
         )}
-        <input
-          ref={ref}
-          id={inputId}
-          className={`input ${error ? 'input-error' : ''} ${className}`}
-          aria-invalid={error ? 'true' : 'false'}
-          aria-describedby={error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined}
-          {...props}
-        />
-        {error && (
-          <p id={`${inputId}-error`} className="mt-2 text-sm text-error">
-            {error}
-          </p>
-        )}
-        {helperText && !error && (
-          <p id={`${inputId}-helper`} className="mt-2 text-sm text-slate-500">
-            {helperText}
-          </p>
-        )}
-      </div>
-    );
+        ref={ref}
+        {...props}
+      />
+    )
   }
-);
+)
+Input.displayName = "Input"
 
-Input.displayName = 'Input';
+export { Input }

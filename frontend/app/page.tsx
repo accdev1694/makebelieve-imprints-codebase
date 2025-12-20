@@ -1,14 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import Link from 'next/link';
 
 export default function Home() {
   const [email, setEmail] = useState('');
+  const { user, logout } = useAuth();
 
   return (
     <main className="min-h-screen bg-background relative overflow-hidden">
@@ -17,6 +20,37 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px]" />
       </div>
+
+      {/* Header Navigation */}
+      <header className="relative z-10 border-b border-border/50 bg-card/30 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="text-xl font-bold">
+            <span className="text-neon-gradient">MakeBelieve</span>
+          </div>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <>
+                <Link href="/dashboard">
+                  <Button variant="ghost">Dashboard</Button>
+                </Link>
+                <span className="text-sm text-muted-foreground">{user.name}</span>
+                <Button variant="outline" onClick={logout}>
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login">
+                  <Button variant="ghost">Login</Button>
+                </Link>
+                <Link href="/auth/register">
+                  <Button className="btn-gradient">Sign Up</Button>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
 
       <div className="relative z-10 container mx-auto px-4 py-20">
         {/* Hero Section */}

@@ -1,0 +1,59 @@
+import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+
+// API base URL - will be configured via environment variable
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+// Create axios instance with default config
+const apiClient: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true, // Important: Send cookies with requests (for httpOnly cookies)
+});
+
+// Request interceptor - Add any auth headers if needed
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    // You can add custom headers here if needed
+    // For now, we rely on httpOnly cookies for auth
+    return config;
+  },
+  (error: AxiosError) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor - Handle common errors
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  async (error: AxiosError) => {
+    const originalRequest = error.config;
+
+    // Handle 401 Unauthorized - try to refresh token
+    if (error.response?.status === 401 && originalRequest) {
+      try {
+        // Attempt to refresh the access token
+        await apiClient.post('/auth/refresh');
+
+        // Retry the original request
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed - redirect to login
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login';
+        }
+        return Promise.reject(refreshError);
+      }
+    }
+
+    // Handle other errors
+    const errorMessage = error.response?.data || error.message || 'An error occurred';
+    return Promise.reject(errorMessage);
+  }
+);
+
+export default apiClient;

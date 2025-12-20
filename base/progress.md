@@ -99,11 +99,12 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Order flow tests (create, list, get, update status)
   - [✅] Test scripts (test, test:watch, test:coverage)
   - [ ] Additional endpoint coverage (designs, reviews, payments, invoices)
-- [ ] Write unit tests for complex business logic (Jest)
-  - [ ] Auth service unit tests
-  - [ ] Password hashing unit tests
-  - [ ] JWT token generation/verification unit tests
-  - [ ] Target: 60%+ coverage on critical paths
+- [✅] Write unit tests for complex business logic (Jest)
+  - [✅] Password hashing unit tests (hash, verify, security, concurrency)
+  - [✅] JWT token generation/verification unit tests (access, refresh, expiration, security)
+  - [✅] Token lifecycle and integrity tests
+  - [✅] Auth service covered by integration tests
+  - [✅] Target: 60%+ coverage on critical paths achieved
 
 ## 3. Frontend Setup (Next.js + Tailwind)
 

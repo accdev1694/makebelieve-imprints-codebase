@@ -17,26 +17,25 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 - [ ] **Vercel Hobby** - Connect GitHub repo to Vercel
   - [ ] Import project, select `frontend/` directory
   - [ ] Get free URL: https://mkbl.vercel.app
-- [ ] **Backend** - Choose development approach
-  - [ ] Option A: Railway Free Tier (deploy from GitHub)
-  - [ ] Option B: Run locally (`npm run dev`)
+- [✅] **Backend** - Choose development approach
+  - [✅] Option B: Run locally (`npm run dev`) - SELECTED
+  - [ ] Option A: Railway Free Tier (optional for later)
 - [ ] **Neon Database** - Sign up at neon.tech
   - [ ] Create project, get connection string
   - [ ] 512MB storage free (sufficient for development)
-- [ ] **Cloudflare R2** - Sign up for R2
-  - [ ] Create bucket: `mkbl-uploads-dev`
-  - [ ] Get access keys for S3-compatible API
-  - [ ] Alternative: Use local filesystem during dev
-- [ ] **Royal Mail Mock** - Implement mock service
-  - [ ] Return fake tracking numbers for testing
-  - [ ] No API costs during development
+- [✅] **Cloudflare R2** - Sign up for R2
+  - [✅] Using local filesystem during development
+  - [ ] Optional: Set up R2 for production-like testing
+- [✅] **Royal Mail Mock** - Implement mock service
+  - [✅] Return fake tracking numbers for testing
+  - [✅] No API costs during development
 
 **Note:** All services above are free. See `base/COST_OPTIMIZATION.md` for details.
 
 ## 2. Backend Setup (Express + Prisma)
 
-- [ ] Scaffold backend folder and Express app
-- [ ] Set up TypeScript config for backend (strict mode enabled)
+- [✅] Scaffold backend folder and Express app
+- [✅] Set up TypeScript config for backend (strict mode enabled)
 - [ ] Initialize Prisma and define schema based on `data-models.md`
   - [ ] Define User, RefreshToken, Design, Order, Review, UserPreference models
   - [ ] Add all indexes as specified in data-models.md

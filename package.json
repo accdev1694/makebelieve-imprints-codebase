@@ -16,7 +16,7 @@
     "lint": "npm run lint --workspace=frontend && npm run lint --workspace=backend",
     "format": "npx prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "npx prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

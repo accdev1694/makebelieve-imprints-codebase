@@ -7,7 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums for print specifications
+// ============================================
+// ENUMS
+// ============================================
+
+// User & Order Enums
 enum UserType {
   customer
   admin
@@ -22,6 +26,7 @@ enum OrderStatus {
   cancelled
 }
 
+// Print Specification Enums
 enum PrintSize {
   A4
   A3
@@ -43,6 +48,53 @@ enum Orientation {
   LANDSCAPE
   SQUARE
 }
+
+// Financial Enums
+enum PaymentMethod {
+  STRIPE
+  PAYPAL
+  CARD
+  BANK_TRANSFER
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum ExpenseCategory {
+  MATERIALS
+  PACKAGING
+  SHIPPING_SUPPLIES
+  EQUIPMENT
+  SOFTWARE
+  UTILITIES
+  MARKETING
+  OTHER
+}
+
+enum ReportPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+// ============================================
+// CORE MODELS
+// ============================================
 
 model User {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -133,9 +185,12 @@ model Order {
   createdAt        DateTime    @default(now()) @map("created_at")
   updatedAt        DateTime    @default(now()) @updatedAt @map("updated_at")
 
-  customer User    @relation(fields: [customerId], references: [id])
-  design   Design  @relation(fields: [designId], references: [id])
-  review   Review?
+  customer        User      @relation(fields: [customerId], references: [id])
+  design          Design    @relation(fields: [designId], references: [id])
+  review          Review?
+  invoice         Invoice?
+  payment         Payment?
+  inventoryUsages InventoryUsage[]
 
   @@index([customerId])
   @@index([status])
@@ -171,4 +226,229 @@ model UserPreference {
 
   @@index([userId])
   @@map("user_preferences")
+}
+
+// ============================================
+// FINANCIAL MODELS
+// ============================================
+
+model Invoice {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoiceNumber  String        @unique @map("invoice_number") @db.VarChar(50) // e.g., INV-2025-0001
+  orderId        String        @unique @map("order_id") @db.Uuid
+
+  // Amounts
+  subtotal       Decimal       @db.Decimal(10, 2)
+  vatRate        Decimal       @map("vat_rate") @db.Decimal(5, 2) // e.g., 20.00 for 20%
+  vatAmount      Decimal       @map("vat_amount") @db.Decimal(10, 2)
+  total          Decimal       @db.Decimal(10, 2)
+
+  // Currency
+  currency       String        @default("GBP") @db.VarChar(3)
+  exchangeRate   Decimal?      @map("exchange_rate") @db.Decimal(10, 4) // For currency conversion
+
+  // Dates and Status
+  issueDate      DateTime      @map("issue_date") @default(now())
+  dueDate        DateTime      @map("due_date")
+  status         InvoiceStatus @default(DRAFT)
+
+  // PDF Storage
+  pdfUrl         String?       @map("pdf_url") @db.VarChar(500)
+
+  // Metadata
+  notes          String?       @db.Text
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([invoiceNumber])
+  @@index([status])
+  @@index([issueDate(sort: Desc)])
+  @@map("invoices")
+}
+
+model Payment {
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId            String        @unique @map("order_id") @db.Uuid
+
+  // Payment Details
+  amount             Decimal       @db.Decimal(10, 2)
+  currency           String        @default("GBP") @db.VarChar(3)
+  paymentMethod      PaymentMethod @map("payment_method")
+  status             PaymentStatus @default(PENDING)
+
+  // Gateway Integration
+  stripePaymentId    String?       @map("stripe_payment_id") @db.VarChar(255)
+  paypalTransactionId String?      @map("paypal_transaction_id") @db.VarChar(255)
+  gatewayResponse    Json?         @map("gateway_response") @db.JsonB
+
+  // Timestamps
+  paidAt             DateTime?     @map("paid_at")
+  refundedAt         DateTime?     @map("refunded_at")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @default(now()) @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([status])
+  @@index([paymentMethod])
+  @@index([paidAt(sort: Desc)])
+  @@map("payments")
+}
+
+model Expense {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  expenseNumber  String          @unique @map("expense_number") @db.VarChar(50) // e.g., EXP-2025-0001
+
+  // Expense Details
+  category       ExpenseCategory
+  description    String          @db.VarChar(500)
+  amount         Decimal         @db.Decimal(10, 2)
+  currency       String          @default("GBP") @db.VarChar(3)
+  exchangeRate   Decimal?        @map("exchange_rate") @db.Decimal(10, 4)
+
+  // Supplier
+  supplierId     String?         @map("supplier_id") @db.Uuid
+
+  // Documentation
+  receiptUrl     String?         @map("receipt_url") @db.VarChar(500)
+
+  // Product Search Metadata (for Google search results, price comparison)
+  searchMetadata Json?           @map("search_metadata") @db.JsonB
+
+  // Dates
+  purchaseDate   DateTime        @map("purchase_date") @default(now())
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at")
+
+  // Notes
+  notes          String?         @db.Text
+
+  supplier          Supplier?         @relation(fields: [supplierId], references: [id])
+  inventoryAdditions InventoryAddition[]
+
+  @@index([category])
+  @@index([supplierId])
+  @@index([purchaseDate(sort: Desc)])
+  @@map("expenses")
+}
+
+model Supplier {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(255)
+  contactInfo Json?    @map("contact_info") @db.JsonB // email, phone, address
+  website     String?  @db.VarChar(500)
+  rating      Decimal? @db.Decimal(3, 2) // e.g., 4.50 out of 5.00
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  expenses Expense[]
+
+  @@index([name])
+  @@map("suppliers")
+}
+
+// ============================================
+// INVENTORY MODELS
+// ============================================
+
+model Inventory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemName        String   @map("item_name") @db.VarChar(255)
+  category        ExpenseCategory // Same categories as expenses
+  description     String?  @db.Text
+
+  // Stock Tracking
+  currentStock    Int      @map("current_stock") @default(0)
+  unit            String   @db.VarChar(50) // e.g., "sheets", "ml", "units"
+  reorderPoint    Int?     @map("reorder_point") // Alert when stock falls below this
+  reorderQuantity Int?     @map("reorder_quantity") // Suggested reorder amount
+
+  // Costing (for profit margin calculations)
+  unitCost        Decimal? @map("unit_cost") @db.Decimal(10, 2)
+  currency        String   @default("GBP") @db.VarChar(3)
+
+  // Metadata
+  sku             String?  @unique @db.VarChar(100)
+  metadata        Json?    @db.JsonB
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  additions InventoryAddition[]
+  usages    InventoryUsage[]
+
+  @@index([itemName])
+  @@index([category])
+  @@index([currentStock])
+  @@map("inventory")
+}
+
+model InventoryAddition {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  inventoryId String   @map("inventory_id") @db.Uuid
+  expenseId   String?  @map("expense_id") @db.Uuid
+  quantity    Int
+  unitCost    Decimal? @map("unit_cost") @db.Decimal(10, 2)
+  notes       String?  @db.Text
+  addedAt     DateTime @map("added_at") @default(now())
+
+  inventory Inventory @relation(fields: [inventoryId], references: [id])
+  expense   Expense?  @relation(fields: [expenseId], references: [id])
+
+  @@index([inventoryId])
+  @@index([expenseId])
+  @@index([addedAt(sort: Desc)])
+  @@map("inventory_additions")
+}
+
+model InventoryUsage {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  inventoryId String   @map("inventory_id") @db.Uuid
+  orderId     String?  @map("order_id") @db.Uuid
+  quantity    Int
+  notes       String?  @db.Text
+  usedAt      DateTime @map("used_at") @default(now())
+
+  inventory Inventory @relation(fields: [inventoryId], references: [id])
+  order     Order?    @relation(fields: [orderId], references: [id])
+
+  @@index([inventoryId])
+  @@index([orderId])
+  @@index([usedAt(sort: Desc)])
+  @@map("inventory_usages")
+}
+
+// ============================================
+// REPORTING MODELS
+// ============================================
+
+model FinancialReport {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  period        ReportPeriod
+  startDate     DateTime     @map("start_date")
+  endDate       DateTime     @map("end_date")
+
+  // Financial Summary
+  totalRevenue  Decimal      @map("total_revenue") @db.Decimal(10, 2)
+  totalExpenses Decimal      @map("total_expenses") @db.Decimal(10, 2)
+  netProfit     Decimal      @map("net_profit") @db.Decimal(10, 2)
+  vatCollected  Decimal      @map("vat_collected") @db.Decimal(10, 2)
+
+  // Order Statistics
+  orderCount    Int          @map("order_count")
+
+  // Detailed Data (JSON for charts/graphs)
+  reportData    Json         @map("report_data") @db.JsonB
+
+  // PDF Storage
+  pdfUrl        String?      @map("pdf_url") @db.VarChar(500)
+
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  @@index([period])
+  @@index([startDate, endDate])
+  @@index([createdAt(sort: Desc)])
+  @@map("financial_reports")
 }

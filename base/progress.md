@@ -41,8 +41,16 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Add all indexes as specified in data-models.md
   - [✅] Add preview/mockup functionality (print size, material, orientation, dimensions, preview URL)
   - [✅] Create type-safe enums (UserType, OrderStatus, PrintSize, Material, Orientation)
+  - [✅] Add financial management system (Invoice, Payment, Expense, Supplier)
+  - [✅] Add inventory tracking system (Inventory, InventoryAddition, InventoryUsage)
+  - [✅] Add financial reporting (FinancialReport with daily/weekly/monthly periods)
+  - [✅] Payment gateway integration fields (Stripe, PayPal, Card)
+  - [✅] VAT calculations (20% UK standard rate)
+  - [✅] Multi-currency support with GBP base
+  - [✅] Expense categories and Google search metadata storage
 - [✅] Set up PostgreSQL connection (Neon PostgreSQL for development)
   - [✅] Run initial migration to create all tables
+  - [✅] Run financial management system migration
 - [ ] Implement JWT authentication (stateless, no sessions)
   - [ ] Access tokens (15min expiry, httpOnly cookies)
   - [ ] Refresh tokens (7 day expiry, stored in database with rotation)

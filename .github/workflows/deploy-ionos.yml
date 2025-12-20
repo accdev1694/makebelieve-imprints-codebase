@@ -1,0 +1,66 @@
+name: Deploy Backend to IONOS VPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-ionos.yml'
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies & build backend
+        run: |
+          cd backend
+          npm ci
+          npm run build
+          npm run test  # Run tests before deploying
+          cd ..
+
+      - name: Archive backend artifacts
+        run: |
+          tar -czf backend.tar.gz -C backend dist package.json package-lock.json prisma
+
+      - name: Copy artifacts to server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          source: 'backend.tar.gz'
+          target: '/tmp'
+
+      - name: Deploy backend to VPS
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          script: |
+            # Extract to deployment directory
+            sudo mkdir -p /home/deploy/app/backend
+            sudo tar -xzf /tmp/backend.tar.gz -C /home/deploy/app/backend
+
+            # Install production dependencies
+            cd /home/deploy/app/backend
+            npm ci --production
+
+            # Run Prisma migrations (if needed)
+            npx prisma migrate deploy
+
+            # Restart backend service with PM2
+            pm2 restart backend || pm2 start dist/index.js --name backend
+
+            # Cleanup
+            rm /tmp/backend.tar.gz

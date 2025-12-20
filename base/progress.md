@@ -36,10 +36,13 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 
 - [✅] Scaffold backend folder and Express app
 - [✅] Set up TypeScript config for backend (strict mode enabled)
-- [ ] Initialize Prisma and define schema based on `data-models.md`
-  - [ ] Define User, RefreshToken, Design, Order, Review, UserPreference models
-  - [ ] Add all indexes as specified in data-models.md
-- [ ] Set up PostgreSQL connection (IONOS Managed PostgreSQL for production)
+- [✅] Initialize Prisma and define schema based on `data-models.md`
+  - [✅] Define User, RefreshToken, Design, Order, Review, UserPreference models
+  - [✅] Add all indexes as specified in data-models.md
+  - [✅] Add preview/mockup functionality (print size, material, orientation, dimensions, preview URL)
+  - [✅] Create type-safe enums (UserType, OrderStatus, PrintSize, Material, Orientation)
+- [✅] Set up PostgreSQL connection (Neon PostgreSQL for development)
+  - [✅] Run initial migration to create all tables
 - [ ] Implement JWT authentication (stateless, no sessions)
   - [ ] Access tokens (15min expiry, httpOnly cookies)
   - [ ] Refresh tokens (7 day expiry, stored in database with rotation)

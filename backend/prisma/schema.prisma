@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums for print specifications
+enum UserType {
+  customer
+  admin
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  printing
+  shipped
+  delivered
+  cancelled
+}
+
+enum PrintSize {
+  A4
+  A3
+  A5
+  SQUARE_20CM
+  SQUARE_30CM
+  CUSTOM
+}
+
+enum Material {
+  MATTE
+  GLOSSY
+  CANVAS
+  FINE_ART
+}
+
+enum Orientation {
+  PORTRAIT
+  LANDSCAPE
+  SQUARE
+}
+
+model User {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type          UserType
+  email         String   @unique @db.VarChar(255)
+  passwordHash  String   @map("password_hash") @db.VarChar(255)
+  name          String   @db.VarChar(255)
+  profile       Json?    @db.JsonB
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  designs         Design[]
+  orders          Order[]
+  reviews         Review[]
+  refreshTokens   RefreshToken[]
+  preferences     UserPreference?
+
+  @@index([email])
+  @@index([type])
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  tokenHash   String   @map("token_hash") @db.VarChar(255)
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Design {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String       @map("user_id") @db.Uuid
+  title        String?      @db.VarChar(255)
+  fileUrl      String       @map("file_url") @db.VarChar(500)
+
+  // Print specifications for preview
+  printSize    PrintSize?   @map("print_size")
+  material     Material?
+  orientation  Orientation?
+  printWidth   Int?         @map("print_width")  // Width in millimeters
+  printHeight  Int?         @map("print_height") // Height in millimeters
+
+  // Preview/mockup
+  previewUrl   String?      @map("preview_url") @db.VarChar(500)
+
+  // Flexible metadata for additional customization
+  metadata     Json?        @db.JsonB
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("designs")
+}
+
+model Order {
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId       String      @map("customer_id") @db.Uuid
+  designId         String      @map("design_id") @db.Uuid
+  status           OrderStatus @default(pending)
+
+  // Snapshot of print specifications at order time
+  printSize        PrintSize   @map("print_size")
+  material         Material
+  orientation      Orientation
+  printWidth       Int         @map("print_width")  // Width in millimeters
+  printHeight      Int         @map("print_height") // Height in millimeters
+  previewUrl       String?     @map("preview_url") @db.VarChar(500)
+
+  // Pricing and shipping
+  totalPrice       Decimal     @map("total_price") @db.Decimal(10, 2)
+  shippingAddress  Json        @map("shipping_address") @db.JsonB
+
+  // Royal Mail integration
+  royalmailOrderId String?     @map("royalmail_order_id") @db.VarChar(255)
+  trackingNumber   String?     @map("tracking_number") @db.VarChar(255)
+  carrier          String?     @db.VarChar(50)
+
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @default(now()) @updatedAt @map("updated_at")
+
+  customer User    @relation(fields: [customerId], references: [id])
+  design   Design  @relation(fields: [designId], references: [id])
+  review   Review?
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@index([trackingNumber])
+  @@map("orders")
+}
+
+model Review {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId    String   @unique @map("order_id") @db.Uuid
+  reviewerId String   @map("reviewer_id") @db.Uuid
+  rating     Int
+  comment    String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  order    Order @relation(fields: [orderId], references: [id])
+  reviewer User  @relation(fields: [reviewerId], references: [id])
+
+  @@index([orderId])
+  @@index([rating])
+  @@index([createdAt(sort: Desc)])
+  @@map("reviews")
+}
+
+model UserPreference {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  preferences Json?    @db.JsonB
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("user_preferences")
+}

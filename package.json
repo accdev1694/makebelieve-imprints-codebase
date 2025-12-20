@@ -1,0 +1,33 @@
+{
+  "name": "makebelieve-imprints",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Single-printer custom print service platform with mobile apps",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=frontend\" \"npm run dev --workspace=backend\"",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "build": "npm run build --workspace=frontend && npm run build --workspace=backend",
+    "lint": "npm run lint --workspace=frontend && npm run lint --workspace=backend",
+    "format": "npx prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "npx prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "concurrently": "^9.1.0",
+    "eslint": "^8.57.1",
+    "husky": "^9.1.7",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  }
+}

@@ -14,15 +14,15 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 
 ### 1.1 Free Development Infrastructure Setup (Cost: $0/month)
 
-- [ ] **Vercel Hobby** - Connect GitHub repo to Vercel
-  - [ ] Import project, select `frontend/` directory
-  - [ ] Get free URL: https://mkbl.vercel.app
+- [✅] **Vercel Hobby** - Connect GitHub repo to Vercel
+  - [✅] Import project, select `frontend/` directory
+  - [✅] Get free URL: https://mkbl.vercel.app
 - [✅] **Backend** - Choose development approach
   - [✅] Option B: Run locally (`npm run dev`) - SELECTED
   - [ ] Option A: Railway Free Tier (optional for later)
-- [ ] **Neon Database** - Sign up at neon.tech
-  - [ ] Create project, get connection string
-  - [ ] 512MB storage free (sufficient for development)
+- [✅] **Neon Database** - Sign up at neon.tech
+  - [✅] Create project, get connection string
+  - [✅] 512MB storage free (sufficient for development)
 - [✅] **Cloudflare R2** - Sign up for R2
   - [✅] Using local filesystem during development
   - [ ] Optional: Set up R2 for production-like testing

@@ -7,8 +7,8 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 ## 1. Project Setup
 
 - [ ] Set up monorepo structure as per `source-tree.md`
-- [ ] Initialize Git repository with conventional commit setup
-- [ ] Initial push to GitHub
+- [✅] Initialize Git repository with conventional commit setup
+- [✅] Initial push to GitHub
 - [ ] Add root `package.json` and install core dependencies (TypeScript, ESLint, Prettier, etc.)
 - [ ] Configure Prettier, ESLint, and Husky for code quality
 
@@ -62,8 +62,8 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 
 ## 3. Frontend Setup (Next.js + Tailwind)
 
-- [ ] Scaffold Next.js 15.x app in `frontend/` with App Router
-- [ ] Configure TypeScript (strict mode) and Tailwind CSS 3.4+
+- [✅] Scaffold Next.js 15.x app in `frontend/` with App Router
+- [✅] Configure TypeScript (strict mode) and Tailwind CSS 3.4+
 - [ ] Configure Tailwind theme based on `mood.md` design system
   - [ ] Colors, typography, spacing
   - [ ] Custom components for consistent design

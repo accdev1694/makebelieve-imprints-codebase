@@ -27,8 +27,14 @@ This document outlines the software architecture for MakeBelieve Imprints, a sin
 - **Language:** TypeScript is used for type safety and consistency with the frontend.
 - **Database Interaction:** Prisma is used as the Object-Relational Mapper (ORM) to interact with the PostgreSQL database, simplifying database operations and ensuring data integrity.
 - **Key Components:**
-  - **`src/routes/`:** Defines the API endpoints for handling user authentication, orders, designs, and other resources.
-  - **`src/services/`:** Contains the core business logic, including payment processing and the Royal Mail service for shipping and tracking.
+  - **`src/routes/`:** Defines the API endpoints for handling user authentication, orders, designs, financial operations, and other resources.
+  - **`src/services/`:** Contains the core business logic, including:
+    - Payment processing (Stripe, PayPal integration)
+    - Royal Mail service for shipping and tracking
+    - Invoice generation with VAT calculations
+    - Financial reporting and analytics
+    - Inventory management
+    - Google search integration for procurement
   - **`src/middleware/`:** Includes middleware for authentication, input validation, and error handling.
   - **`prisma/`:** Holds the database schema and migration files.
 
@@ -40,13 +46,29 @@ This document outlines the software architecture for MakeBelieve Imprints, a sin
 ## 6. Data Architecture
 
 - **Database:** PostgreSQL is the relational database of choice, providing ACID compliance for transactional data and robust support for JSONB data types to store flexible metadata.
-- **Data Models:** The core data models are:
+- **Data Models:** The core data models are organized into three categories:
+
+  **Core Models:**
   - **`users`:** Represents customers and the admin (the printer).
-  - **`designs`:** Stores user-uploaded or template-assisted designs.
-  - **`orders`:** Tracks customer orders from placement to delivery.
+  - **`designs`:** Stores user-uploaded or template-assisted designs with print specifications and preview URLs.
+  - **`orders`:** Tracks customer orders from placement to delivery with print specifications snapshot.
   - **`reviews`:** Stores customer reviews of their orders.
   - **`user_preferences`:** Stores user preferences used by template selection and preview rendering.
-- **Data Flow:** The frontend interacts with the backend API, which in turn queries the database via Prisma. All data is validated and sanitized at the API layer to ensure security and integrity.
+  - **`refresh_tokens`:** JWT refresh tokens for secure authentication.
+
+  **Financial Models:**
+  - **`invoices`:** Auto-generated invoices with VAT calculations and multi-currency support.
+  - **`payments`:** Payment processing records (Stripe, PayPal, Card) with transaction tracking.
+  - **`expenses`:** Business expenses with categories, supplier links, and Google search metadata.
+  - **`suppliers`:** Supplier database with ratings for price comparison.
+  - **`financial_reports`:** Cached daily/weekly/monthly reports with revenue, expenses, and profit tracking.
+
+  **Inventory Models:**
+  - **`inventory`:** Material stock tracking (paper, ink, packaging) with reorder alerts.
+  - **`inventory_additions`:** Logs when materials are purchased (links to expenses).
+  - **`inventory_usages`:** Logs when materials are used for orders (auto-deducts stock).
+
+- **Data Flow:** The frontend interacts with the backend API, which in turn queries the database via Prisma. All data is validated and sanitized at the API layer to ensure security and integrity. Financial operations (invoicing, payments, inventory) are automated via service layer business logic.
 
 ## 7. Infrastructure and Deployment
 

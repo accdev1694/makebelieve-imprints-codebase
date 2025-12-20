@@ -4,6 +4,10 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
+import {
+  errorHandler,
+  notFoundHandler,
+} from './middleware/error.middleware';
 
 dotenv.config();
 
@@ -40,6 +44,10 @@ app.get('/', (_req: Request, res: Response) => {
     docs: '/api/docs',
   });
 });
+
+// Error handling middleware (must be last)
+app.use(notFoundHandler); // 404 handler
+app.use(errorHandler); // Global error handler
 
 // Start server
 app.listen(PORT, () => {

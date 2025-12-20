@@ -6,6 +6,9 @@ import {
   logout,
 } from '../services/auth.service';
 import { authenticate } from '../middleware/auth.middleware';
+import { asyncHandler } from '../middleware/error.middleware';
+import { validateBody, authSchemas } from '../utils/validation';
+import { UnauthorizedError, ConflictError } from '../utils/errors';
 
 const router = Router();
 
@@ -23,131 +26,85 @@ const COOKIE_OPTIONS = {
  * POST /api/auth/register
  * Register a new user
  */
-router.post('/register', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/register',
+  validateBody(authSchemas.register),
+  asyncHandler(async (req: Request, res: Response) => {
     const { email, password, name } = req.body;
 
-    // Validate input
-    if (!email || !password || !name) {
-      res.status(400).json({
-        success: false,
-        error: 'Email, password, and name are required',
+    try {
+      // Register user
+      const result = await register({ email, password, name });
+
+      // Set tokens in httpOnly cookies
+      res.cookie('accessToken', result.tokens.accessToken, {
+        ...COOKIE_OPTIONS,
+        maxAge: 15 * 60 * 1000, // 15 minutes
       });
-      return;
+      res.cookie('refreshToken', result.tokens.refreshToken, COOKIE_OPTIONS);
+
+      res.status(201).json({
+        success: true,
+        data: {
+          user: result.user,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Email already registered') {
+        throw new ConflictError(error.message);
+      }
+      throw error;
     }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      res.status(400).json({
-        success: false,
-        error: 'Invalid email format',
-      });
-      return;
-    }
-
-    // Password strength validation
-    if (password.length < 8) {
-      res.status(400).json({
-        success: false,
-        error: 'Password must be at least 8 characters',
-      });
-      return;
-    }
-
-    // Register user
-    const result = await register({ email, password, name });
-
-    // Set tokens in httpOnly cookies
-    res.cookie('accessToken', result.tokens.accessToken, {
-      ...COOKIE_OPTIONS,
-      maxAge: 15 * 60 * 1000, // 15 minutes
-    });
-    res.cookie('refreshToken', result.tokens.refreshToken, COOKIE_OPTIONS);
-
-    res.status(201).json({
-      success: true,
-      data: {
-        user: result.user,
-      },
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({
-        success: false,
-        error: error.message,
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: 'Registration failed',
-      });
-    }
-  }
-});
+  })
+);
 
 /**
  * POST /api/auth/login
  * Login a user
  */
-router.post('/login', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/login',
+  validateBody(authSchemas.login),
+  asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
-    // Validate input
-    if (!email || !password) {
-      res.status(400).json({
-        success: false,
-        error: 'Email and password are required',
+    try {
+      // Login user
+      const result = await login({ email, password });
+
+      // Set tokens in httpOnly cookies
+      res.cookie('accessToken', result.tokens.accessToken, {
+        ...COOKIE_OPTIONS,
+        maxAge: 15 * 60 * 1000, // 15 minutes
       });
-      return;
+      res.cookie('refreshToken', result.tokens.refreshToken, COOKIE_OPTIONS);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          user: result.user,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Invalid email or password') {
+        throw new UnauthorizedError(error.message);
+      }
+      throw error;
     }
-
-    // Login user
-    const result = await login({ email, password });
-
-    // Set tokens in httpOnly cookies
-    res.cookie('accessToken', result.tokens.accessToken, {
-      ...COOKIE_OPTIONS,
-      maxAge: 15 * 60 * 1000, // 15 minutes
-    });
-    res.cookie('refreshToken', result.tokens.refreshToken, COOKIE_OPTIONS);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        user: result.user,
-      },
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(401).json({
-        success: false,
-        error: error.message,
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: 'Login failed',
-      });
-    }
-  }
-});
+  })
+);
 
 /**
  * POST /api/auth/refresh
  * Refresh access token
  */
-router.post('/refresh', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/refresh',
+  asyncHandler(async (req: Request, res: Response) => {
     const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
-      res.status(401).json({
-        success: false,
-        error: 'Refresh token required',
-      });
-      return;
+      throw new UnauthorizedError('Refresh token required');
     }
 
     // Refresh tokens
@@ -164,27 +121,16 @@ router.post('/refresh', async (req: Request, res: Response) => {
       success: true,
       message: 'Tokens refreshed successfully',
     });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(401).json({
-        success: false,
-        error: error.message,
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: 'Token refresh failed',
-      });
-    }
-  }
-});
+  })
+);
 
 /**
  * POST /api/auth/logout
  * Logout user
  */
-router.post('/logout', async (req: Request, res: Response) => {
-  try {
+router.post(
+  '/logout',
+  asyncHandler(async (req: Request, res: Response) => {
     const refreshToken = req.cookies?.refreshToken;
 
     if (refreshToken) {
@@ -199,13 +145,8 @@ router.post('/logout', async (req: Request, res: Response) => {
       success: true,
       message: 'Logged out successfully',
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Logout failed',
-    });
-  }
-});
+  })
+);
 
 /**
  * GET /api/auth/me

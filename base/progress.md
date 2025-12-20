@@ -58,7 +58,14 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Auth routes (register, login, refresh, logout, me)
   - [✅] Auth middleware (authenticate, requireAdmin, optionalAuthenticate)
   - [✅] Token rotation on refresh for security
-- [ ] Add error handling middleware (custom error classes: ValidationError, NotFoundError, etc.)
+- [✅] Add error handling middleware (custom error classes: ValidationError, NotFoundError, etc.)
+  - [✅] Custom error classes (ValidationError, UnauthorizedError, NotFoundError, ConflictError, etc.)
+  - [✅] Global error handler with consistent format
+  - [✅] Zod-based request validation
+  - [✅] Prisma error handling
+  - [✅] 404 Not Found handler
+  - [✅] Async route handler wrapper
+  - [✅] Development vs production error details
 - [ ] Implement API routes for users, designs, orders, reviews, preferences
 - [ ] Implement Royal Mail Click and Drop API service
   - [ ] Create shipment with retry logic (exponential backoff)

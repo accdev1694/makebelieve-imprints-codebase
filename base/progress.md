@@ -51,10 +51,13 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 - [✅] Set up PostgreSQL connection (Neon PostgreSQL for development)
   - [✅] Run initial migration to create all tables
   - [✅] Run financial management system migration
-- [ ] Implement JWT authentication (stateless, no sessions)
-  - [ ] Access tokens (15min expiry, httpOnly cookies)
-  - [ ] Refresh tokens (7 day expiry, stored in database with rotation)
-  - [ ] Password hashing with bcrypt (cost factor 12)
+- [✅] Implement JWT authentication (stateless, no sessions)
+  - [✅] Access tokens (15min expiry, httpOnly cookies)
+  - [✅] Refresh tokens (7 day expiry, stored in database with rotation)
+  - [✅] Password hashing with bcrypt (cost factor 12)
+  - [✅] Auth routes (register, login, refresh, logout, me)
+  - [✅] Auth middleware (authenticate, requireAdmin, optionalAuthenticate)
+  - [✅] Token rotation on refresh for security
 - [ ] Add error handling middleware (custom error classes: ValidationError, NotFoundError, etc.)
 - [ ] Implement API routes for users, designs, orders, reviews, preferences
 - [ ] Implement Royal Mail Click and Drop API service

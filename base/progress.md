@@ -73,10 +73,13 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Reviews routes (create, list, get with average rating)
   - [✅] Invoices routes (list, get, PDF URL)
   - [✅] Payments routes (process, list, get - gateway integration pending)
-- [ ] Implement Royal Mail Click and Drop API service
-  - [ ] Create shipment with retry logic (exponential backoff)
-  - [ ] Get tracking status
-  - [ ] Health check endpoint
+- [✅] Implement Royal Mail Click and Drop API service
+  - [✅] Service interface and types (IRoyalMailService, retry config)
+  - [✅] Production service with exponential backoff retry logic
+  - [✅] Mock service for development (zero API costs)
+  - [✅] Service factory (auto-switches based on env vars)
+  - [✅] Shipping routes (POST /shipments, GET /tracking/:number, GET /health)
+  - [✅] Health check endpoint with response time monitoring
 - [ ] Configure IONOS Object Storage (S3-compatible) for file uploads
   - [ ] Implement signed URL generation for secure uploads
 - [ ] Add security middleware (Helmet, CORS, rate limiting)

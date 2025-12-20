@@ -10,6 +10,7 @@ import ordersRoutes from './routes/orders.routes';
 import reviewsRoutes from './routes/reviews.routes';
 import invoicesRoutes from './routes/invoices.routes';
 import paymentsRoutes from './routes/payments.routes';
+import shippingRoutes from './routes/shipping.routes';
 import {
   errorHandler,
   notFoundHandler,
@@ -38,6 +39,7 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/invoices', invoicesRoutes);
 app.use('/api/payments', paymentsRoutes);
+app.use('/api/shipping', shippingRoutes);
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {

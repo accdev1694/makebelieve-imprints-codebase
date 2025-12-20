@@ -9,6 +9,7 @@ import { authenticate } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/error.middleware';
 import { validateBody, authSchemas } from '../utils/validation';
 import { UnauthorizedError, ConflictError } from '../utils/errors';
+import { authLimiter } from '../middleware/rate-limit.middleware';
 
 const router = Router();
 
@@ -28,6 +29,7 @@ const COOKIE_OPTIONS = {
  */
 router.post(
   '/register',
+  authLimiter, // Strict rate limiting for auth endpoints
   validateBody(authSchemas.register),
   asyncHandler(async (req: Request, res: Response) => {
     const { email, password, name } = req.body;
@@ -64,6 +66,7 @@ router.post(
  */
 router.post(
   '/login',
+  authLimiter, // Strict rate limiting for auth endpoints
   validateBody(authSchemas.login),
   asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body;

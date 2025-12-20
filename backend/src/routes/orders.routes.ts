@@ -11,6 +11,7 @@ import { asyncHandler } from '../middleware/error.middleware';
 import { validateBody, validateParams, commonSchemas } from '../utils/validation';
 import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors';
 import { z } from 'zod';
+import { orderLimiter } from '../middleware/rate-limit.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -48,6 +49,7 @@ const updateOrderStatusSchema = z.object({
 router.post(
   '/',
   authenticate,
+  orderLimiter, // Limit order creation to prevent spam
   validateBody(createOrderSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { designId, ...orderData } = req.body;

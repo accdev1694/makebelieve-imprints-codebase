@@ -5,6 +5,7 @@ import { asyncHandler } from '../middleware/error.middleware';
 import { validateBody, validateParams, commonSchemas } from '../utils/validation';
 import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors';
 import { z } from 'zod';
+import { paymentLimiter } from '../middleware/rate-limit.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -33,6 +34,7 @@ const createPaymentSchema = z.object({
 router.post(
   '/',
   authenticate,
+  paymentLimiter, // Very strict limit to prevent payment fraud
   validateBody(createPaymentSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { orderId, invoiceId, amount, currency, paymentMethod, ...paymentDetails } = req.body;

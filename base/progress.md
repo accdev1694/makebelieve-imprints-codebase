@@ -82,7 +82,15 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Health check endpoint with response time monitoring
 - [ ] Configure IONOS Object Storage (S3-compatible) for file uploads
   - [ ] Implement signed URL generation for secure uploads
-- [ ] Add security middleware (Helmet, CORS, rate limiting)
+- [✅] Add security middleware (Helmet, CORS, rate limiting)
+  - [✅] Helmet security headers (already configured in index.ts)
+  - [✅] CORS with credentials (already configured in index.ts)
+  - [✅] Global API rate limiter (100 req/15min)
+  - [✅] Auth rate limiter (5 req/15min for login/register)
+  - [✅] Payment rate limiter (10 req/hour)
+  - [✅] Order rate limiter (10 req/hour)
+  - [✅] File upload rate limiter (20 req/hour)
+  - [✅] Public read-only rate limiter (200 req/15min)
 - [ ] Write integration tests for critical API endpoints (Supertest)
   - [ ] Auth flow (login, register, token refresh)
   - [ ] Order creation and status updates

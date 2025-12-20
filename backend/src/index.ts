@@ -15,6 +15,7 @@ import {
   errorHandler,
   notFoundHandler,
 } from './middleware/error.middleware';
+import { apiLimiter } from './middleware/rate-limit.middleware';
 
 dotenv.config();
 
@@ -30,6 +31,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); // Parse cookies for JWT auth
+
+// Rate limiting - Apply to all API routes
+app.use('/api/', apiLimiter);
 
 // API Routes
 app.use('/api/auth', authRoutes);

@@ -91,10 +91,18 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Order rate limiter (10 req/hour)
   - [✅] File upload rate limiter (20 req/hour)
   - [✅] Public read-only rate limiter (200 req/15min)
-- [ ] Write integration tests for critical API endpoints (Supertest)
-  - [ ] Auth flow (login, register, token refresh)
-  - [ ] Order creation and status updates
+- [✅] Write integration tests for critical API endpoints (Supertest)
+  - [✅] Jest configuration with ts-jest preset
+  - [✅] Test database setup and teardown utilities
+  - [✅] Test helper functions (create users, designs, orders, extract cookies)
+  - [✅] Auth flow tests (register, login, refresh, logout, me)
+  - [✅] Order flow tests (create, list, get, update status)
+  - [✅] Test scripts (test, test:watch, test:coverage)
+  - [ ] Additional endpoint coverage (designs, reviews, payments, invoices)
 - [ ] Write unit tests for complex business logic (Jest)
+  - [ ] Auth service unit tests
+  - [ ] Password hashing unit tests
+  - [ ] JWT token generation/verification unit tests
   - [ ] Target: 60%+ coverage on critical paths
 
 ## 3. Frontend Setup (Next.js + Tailwind)

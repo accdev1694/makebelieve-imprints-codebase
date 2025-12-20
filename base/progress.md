@@ -66,7 +66,13 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] 404 Not Found handler
   - [✅] Async route handler wrapper
   - [✅] Development vs production error details
-- [ ] Implement API routes for users, designs, orders, reviews, preferences
+- [✅] Implement API routes for users, designs, orders, reviews, preferences
+  - [✅] Users routes (GET/PUT /me, GET /users, GET/DELETE /users/:id)
+  - [✅] Designs routes (POST, GET, PUT, DELETE with ownership checks)
+  - [✅] Orders routes (create, list, get, update status)
+  - [✅] Reviews routes (create, list, get with average rating)
+  - [✅] Invoices routes (list, get, PDF URL)
+  - [✅] Payments routes (process, list, get - gateway integration pending)
 - [ ] Implement Royal Mail Click and Drop API service
   - [ ] Create shipment with retry logic (exponential backoff)
   - [ ] Get tracking status

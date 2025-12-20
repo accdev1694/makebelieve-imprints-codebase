@@ -4,6 +4,12 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
+import usersRoutes from './routes/users.routes';
+import designsRoutes from './routes/designs.routes';
+import ordersRoutes from './routes/orders.routes';
+import reviewsRoutes from './routes/reviews.routes';
+import invoicesRoutes from './routes/invoices.routes';
+import paymentsRoutes from './routes/payments.routes';
 import {
   errorHandler,
   notFoundHandler,
@@ -26,6 +32,12 @@ app.use(cookieParser()); // Parse cookies for JWT auth
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/designs', designsRoutes);
+app.use('/api/orders', ordersRoutes);
+app.use('/api/reviews', reviewsRoutes);
+app.use('/api/invoices', invoicesRoutes);
+app.use('/api/payments', paymentsRoutes);
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {

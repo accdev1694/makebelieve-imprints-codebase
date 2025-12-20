@@ -80,8 +80,16 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Service factory (auto-switches based on env vars)
   - [✅] Shipping routes (POST /shipments, GET /tracking/:number, GET /health)
   - [✅] Health check endpoint with response time monitoring
-- [ ] Configure IONOS Object Storage (S3-compatible) for file uploads
-  - [ ] Implement signed URL generation for secure uploads
+- [✅] Configure IONOS Object Storage (S3-compatible) for file uploads
+  - [✅] Storage service interface and types (IFileStorageService)
+  - [✅] S3-compatible storage service (IONOS, AWS S3, MinIO)
+  - [✅] Local file storage service for development (filesystem-based)
+  - [✅] Storage service factory (auto-switches based on env vars)
+  - [✅] Signed URL generation for secure uploads (client-side direct upload)
+  - [✅] Signed URL generation for downloads (private files)
+  - [✅] File upload routes (request URL, download, delete, health check)
+  - [✅] File validation (type, size, ownership)
+  - [✅] Rate limiting for uploads (20 req/hour)
 - [✅] Add security middleware (Helmet, CORS, rate limiting)
   - [✅] Helmet security headers (already configured in index.ts)
   - [✅] CORS with credentials (already configured in index.ts)

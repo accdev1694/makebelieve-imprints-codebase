@@ -11,6 +11,7 @@ import reviewsRoutes from './routes/reviews.routes';
 import invoicesRoutes from './routes/invoices.routes';
 import paymentsRoutes from './routes/payments.routes';
 import shippingRoutes from './routes/shipping.routes';
+import uploadsRoutes from './routes/uploads.routes';
 import {
   errorHandler,
   notFoundHandler,
@@ -44,6 +45,7 @@ app.use('/api/reviews', reviewsRoutes);
 app.use('/api/invoices', invoicesRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/shipping', shippingRoutes);
+app.use('/api/uploads', uploadsRoutes);
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {

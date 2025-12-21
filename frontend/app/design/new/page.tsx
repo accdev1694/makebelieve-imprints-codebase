@@ -13,6 +13,7 @@ import { MaterialSelector } from '@/components/design/MaterialSelector';
 import { SizeSelector } from '@/components/design/SizeSelector';
 import { TemplateSelector } from '@/components/design/TemplateSelector';
 import { designsService, Material, PrintSize, Orientation } from '@/lib/api/designs';
+import { storageService } from '@/lib/api/storage';
 import { Template } from '@/lib/templates';
 import Link from 'next/link';
 
@@ -84,10 +85,21 @@ function DesignEditorContent() {
     setLoading(true);
 
     try {
-      // TODO: Upload file to backend storage and get URL
-      // For now, using preview URL as placeholder
-      const imageUrl = preview; // This will be replaced with actual upload logic
+      let imageUrl: string;
 
+      // Upload file to backend storage if user uploaded a file
+      if (selectedFile) {
+        imageUrl = await storageService.uploadFile(selectedFile);
+      } else if (selectedTemplate) {
+        // Use template preview URL for template-based designs
+        imageUrl = selectedTemplate.previewUrl;
+      } else {
+        setError('No image source selected');
+        setLoading(false);
+        return;
+      }
+
+      // Create design in database
       await designsService.create({
         name,
         description: description || undefined,

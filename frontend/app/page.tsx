@@ -28,6 +28,12 @@ export default function Home() {
             <span className="text-neon-gradient">MakeBelieve</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/gifts">
+              <Button variant="ghost">Gifts</Button>
+            </Link>
+            <Link href="/about">
+              <Button variant="ghost">About</Button>
+            </Link>
             {user ? (
               <>
                 <Link href="/dashboard">
@@ -76,12 +82,16 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
-            <Button size="lg" className="btn-gradient px-8 py-6 text-lg">
-              Start Creating
-            </Button>
-            <Button size="lg" variant="outline" className="px-8 py-6 text-lg border-primary/50 hover:border-primary">
-              Explore Designs
-            </Button>
+            <Link href="/gifts">
+              <Button size="lg" className="btn-gradient px-8 py-6 text-lg">
+                Explore Gift Ideas
+              </Button>
+            </Link>
+            <Link href="/design/new">
+              <Button size="lg" variant="outline" className="px-8 py-6 text-lg border-primary/50 hover:border-primary">
+                Start Designing
+              </Button>
+            </Link>
           </div>
 
           {/* Quick signup */}

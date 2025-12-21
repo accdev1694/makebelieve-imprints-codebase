@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -14,11 +14,12 @@ import { SizeSelector } from '@/components/design/SizeSelector';
 import { TemplateSelector } from '@/components/design/TemplateSelector';
 import { designsService, Material, PrintSize, Orientation } from '@/lib/api/designs';
 import { storageService } from '@/lib/api/storage';
-import { Template } from '@/lib/templates';
+import { Template, getTemplateById } from '@/lib/templates';
 import Link from 'next/link';
 
 function DesignEditorContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
 
   // Design state
@@ -36,6 +37,27 @@ function DesignEditorContent() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Handle URL query parameters (template pre-selection from gifts page)
+  useEffect(() => {
+    const templateId = searchParams.get('template');
+    const mode = searchParams.get('mode') as 'upload' | 'template' | null;
+
+    // Set design mode from query param
+    if (mode === 'upload') {
+      setDesignMode('upload');
+    } else if (mode === 'template' || templateId) {
+      setDesignMode('template');
+    }
+
+    // Pre-select template if provided
+    if (templateId) {
+      const template = getTemplateById(templateId);
+      if (template) {
+        handleTemplateSelect(template);
+      }
+    }
+  }, [searchParams]);
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);

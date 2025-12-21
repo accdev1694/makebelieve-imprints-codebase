@@ -137,7 +137,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Size and material selectors
   - [✅] Template selection and preview
   - [✅] Integration with backend preview endpoints
-- [ ] Implement gifting experience UI (emotional previews with templates)
+- [✅] Implement gifting experience UI (emotional previews with templates)
 - [✅] Add material selection UI (MaterialSelector component)
 - [ ] Implement order placement and checkout flow
 - [ ] Add order tracking UI (Royal Mail integration)

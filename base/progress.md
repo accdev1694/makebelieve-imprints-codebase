@@ -118,30 +118,33 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 
 - [✅] Scaffold Next.js 15.x app in `frontend/` with App Router
 - [✅] Configure TypeScript (strict mode) and Tailwind CSS 3.4+
-- [ ] Configure Tailwind theme based on `mood.md` design system
-  - [ ] Colors, typography, spacing
-  - [ ] Custom components for consistent design
+- [✅] Configure Tailwind theme based on `mood.md` design system
+  - [✅] Colors, typography, spacing
+  - [✅] Custom animations, shadows, and design tokens
 - [ ] Set up Vercel project and connect to GitHub
   - [ ] Configure environment variables (NEXT_PUBLIC_API_URL)
   - [ ] Enable automatic deployments on push to main
-- [ ] Create reusable UI component library
-  - [ ] Buttons, cards, inputs, modals (components/ui/)
-  - [ ] Feature-specific components (components/features/)
-- [ ] Implement authentication pages (login, register)
+- [✅] Create reusable UI component library
+  - [✅] Buttons, cards, inputs, modals (components/ui/)
+  - [✅] Feature-specific components (auth, design)
+- [✅] Implement authentication pages (login, register)
+  - [✅] Login and register pages with forms
+  - [✅] Protected route component
   - [ ] JWT token management (store in httpOnly cookies)
-  - [ ] Protected route middleware
 - [ ] Implement "About the Printer" page
-- [ ] Add design customization UI
-  - [ ] File upload with drag-and-drop
+- [✅] Add design customization UI
+  - [✅] File upload with drag-and-drop
+  - [✅] Size and material selectors
   - [ ] Template selection and preview
   - [ ] Integration with backend preview endpoints
 - [ ] Implement gifting experience UI (emotional previews with templates)
-- [ ] Add material selection UI
+- [✅] Add material selection UI (MaterialSelector component)
 - [ ] Implement order placement and checkout flow
 - [ ] Add order tracking UI (Royal Mail integration)
-- [ ] Build customer dashboard
+- [✅] Build customer dashboard (basic structure)
+  - [✅] Dashboard page created
+  - [✅] My Designs page
   - [ ] Order history
-  - [ ] Saved designs
   - [ ] Account settings
 - [ ] Build admin dashboard for printer
   - [ ] Order management (pending, printing, shipped)

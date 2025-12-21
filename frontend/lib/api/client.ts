@@ -25,24 +25,68 @@ apiClient.interceptors.request.use(
   }
 );
 
+// Token refresh state management
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void;
+  reject: (reason?: unknown) => void;
+}> = [];
+
+const processQueue = (error: Error | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve();
+    }
+  });
+  failedQueue = [];
+};
+
 // Response interceptor - Handle common errors
 apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config;
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
     // Handle 401 Unauthorized - try to refresh token
-    if (error.response?.status === 401 && originalRequest) {
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      if (isRefreshing) {
+        // If already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => {
+            return apiClient(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
       try {
         // Attempt to refresh the access token
         await apiClient.post('/auth/refresh');
 
+        // Token refreshed successfully, process queued requests
+        processQueue();
+        isRefreshing = false;
+
         // Retry the original request
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh failed - redirect to login
+        // Refresh failed - reject all queued requests
+        processQueue(refreshError as Error);
+        isRefreshing = false;
+
+        // Redirect to login
         if (typeof window !== 'undefined') {
           window.location.href = '/auth/login';
         }

@@ -1,8 +1,8 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 /**
  * Password hashing and verification utilities
- * Uses bcrypt with cost factor 12 for security
+ * Uses bcryptjs with cost factor 12 for security (pure JS implementation for Windows compatibility)
  */
 
 const SALT_ROUNDS = 12;

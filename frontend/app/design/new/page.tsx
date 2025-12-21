@@ -11,7 +11,9 @@ import { Separator } from '@/components/ui/separator';
 import { FileUpload } from '@/components/design/FileUpload';
 import { MaterialSelector } from '@/components/design/MaterialSelector';
 import { SizeSelector } from '@/components/design/SizeSelector';
+import { TemplateSelector } from '@/components/design/TemplateSelector';
 import { designsService, Material, PrintSize, Orientation } from '@/lib/api/designs';
+import { Template } from '@/lib/templates';
 import Link from 'next/link';
 
 function DesignEditorContent() {
@@ -22,6 +24,8 @@ function DesignEditorContent() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [designMode, setDesignMode] = useState<'upload' | 'template'>('upload');
   const [preview, setPreview] = useState<string>('');
   const [material, setMaterial] = useState<Material>('GLOSSY_PAPER');
   const [printSize, setPrintSize] = useState<PrintSize>('A4');
@@ -34,6 +38,7 @@ function DesignEditorContent() {
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
+    setSelectedTemplate(null); // Clear template when file is uploaded
     setError('');
 
     // Create preview URL
@@ -42,6 +47,19 @@ function DesignEditorContent() {
       setPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleTemplateSelect = (template: Template) => {
+    setSelectedTemplate(template);
+    setSelectedFile(null); // Clear file when template is selected
+    setPreview(template.previewUrl);
+
+    // Auto-fill recommended settings
+    setMaterial(template.recommendedMaterial);
+    setPrintSize(template.recommendedSize);
+    if (!name) {
+      setName(template.name);
+    }
   };
 
   const handleSave = async () => {
@@ -53,8 +71,8 @@ function DesignEditorContent() {
       return;
     }
 
-    if (!selectedFile) {
-      setError('Please upload an image');
+    if (!selectedFile && !selectedTemplate) {
+      setError('Please upload an image or select a template');
       return;
     }
 
@@ -112,7 +130,7 @@ function DesignEditorContent() {
             <Button
               className="btn-gradient"
               onClick={handleSave}
-              disabled={loading || !selectedFile || !name}
+              disabled={loading || (!selectedFile && !selectedTemplate) || !name}
             >
               {loading ? 'Saving...' : 'Save Design'}
             </Button>
@@ -206,16 +224,39 @@ function DesignEditorContent() {
 
           {/* Right Column - Upload & Preview */}
           <div className="space-y-8">
-            {/* File Upload */}
+            {/* Design Source Selection */}
             <Card className="card-glow">
               <CardHeader>
-                <CardTitle>Upload Image</CardTitle>
+                <CardTitle>Choose Your Design</CardTitle>
                 <CardDescription>
-                  Upload your design or choose from templates
+                  Upload your own image or select from our templates
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <FileUpload onFileSelect={handleFileSelect} preview={preview} />
+              <CardContent className="space-y-4">
+                {/* Tab Buttons */}
+                <div className="flex gap-2 p-1 bg-muted/50 rounded-lg">
+                  <Button
+                    variant={designMode === 'upload' ? 'default' : 'ghost'}
+                    className={`flex-1 ${designMode === 'upload' ? 'btn-gradient' : ''}`}
+                    onClick={() => setDesignMode('upload')}
+                  >
+                    Upload Image
+                  </Button>
+                  <Button
+                    variant={designMode === 'template' ? 'default' : 'ghost'}
+                    className={`flex-1 ${designMode === 'template' ? 'btn-gradient' : ''}`}
+                    onClick={() => setDesignMode('template')}
+                  >
+                    Choose Template
+                  </Button>
+                </div>
+
+                {/* Content based on selected mode */}
+                {designMode === 'upload' ? (
+                  <FileUpload onFileSelect={handleFileSelect} preview={selectedFile ? preview : ''} />
+                ) : (
+                  <TemplateSelector onSelect={handleTemplateSelect} selectedTemplate={selectedTemplate} />
+                )}
               </CardContent>
             </Card>
 

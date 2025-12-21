@@ -26,12 +26,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fetchUser = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const userData = await authService.getMe();
       setUser(userData);
-    } catch (error) {
-      // User not authenticated
+    } catch (error: any) {
+      // User not authenticated - silently fail
+      // Don't trigger infinite refresh loop
       setUser(null);
     } finally {
       setLoading(false);

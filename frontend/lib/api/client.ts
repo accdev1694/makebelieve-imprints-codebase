@@ -55,6 +55,12 @@ apiClient.interceptors.response.use(
 
     // Handle 401 Unauthorized - try to refresh token
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      // Don't try to refresh if we're already calling the refresh endpoint
+      const url = originalRequest.url || '';
+      if (url.includes('auth/refresh')) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
@@ -86,10 +92,7 @@ apiClient.interceptors.response.use(
         processQueue(refreshError as Error);
         isRefreshing = false;
 
-        // Redirect to login
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login';
-        }
+        // Don't redirect to login, just reject - let the component handle it
         return Promise.reject(refreshError);
       }
     }

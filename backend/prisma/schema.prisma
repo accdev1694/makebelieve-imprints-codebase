@@ -50,6 +50,43 @@ enum Orientation {
   SQUARE
 }
 
+// Product Catalog Enums
+enum ProductCategory {
+  SUBLIMATION
+  STATIONERY
+  LARGE_FORMAT
+  PHOTO_PRINTS
+  DIGITAL
+  CUSTOM_ORDER
+}
+
+enum ProductType {
+  TSHIRT
+  MUG
+  WATER_BOTTLE
+  MOUSEMAT
+  KEYCHAIN
+  CUSHION_PILLOW
+  BUSINESS_CARD
+  LEAFLET
+  GREETING_CARD
+  POSTCARD
+  BANNER
+  POSTER
+  CANVAS_PRINT
+  ALUMINUM_PRINT
+  PHOTO_PAPER_PRINT
+  ACRYLIC_LED_PRINT
+  DIGITAL_PDF
+}
+
+enum CustomizationType {
+  TEMPLATE_BASED
+  UPLOAD_OWN
+  FULLY_CUSTOM
+  DIGITAL_DOWNLOAD
+}
+
 // Financial Enums
 enum PaymentMethod {
   STRIPE

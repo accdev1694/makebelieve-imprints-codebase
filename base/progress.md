@@ -186,7 +186,179 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Order placement and tracking
 - [✅] Write component tests for complex UI (Jest + React Testing Library)
 
-## 4. Mobile App (Capacitor)
+## 4. Product Catalog & E-Commerce System
+
+### 4.1 Database Schema & Backend (Phase 1)
+
+- [✅] 4.1.1 Create new Prisma schema enums
+  - [✅] ProductCategory enum (SUBLIMATION, STATIONERY, LARGE_FORMAT, PHOTO_PRINTS, DIGITAL, CUSTOM_ORDER)
+  - [✅] ProductType enum (TSHIRT, MUG, WATER_BOTTLE, MOUSEMAT, KEYCHAIN, CUSHION_PILLOW, BUSINESS_CARD, LEAFLET, GREETING_CARD, POSTCARD, BANNER, POSTER, CANVAS_PRINT, ALUMINUM_PRINT, PHOTO_PAPER_PRINT, ACRYLIC_LED_PRINT, DIGITAL_PDF)
+  - [✅] CustomizationType enum (TEMPLATE_BASED, UPLOAD_OWN, FULLY_CUSTOM, DIGITAL_DOWNLOAD)
+- [ ] 4.1.2 Create Product model and related models
+  - [ ] Product model (name, slug, description, category, pricing, status, SEO fields)
+  - [ ] ProductVariant model (size, material, color, finish, dimensions, pricing)
+  - [ ] ProductImage model (multiple images per product)
+  - [ ] ProductTemplate model (pre-made designs for products)
+- [ ] 4.1.3 Create OrderItem model and update Order model
+  - [ ] OrderItem model (links products, variants, designs, customization)
+  - [ ] Update Order model to support multiple line items
+  - [ ] Add items relationship to Order
+- [ ] 4.1.4 Run Prisma migration for product catalog
+- [ ] 4.1.5 Create product seeding script
+  - [ ] Seed initial products for each category
+  - [ ] Add product variants (sizes, materials, colors)
+  - [ ] Add product images
+  - [ ] Add sample templates
+- [ ] 4.1.6 Build Product API endpoints
+  - [ ] GET /api/products (list with filtering, search, pagination)
+  - [ ] GET /api/products/:id (get single product with variants)
+  - [ ] POST /api/products (admin only - create product)
+  - [ ] PUT /api/products/:id (admin only - update product)
+  - [ ] DELETE /api/products/:id (admin only - delete product)
+- [ ] 4.1.7 Build ProductVariant API endpoints
+  - [ ] GET /api/products/:id/variants (list variants)
+  - [ ] POST /api/products/:id/variants (admin only)
+  - [ ] PUT /api/variants/:id (admin only)
+  - [ ] DELETE /api/variants/:id (admin only)
+- [ ] 4.1.8 Build ProductTemplate API endpoints
+  - [ ] GET /api/products/:id/templates (list templates for product)
+  - [ ] GET /api/templates (browse all templates with filtering)
+  - [ ] POST /api/templates (admin only)
+  - [ ] PUT /api/templates/:id (admin only)
+  - [ ] DELETE /api/templates/:id (admin only)
+
+### 4.2 Product Catalog UI (Phase 2)
+
+- [ ] 4.2.1 Create products listing page
+  - [ ] Product grid layout with cards
+  - [ ] Responsive design (mobile, tablet, desktop)
+  - [ ] Image placeholders and loading states
+- [ ] 4.2.2 Add category filtering sidebar
+  - [ ] Category navigation
+  - [ ] Material filters
+  - [ ] Size filters
+  - [ ] Price range filter
+  - [ ] Customization type filter
+- [ ] 4.2.3 Add search and sort functionality
+  - [ ] Search bar with debounced input
+  - [ ] Sort by: newest, price (low-high), price (high-low), popular
+  - [ ] Active filters display with clear options
+- [ ] 4.2.4 Create product detail page
+  - [ ] Product image gallery with zoom
+  - [ ] Product information and description
+  - [ ] Variant selector (size, material, color, finish)
+  - [ ] Quantity selector
+  - [ ] Price display with variant updates
+  - [ ] Add to cart button
+  - [ ] Reviews and ratings section
+- [ ] 4.2.5 Build variant selector component
+  - [ ] Interactive size selector
+  - [ ] Material/finish selector
+  - [ ] Color picker (for applicable products)
+  - [ ] Real-time price updates
+  - [ ] Stock availability display
+- [ ] 4.2.6 Create product image gallery component
+  - [ ] Thumbnail navigation
+  - [ ] Full-size image viewer
+  - [ ] Zoom functionality
+  - [ ] Next.js Image optimization
+- [ ] 4.2.7 Build category navigation pages
+  - [ ] Sublimation products page
+  - [ ] Stationery products page
+  - [ ] Large format prints page
+  - [ ] Premium prints page
+  - [ ] Digital downloads page
+
+### 4.3 Shopping Cart & Checkout (Phase 3)
+
+- [ ] 4.3.1 Create cart context/state management
+  - [ ] Cart state (items, quantities, totals)
+  - [ ] Add to cart functionality
+  - [ ] Remove from cart functionality
+  - [ ] Update quantity functionality
+  - [ ] Persist cart to localStorage
+- [ ] 4.3.2 Build shopping cart UI component
+  - [ ] Cart sidebar/drawer
+  - [ ] Cart item cards with images
+  - [ ] Quantity controls
+  - [ ] Remove item button
+  - [ ] Subtotal and total display
+  - [ ] Checkout button
+- [ ] 4.3.3 Update checkout flow for multiple items
+  - [ ] Line items display
+  - [ ] Individual item customization
+  - [ ] Shipping address (single for all items)
+  - [ ] Order summary with all items
+- [ ] 4.3.4 Add quantity management
+  - [ ] Stock validation
+  - [ ] Bulk pricing (if applicable)
+  - [ ] Maximum quantity limits
+- [ ] 4.3.5 Build order summary component
+  - [ ] Items list with thumbnails
+  - [ ] Individual item prices
+  - [ ] Subtotal calculation
+  - [ ] Shipping cost
+  - [ ] Tax/VAT calculation
+  - [ ] Grand total
+- [ ] 4.3.6 Update order creation to support line items
+  - [ ] Create OrderItem records
+  - [ ] Update Order total calculation
+  - [ ] Inventory deduction (if applicable)
+
+### 4.4 Templates & Customization (Phase 4)
+
+- [ ] 4.4.1 Create template browser page
+  - [ ] Grid layout of templates
+  - [ ] Filter by category (birthday, wedding, business, etc.)
+  - [ ] Filter by product type
+  - [ ] Search templates
+  - [ ] Preview modal
+- [ ] 4.4.2 Add template filtering
+  - [ ] Category filters
+  - [ ] Product type filters
+  - [ ] Tag-based filtering
+  - [ ] Free vs premium templates
+- [ ] 4.4.3 Build customization flow selector
+  - [ ] "Use a Template" option
+  - [ ] "Upload Your Own" option
+  - [ ] "Custom Order" inquiry option
+  - [ ] Flow routing based on selection
+- [ ] 4.4.4 Create design preview generator
+  - [ ] Real-time mockup generation
+  - [ ] Product-specific previews (mug, t-shirt, poster, etc.)
+  - [ ] Preview on product page
+- [ ] 4.4.5 Add "Upload Your Own" flow
+  - [ ] File upload with validation
+  - [ ] Image editor integration
+  - [ ] Design positioning tools
+  - [ ] Preview before ordering
+- [ ] 4.4.6 Add "Custom Order" inquiry form
+  - [ ] Contact form for custom requests
+  - [ ] File attachment support
+  - [ ] Project description field
+  - [ ] Admin notification system
+
+### 4.5 Digital Products (Phase 5)
+
+- [ ] 4.5.1 Create digital product download system
+  - [ ] Secure download links with expiration
+  - [ ] Download tracking
+  - [ ] Email delivery of download links
+- [ ] 4.5.2 Build PDF category browser
+  - [ ] Browse by subject
+  - [ ] Preview thumbnails
+  - [ ] Product descriptions
+  - [ ] Instant purchase flow
+- [ ] 4.5.3 Add instant download after purchase
+  - [ ] Download button on order confirmation
+  - [ ] Email with download link
+  - [ ] Download from account dashboard
+- [ ] 4.5.4 Create download management page
+  - [ ] List of purchased digital products
+  - [ ] Re-download functionality
+  - [ ] Download history
+
+## 5. Mobile App (Capacitor)
 
 - [ ] Configure responsive design for mobile, tablet, and desktop
   - [ ] Test on actual devices (not just browser DevTools)
@@ -212,13 +384,6 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [ ] Test on physical Android devices
   - [ ] Submit to Google Play
 - [ ] Setup app update strategy (consider CodePush for OTA updates)
-
-## 5. Customization/Templates
-
-- [ ] Design template library and presets for customization
-- [ ] Implement preview endpoints for template rendering
-- [ ] Integrate frontend customization flows with backend preview endpoints
-- [ ] Write unit tests for preview and customization services
 
 ## 6. Shared Code
 

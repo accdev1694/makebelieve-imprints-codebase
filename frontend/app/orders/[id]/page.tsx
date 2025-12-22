@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { ordersService, Order, ORDER_STATUS_LABELS, OrderStatus } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import Link from 'next/link';
+import Image from 'next/image';
 
 function OrderDetailsContent() {
   const router = useRouter();
@@ -276,11 +277,14 @@ function OrderDetailsContent() {
           <CardContent className="space-y-6">
             {order.design && (
               <div className="flex gap-4 items-start">
-                <div className="w-32 h-32 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
-                  <img
+                <div className="w-32 h-32 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
+                  <Image
                     src={order.previewUrl || order.design.previewUrl || order.design.imageUrl}
                     alt={order.design.name}
-                    className="max-w-full max-h-full object-contain"
+                    fill
+                    sizes="128px"
+                    className="object-contain"
+                    unoptimized
                   />
                 </div>
                 <div className="flex-1 space-y-2">

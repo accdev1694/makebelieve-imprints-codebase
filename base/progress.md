@@ -172,7 +172,13 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Individual order details page (admin view)
   - [✅] Customer management page
   - [✅] Navigation from main dashboard
-  - [ ] Manual Royal Mail label fallback UI
+  - [✅] Manual Royal Mail label fallback UI
+    - [✅] Shipping management page for admins
+    - [✅] Royal Mail API health monitoring
+    - [✅] Manual tracking number entry
+    - [✅] Step-by-step fallback instructions
+    - [✅] Orders awaiting shipment dashboard
+    - [✅] Integration with Click & Drop workflow
 - [✅] Configure API client for backend communication
 - [ ] Write E2E tests for critical user journeys (Cypress)
   - [ ] User registration and login

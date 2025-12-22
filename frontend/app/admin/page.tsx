@@ -214,7 +214,7 @@ function AdminDashboardContent() {
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-2"></div>
+                  <div className="inline-block animate-spin rounded-md h-8 w-8 border-t-2 border-b-2 border-primary mb-2"></div>
                   <p className="text-sm text-muted-foreground">Loading orders...</p>
                 </div>
               </div>
@@ -234,9 +234,7 @@ function AdminDashboardContent() {
                     {order.design && (
                       <div className="w-16 h-16 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
                         <img
-                          src={
-                            order.previewUrl || order.design.previewUrl || order.design.imageUrl
-                          }
+                          src={order.previewUrl || order.design.previewUrl || order.design.imageUrl}
                           alt={order.design.name}
                           className="max-w-full max-h-full object-contain"
                         />
@@ -245,9 +243,7 @@ function AdminDashboardContent() {
 
                     {/* Order Info */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold truncate">
-                        {order.design?.name || 'Design'}
-                      </h4>
+                      <h4 className="font-semibold truncate">{order.design?.name || 'Design'}</h4>
                       <p className="text-sm text-muted-foreground">
                         {order.shippingAddress.name} • £{order.totalPrice.toFixed(2)}
                       </p>

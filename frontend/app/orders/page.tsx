@@ -153,7 +153,7 @@ function OrderHistoryContent() {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+              <div className="inline-block animate-spin rounded-md h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
               <p className="text-muted-foreground">Loading your orders...</p>
             </div>
           </div>

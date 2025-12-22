@@ -62,9 +62,7 @@ function AdminOrdersContent() {
 
       // Update local state
       setOrders(
-        orders.map((order) =>
-          order.id === orderId ? { ...order, status: newStatus } : order
-        )
+        orders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
       );
     } catch (err: any) {
       setError(err?.error || err?.message || 'Failed to update order status');
@@ -195,7 +193,7 @@ function AdminOrdersContent() {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+              <div className="inline-block animate-spin rounded-md h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
               <p className="text-muted-foreground">Loading orders...</p>
             </div>
           </div>
@@ -228,9 +226,7 @@ function AdminOrdersContent() {
                           <div className="w-24 h-24 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
                             <img
                               src={
-                                order.previewUrl ||
-                                order.design.previewUrl ||
-                                order.design.imageUrl
+                                order.previewUrl || order.design.previewUrl || order.design.imageUrl
                               }
                               alt={order.design.name}
                               className="max-w-full max-h-full object-contain"
@@ -292,7 +288,9 @@ function AdminOrdersContent() {
                         <div>
                           <h4 className="font-semibold mb-2">Status</h4>
                           <div className="space-y-2">
-                            <Badge className={`${getStatusColor(order.status)} border px-3 py-1 w-full justify-center`}>
+                            <Badge
+                              className={`${getStatusColor(order.status)} border px-3 py-1 w-full justify-center`}
+                            >
                               {ORDER_STATUS_LABELS[order.status]}
                             </Badge>
 

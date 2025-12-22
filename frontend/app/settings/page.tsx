@@ -179,7 +179,10 @@ function AccountSettingsContent() {
 
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Account Status</p>
-                  <Badge variant="default" className="bg-green-500/10 text-green-500 border-green-500/50">
+                  <Badge
+                    variant="default"
+                    className="bg-green-500/10 text-green-500 border-green-500/50"
+                  >
                     Active
                   </Badge>
                 </div>
@@ -213,19 +216,15 @@ function AccountSettingsContent() {
                 <h4 className="font-medium mb-2">Account Security</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                    <span className="text-muted-foreground">
-                      Password is encrypted with bcrypt
-                    </span>
+                    <div className="w-2 h-2 rounded-md bg-green-500"></div>
+                    <span className="text-muted-foreground">Password is encrypted with bcrypt</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                    <span className="text-muted-foreground">
-                      Secure JWT authentication enabled
-                    </span>
+                    <div className="w-2 h-2 rounded-md bg-green-500"></div>
+                    <span className="text-muted-foreground">Secure JWT authentication enabled</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    <div className="w-2 h-2 rounded-md bg-green-500"></div>
                     <span className="text-muted-foreground">Sessions expire after 7 days</span>
                   </div>
                 </div>
@@ -245,9 +244,7 @@ function AccountSettingsContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Email Notifications</p>
-                  <p className="text-sm text-muted-foreground">
-                    Receive updates about your orders
-                  </p>
+                  <p className="text-sm text-muted-foreground">Receive updates about your orders</p>
                 </div>
                 <Badge variant="outline">Coming Soon</Badge>
               </div>

@@ -160,12 +160,12 @@ function AdminShippingContent() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div
-                    className={`w-3 h-3 rounded-full ${
+                    className={`w-3 h-3 rounded-md ${
                       apiHealth.status === 'healthy'
                         ? 'bg-green-500'
                         : apiHealth.status === 'degraded'
-                        ? 'bg-yellow-500'
-                        : 'bg-red-500'
+                          ? 'bg-yellow-500'
+                          : 'bg-red-500'
                     }`}
                   ></div>
                   <div>
@@ -247,7 +247,7 @@ function AdminShippingContent() {
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-2"></div>
+                  <div className="inline-block animate-spin rounded-md h-8 w-8 border-t-2 border-b-2 border-primary mb-2"></div>
                   <p className="text-sm text-muted-foreground">Loading orders...</p>
                 </div>
               </div>
@@ -312,9 +312,7 @@ function AdminShippingContent() {
                         />
                         <Button
                           onClick={() => handleManualShip(order)}
-                          disabled={
-                            !manualTracking[order.id] || updatingOrderId === order.id
-                          }
+                          disabled={!manualTracking[order.id] || updatingOrderId === order.id}
                           className="btn-gradient"
                         >
                           {updatingOrderId === order.id ? 'Updating...' : 'Mark as Shipped'}

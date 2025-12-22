@@ -156,7 +156,7 @@ function AdminCustomersContent() {
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-2"></div>
+                  <div className="inline-block animate-spin rounded-md h-8 w-8 border-t-2 border-b-2 border-primary mb-2"></div>
                   <p className="text-sm text-muted-foreground">Loading customers...</p>
                 </div>
               </div>

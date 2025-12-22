@@ -130,7 +130,7 @@ function CheckoutContent() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-md h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -397,8 +397,8 @@ function CheckoutContent() {
                   </Button>
 
                   <p className="text-xs text-muted-foreground text-center">
-                    By placing this order, you agree to our terms and conditions. Your order will
-                    be processed and shipped within 3-5 business days.
+                    By placing this order, you agree to our terms and conditions. Your order will be
+                    processed and shipped within 3-5 business days.
                   </p>
                 </>
               )}

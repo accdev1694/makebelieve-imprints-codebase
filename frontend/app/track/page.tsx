@@ -171,7 +171,7 @@ export default function TrackingPage() {
                       {tracking.events.map((event, index) => (
                         <div key={index} className="flex gap-4">
                           <div className="flex flex-col items-center">
-                            <div className="w-3 h-3 rounded-full bg-primary"></div>
+                            <div className="w-3 h-3 rounded-md bg-primary"></div>
                             {index < tracking.events!.length - 1 && (
                               <div className="w-0.5 h-full bg-border mt-1"></div>
                             )}
@@ -229,9 +229,7 @@ export default function TrackingPage() {
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                Track Your Shipment
-              </h3>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Track Your Shipment</h3>
               <p className="text-muted-foreground mb-6">
                 Enter your tracking number above to see real-time updates about your delivery.
               </p>

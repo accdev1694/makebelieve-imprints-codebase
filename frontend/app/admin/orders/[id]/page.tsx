@@ -92,7 +92,7 @@ function AdminOrderDetailsContent() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-md h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading order details...</p>
         </div>
       </div>
@@ -129,7 +129,9 @@ function AdminOrderDetailsContent() {
               </Button>
             </Link>
             <h1 className="text-2xl font-bold">
-              <span className="text-neon-gradient">Order #{order.id.slice(0, 8).toUpperCase()}</span>
+              <span className="text-neon-gradient">
+                Order #{order.id.slice(0, 8).toUpperCase()}
+              </span>
             </h1>
           </div>
         </div>
@@ -157,7 +159,8 @@ function AdminOrderDetailsContent() {
               <CardHeader>
                 <CardTitle>Order Details</CardTitle>
                 <CardDescription>
-                  Placed on {new Date(order.createdAt).toLocaleDateString('en-GB', {
+                  Placed on{' '}
+                  {new Date(order.createdAt).toLocaleDateString('en-GB', {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
@@ -230,7 +233,9 @@ function AdminOrderDetailsContent() {
               </CardHeader>
               <CardContent>
                 <div className="bg-muted/30 p-4 rounded-lg space-y-1 text-sm">
-                  <p className="font-medium text-foreground text-base">{order.shippingAddress.name}</p>
+                  <p className="font-medium text-foreground text-base">
+                    {order.shippingAddress.name}
+                  </p>
                   <p className="text-muted-foreground">{order.shippingAddress.addressLine1}</p>
                   {order.shippingAddress.addressLine2 && (
                     <p className="text-muted-foreground">{order.shippingAddress.addressLine2}</p>
@@ -263,9 +268,7 @@ function AdminOrderDetailsContent() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center">
-                  <Badge
-                    className={`${getStatusColor(order.status)} border px-4 py-2 text-base`}
-                  >
+                  <Badge className={`${getStatusColor(order.status)} border px-4 py-2 text-base`}>
                     {ORDER_STATUS_LABELS[order.status]}
                   </Badge>
                 </div>

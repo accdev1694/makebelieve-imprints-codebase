@@ -32,8 +32,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
       {/* Ambient background effects */}
       <div className="fixed inset-0 opacity-30">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px]" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/20 rounded-md blur-[120px]" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary/10 rounded-md blur-[150px]" />
       </div>
 
       <div className="w-full max-w-md relative z-10">
@@ -74,7 +74,10 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-foreground mb-2"
+                >
                   Password
                 </label>
                 <Input
@@ -88,18 +91,17 @@ export default function LoginPage() {
                 />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full btn-gradient"
-                disabled={loading}
-              >
+              <Button type="submit" className="w-full btn-gradient" disabled={loading}>
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
 
             <div className="mt-6 text-center text-sm">
               <span className="text-muted-foreground">Don't have an account? </span>
-              <Link href="/auth/register" className="text-primary hover:text-primary/80 font-medium">
+              <Link
+                href="/auth/register"
+                className="text-primary hover:text-primary/80 font-medium"
+              >
                 Sign up
               </Link>
             </div>

@@ -12,7 +12,7 @@ import {
   GraduationCap,
   Sparkles,
   PartyPopper,
-  Calendar
+  Calendar,
 } from 'lucide-react';
 import { templates, getTemplatesByCategory, getCategoryName } from '@/lib/templates';
 
@@ -25,7 +25,8 @@ const occasions = [
     borderColor: 'border-pink-500/50',
     textColor: 'text-pink-400',
     title: 'Birthday Celebrations',
-    description: 'Make their special day unforgettable with a personalized birthday print they\'ll treasure forever',
+    description:
+      "Make their special day unforgettable with a personalized birthday print they'll treasure forever",
     emotion: 'Joy & Celebration',
   },
   {
@@ -85,7 +86,8 @@ const occasions = [
     borderColor: 'border-violet-500/50',
     textColor: 'text-violet-400',
     title: 'Everyday Moments',
-    description: 'From thank you cards to photo collages, celebrate life\'s everyday special moments',
+    description:
+      "From thank you cards to photo collages, celebrate life's everyday special moments",
     emotion: 'Gratitude & Connection',
   },
 ];
@@ -95,9 +97,9 @@ export default function GiftsPage() {
     <div className="min-h-screen bg-background">
       {/* Ambient background effects */}
       <div className="fixed inset-0 opacity-20">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/30 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[150px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-secondary/20 rounded-full blur-[100px]" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/30 rounded-md blur-[120px]" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary/20 rounded-md blur-[150px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-secondary/20 rounded-md blur-[100px]" />
       </div>
 
       {/* Header Navigation */}
@@ -134,8 +136,8 @@ export default function GiftsPage() {
           </h1>
 
           <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed mb-8">
-            Create personalized prints that capture emotions, celebrate moments,
-            and create lasting memories for the people you love
+            Create personalized prints that capture emotions, celebrate moments, and create lasting
+            memories for the people you love
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -145,7 +147,11 @@ export default function GiftsPage() {
               </Button>
             </Link>
             <Link href="/about">
-              <Button size="lg" variant="outline" className="px-8 py-6 text-lg border-primary/50 hover:border-primary">
+              <Button
+                size="lg"
+                variant="outline"
+                className="px-8 py-6 text-lg border-primary/50 hover:border-primary"
+              >
                 Learn More
               </Button>
             </Link>
@@ -175,7 +181,8 @@ export default function GiftsPage() {
               Choose Your <span className="text-primary">Occasion</span>
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Select the occasion you're celebrating, and we'll help you create the perfect personalized gift
+              Select the occasion you're celebrating, and we'll help you create the perfect
+              personalized gift
             </p>
           </div>
 
@@ -190,7 +197,9 @@ export default function GiftsPage() {
                   className="card-glow hover:-translate-y-2 transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
                 >
                   <CardHeader>
-                    <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${occasion.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                    <div
+                      className={`w-16 h-16 rounded-md bg-gradient-to-br ${occasion.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
+                    >
                       <Icon className={`w-8 h-8 ${occasion.textColor}`} />
                     </div>
                     <CardTitle className="text-2xl">{occasion.title}</CardTitle>
@@ -227,7 +236,7 @@ export default function GiftsPage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-primary">
+              <div className="w-16 h-16 rounded-md bg-primary/20 flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-primary">
                 1
               </div>
               <h3 className="text-xl font-semibold mb-2">Choose Your Occasion</h3>
@@ -237,7 +246,7 @@ export default function GiftsPage() {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-secondary">
+              <div className="w-16 h-16 rounded-md bg-secondary/20 flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-secondary">
                 2
               </div>
               <h3 className="text-xl font-semibold mb-2">Customize Your Design</h3>
@@ -247,7 +256,7 @@ export default function GiftsPage() {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-accent">
+              <div className="w-16 h-16 rounded-md bg-accent/20 flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-accent">
                 3
               </div>
               <h3 className="text-xl font-semibold mb-2">Receive & Gift</h3>

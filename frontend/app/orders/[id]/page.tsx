@@ -72,7 +72,7 @@ function OrderDetailsContent() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-md h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading order details...</p>
         </div>
       </div>
@@ -118,9 +118,7 @@ function OrderDetailsContent() {
         {/* Order Header */}
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold">
-              Order #{order.id.slice(0, 8).toUpperCase()}
-            </h2>
+            <h2 className="text-xl font-semibold">Order #{order.id.slice(0, 8).toUpperCase()}</h2>
             <p className="text-sm text-muted-foreground">
               Placed on{' '}
               {new Date(order.createdAt).toLocaleDateString('en-GB', {
@@ -152,7 +150,7 @@ function OrderDetailsContent() {
                   {/* Pending */}
                   <div className="flex gap-4 relative">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
                         order.status === 'pending' ||
                         order.status === 'payment_confirmed' ||
                         order.status === 'printing' ||
@@ -166,16 +164,14 @@ function OrderDetailsContent() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">Order Placed</p>
-                      <p className="text-sm text-muted-foreground">
-                        Your order has been received
-                      </p>
+                      <p className="text-sm text-muted-foreground">Your order has been received</p>
                     </div>
                   </div>
 
                   {/* Payment Confirmed */}
                   <div className="flex gap-4 relative">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
                         order.status === 'payment_confirmed' ||
                         order.status === 'printing' ||
                         order.status === 'shipped' ||
@@ -193,14 +189,16 @@ function OrderDetailsContent() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">Payment Confirmed</p>
-                      <p className="text-sm text-muted-foreground">Payment successfully processed</p>
+                      <p className="text-sm text-muted-foreground">
+                        Payment successfully processed
+                      </p>
                     </div>
                   </div>
 
                   {/* Printing */}
                   <div className="flex gap-4 relative">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
                         order.status === 'printing' ||
                         order.status === 'shipped' ||
                         order.status === 'delivered'
@@ -216,16 +214,14 @@ function OrderDetailsContent() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">Printing</p>
-                      <p className="text-sm text-muted-foreground">
-                        Your design is being printed
-                      </p>
+                      <p className="text-sm text-muted-foreground">Your design is being printed</p>
                     </div>
                   </div>
 
                   {/* Shipped */}
                   <div className="flex gap-4 relative">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
                         order.status === 'shipped' || order.status === 'delivered'
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted text-muted-foreground'
@@ -235,9 +231,7 @@ function OrderDetailsContent() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">Shipped</p>
-                      <p className="text-sm text-muted-foreground">
-                        Your order is on its way
-                      </p>
+                      <p className="text-sm text-muted-foreground">Your order is on its way</p>
                       {order.trackingNumber && (
                         <div className="mt-2">
                           <p className="text-xs text-muted-foreground">Tracking Number:</p>
@@ -255,7 +249,7 @@ function OrderDetailsContent() {
                   {/* Delivered */}
                   <div className="flex gap-4 relative">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
                         order.status === 'delivered'
                           ? 'bg-green-500 text-white'
                           : 'bg-muted text-muted-foreground'

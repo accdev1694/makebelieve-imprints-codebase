@@ -47,7 +47,7 @@ function ConfirmationContent() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-md h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading order details...</p>
         </div>
       </div>
@@ -87,9 +87,7 @@ function ConfirmationContent() {
         <div className="bg-green-500/10 border border-green-500/50 text-green-500 px-6 py-4 rounded-lg text-center mb-8">
           <div className="text-4xl mb-2">✓</div>
           <h2 className="text-xl font-bold mb-1">Thank you for your order!</h2>
-          <p className="text-sm">
-            Your order has been received and will be processed shortly.
-          </p>
+          <p className="text-sm">Your order has been received and will be processed shortly.</p>
         </div>
 
         {/* Order Details */}
@@ -130,7 +128,9 @@ function ConfirmationContent() {
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p>{order.shippingAddress.name}</p>
                   <p>{order.shippingAddress.addressLine1}</p>
-                  {order.shippingAddress.addressLine2 && <p>{order.shippingAddress.addressLine2}</p>}
+                  {order.shippingAddress.addressLine2 && (
+                    <p>{order.shippingAddress.addressLine2}</p>
+                  )}
                   <p>
                     {order.shippingAddress.city}, {order.shippingAddress.postcode}
                   </p>
@@ -142,13 +142,14 @@ function ConfirmationContent() {
                 <h4 className="font-semibold mb-3">Order Status</h4>
                 <div className="text-sm space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                    <div className="w-2 h-2 rounded-md bg-yellow-500"></div>
                     <span className="text-muted-foreground">
                       {ORDER_STATUS_LABELS[order.status]}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Placed on {new Date(order.createdAt).toLocaleDateString('en-GB', {
+                    Placed on{' '}
+                    {new Date(order.createdAt).toLocaleDateString('en-GB', {
                       day: 'numeric',
                       month: 'long',
                       year: 'numeric',
@@ -205,15 +206,11 @@ function ConfirmationContent() {
               </li>
               <li className="flex gap-3">
                 <span className="font-bold text-primary">3.</span>
-                <span>
-                  Once shipped, you'll receive tracking information via email
-                </span>
+                <span>Once shipped, you'll receive tracking information via email</span>
               </li>
               <li className="flex gap-3">
                 <span className="font-bold text-primary">4.</span>
-                <span>
-                  Delivery typically takes 2-3 business days within the UK
-                </span>
+                <span>Delivery typically takes 2-3 business days within the UK</span>
               </li>
             </ol>
           </CardContent>

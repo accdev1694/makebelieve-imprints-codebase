@@ -6,54 +6,65 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { ArrowLeft, Heart, Sparkles } from 'lucide-react';
-import {
-  templates,
-  getTemplatesByCategory,
-  getCategoryName,
-  Template,
-} from '@/lib/templates';
+import { templates, getTemplatesByCategory, getCategoryName, Template } from '@/lib/templates';
 import { useState } from 'react';
 
 // Category metadata for emotional messaging
-const categoryMetadata: Record<string, {
-  tagline: string;
-  description: string;
-  emotionalMessage: string;
-}> = {
+const categoryMetadata: Record<
+  string,
+  {
+    tagline: string;
+    description: string;
+    emotionalMessage: string;
+  }
+> = {
   birthday: {
     tagline: 'Celebrate Another Year of Wonderful Memories',
-    description: 'Make their birthday extra special with a personalized print that captures the joy and excitement of their big day.',
-    emotionalMessage: 'Every birthday deserves to be celebrated in a way that makes them feel truly special. Our birthday templates help you create a gift that shows just how much they mean to you.',
+    description:
+      'Make their birthday extra special with a personalized print that captures the joy and excitement of their big day.',
+    emotionalMessage:
+      'Every birthday deserves to be celebrated in a way that makes them feel truly special. Our birthday templates help you create a gift that shows just how much they mean to you.',
   },
   wedding: {
     tagline: 'Celebrate a Love Story Like No Other',
-    description: 'Commemorate the beginning of forever with elegant designs that capture the romance and beauty of their wedding day.',
-    emotionalMessage: 'A wedding is more than just a ceremony—it\'s the celebration of two hearts becoming one. Create a timeless keepsake that honors their love story.',
+    description:
+      'Commemorate the beginning of forever with elegant designs that capture the romance and beauty of their wedding day.',
+    emotionalMessage:
+      "A wedding is more than just a ceremony—it's the celebration of two hearts becoming one. Create a timeless keepsake that honors their love story.",
   },
   anniversary: {
     tagline: 'Honor Years of Love and Devotion',
-    description: 'Celebrate milestones and memories with heartfelt designs that reflect the depth of their commitment.',
-    emotionalMessage: 'Anniversaries are a testament to enduring love. Show them how much their journey together means with a thoughtful, personalized print.',
+    description:
+      'Celebrate milestones and memories with heartfelt designs that reflect the depth of their commitment.',
+    emotionalMessage:
+      'Anniversaries are a testament to enduring love. Show them how much their journey together means with a thoughtful, personalized print.',
   },
   graduation: {
     tagline: 'Commemorate a Milestone Achievement',
-    description: 'Honor their hard work and dedication with a design that celebrates their success and bright future.',
-    emotionalMessage: 'Graduation marks the end of one chapter and the exciting beginning of another. Celebrate their achievement with a gift that recognizes their perseverance.',
+    description:
+      'Honor their hard work and dedication with a design that celebrates their success and bright future.',
+    emotionalMessage:
+      'Graduation marks the end of one chapter and the exciting beginning of another. Celebrate their achievement with a gift that recognizes their perseverance.',
   },
   baby: {
     tagline: 'Welcome the Newest Addition',
-    description: 'Celebrate new life and childhood wonder with adorable designs perfect for nurseries and baby announcements.',
-    emotionalMessage: 'The arrival of a baby is pure magic. Capture those precious early moments with a sweet, personalized print they\'ll treasure forever.',
+    description:
+      'Celebrate new life and childhood wonder with adorable designs perfect for nurseries and baby announcements.',
+    emotionalMessage:
+      "The arrival of a baby is pure magic. Capture those precious early moments with a sweet, personalized print they'll treasure forever.",
   },
   holiday: {
     tagline: 'Spread Seasonal Joy and Cheer',
     description: 'Make holidays extra festive with beautiful seasonal designs for any celebration.',
-    emotionalMessage: 'Holidays bring us together and create cherished traditions. Share the warmth of the season with a festive personalized print.',
+    emotionalMessage:
+      'Holidays bring us together and create cherished traditions. Share the warmth of the season with a festive personalized print.',
   },
   general: {
-    tagline: 'Celebrate Life\'s Everyday Moments',
-    description: 'From thank you cards to photo collages, honor the simple moments that make life beautiful.',
-    emotionalMessage: 'Sometimes the most meaningful gifts come from life\'s quieter moments. Show appreciation and love with a thoughtful, personalized design.',
+    tagline: "Celebrate Life's Everyday Moments",
+    description:
+      'From thank you cards to photo collages, honor the simple moments that make life beautiful.',
+    emotionalMessage:
+      "Sometimes the most meaningful gifts come from life's quieter moments. Show appreciation and love with a thoughtful, personalized design.",
   },
 };
 
@@ -90,8 +101,8 @@ export default function OccasionPage() {
     <div className="min-h-screen bg-background">
       {/* Ambient background effects */}
       <div className="fixed inset-0 opacity-20">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/30 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[150px]" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/30 rounded-md blur-[120px]" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary/20 rounded-md blur-[150px]" />
       </div>
 
       {/* Header Navigation */}
@@ -118,7 +129,10 @@ export default function OccasionPage() {
       <main className="relative z-10 container mx-auto px-4 py-12">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <Badge variant="outline" className="border-primary/50 text-primary px-4 py-2 text-sm mb-6">
+          <Badge
+            variant="outline"
+            className="border-primary/50 text-primary px-4 py-2 text-sm mb-6"
+          >
             <Heart className="w-4 h-4 inline mr-2" />
             {categoryName}
           </Badge>
@@ -222,12 +236,10 @@ export default function OccasionPage() {
 
         {/* Alternative: Upload Your Own */}
         <div className="bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 rounded-2xl p-8 md:p-12 text-center">
-          <h3 className="text-3xl font-bold mb-4">
-            Have Your Own Design?
-          </h3>
+          <h3 className="text-3xl font-bold mb-4">Have Your Own Design?</h3>
           <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            You can also upload your own photos or designs instead of using a template.
-            Make it completely unique to you!
+            You can also upload your own photos or designs instead of using a template. Make it
+            completely unique to you!
           </p>
           <Link href="/design/new?mode=upload">
             <Button size="lg" variant="outline" className="border-primary/50 hover:border-primary">

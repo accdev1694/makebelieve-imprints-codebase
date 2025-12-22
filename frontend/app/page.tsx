@@ -17,8 +17,8 @@ export default function Home() {
     <main className="min-h-screen bg-background relative overflow-hidden">
       {/* Ambient background effects */}
       <div className="fixed inset-0 opacity-30">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px]" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/20 rounded-md blur-[120px]" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary/10 rounded-md blur-[150px]" />
       </div>
 
       {/* Header Navigation */}
@@ -68,17 +68,15 @@ export default function Home() {
           </div>
 
           <h1 className="text-6xl md:text-8xl font-bold tracking-tight">
-            <span className="text-neon-gradient neon-glow">
-              MakeBelieve
-            </span>
+            <span className="text-neon-gradient neon-glow">MakeBelieve</span>
             <br />
             <span className="text-foreground/90">Imprints</span>
           </h1>
 
           <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
             Transform your imagination into{' '}
-            <span className="text-primary font-semibold">reality</span> with
-            cutting-edge custom printing technology
+            <span className="text-primary font-semibold">reality</span> with cutting-edge custom
+            printing technology
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
@@ -88,7 +86,11 @@ export default function Home() {
               </Button>
             </Link>
             <Link href="/design/new">
-              <Button size="lg" variant="outline" className="px-8 py-6 text-lg border-primary/50 hover:border-primary">
+              <Button
+                size="lg"
+                variant="outline"
+                className="px-8 py-6 text-lg border-primary/50 hover:border-primary/200"
+              >
                 Start Designing
               </Button>
             </Link>
@@ -119,9 +121,7 @@ export default function Home() {
             <h2 className="text-4xl font-bold mb-4">
               <span className="text-primary">Powered by</span> Innovation
             </h2>
-            <p className="text-muted-foreground text-lg">
-              Explore our component library showcase
-            </p>
+            <p className="text-muted-foreground text-lg">Explore our component library showcase</p>
           </div>
 
           {/* Buttons */}
@@ -153,43 +153,67 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-6">
             <Card className="card-glow hover:-translate-y-2 transition-all duration-300">
               <CardHeader>
-                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <div className="w-12 h-12 rounded-md bg-primary/20 flex items-center justify-center mb-4">
+                  <svg
+                    className="w-6 h-6 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
                   </svg>
                 </div>
                 <CardTitle>Lightning Fast</CardTitle>
-                <CardDescription>
-                  Instant design previews with real-time rendering
-                </CardDescription>
+                <CardDescription>Instant design previews with real-time rendering</CardDescription>
               </CardHeader>
             </Card>
 
             <Card className="card-glow hover:-translate-y-2 transition-all duration-300">
               <CardHeader>
-                <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                <div className="w-12 h-12 rounded-md bg-accent/20 flex items-center justify-center mb-4">
+                  <svg
+                    className="w-6 h-6 text-accent"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                    />
                   </svg>
                 </div>
                 <CardTitle>Fully Customizable</CardTitle>
-                <CardDescription>
-                  Complete control over every aspect of your design
-                </CardDescription>
+                <CardDescription>Complete control over every aspect of your design</CardDescription>
               </CardHeader>
             </Card>
 
             <Card className="card-glow hover:-translate-y-2 transition-all duration-300">
               <CardHeader>
-                <div className="w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                <div className="w-12 h-12 rounded-md bg-secondary/20 flex items-center justify-center mb-4">
+                  <svg
+                    className="w-6 h-6 text-secondary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                    />
                   </svg>
                 </div>
                 <CardTitle>Premium Quality</CardTitle>
-                <CardDescription>
-                  Professional-grade prints delivered every time
-                </CardDescription>
+                <CardDescription>Professional-grade prints delivered every time</CardDescription>
               </CardHeader>
             </Card>
           </div>
@@ -207,8 +231,12 @@ export default function Home() {
                 <Badge variant="destructive">Error</Badge>
                 <Badge variant="outline">Outline</Badge>
                 <Badge className="bg-accent text-white">Accent</Badge>
-                <Badge className="bg-green-500/20 text-green-400 border-green-500/50">Success</Badge>
-                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/50">Warning</Badge>
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/50">
+                  Success
+                </Badge>
+                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/50">
+                  Warning
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -230,7 +258,11 @@ export default function Home() {
               </div>
               <div>
                 <label className="text-sm text-muted-foreground mb-2 block">With Error State</label>
-                <Input type="text" placeholder="Invalid input" className="border-destructive focus:ring-destructive" />
+                <Input
+                  type="text"
+                  placeholder="Invalid input"
+                  className="border-destructive focus:ring-destructive"
+                />
                 <p className="text-sm text-destructive mt-1">This field is required</p>
               </div>
             </CardContent>

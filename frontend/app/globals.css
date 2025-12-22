@@ -4,7 +4,12 @@
 
 @layer base {
   /* Apply default font to headings */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading;
   }
 
@@ -23,7 +28,7 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full;
+    @apply bg-slate-300 rounded-md;
   }
 
   ::-webkit-scrollbar-thumb:hover {
@@ -31,49 +36,49 @@
   }
   :root {
     /* Brand Colors - Futuristic Dark Theme */
-    --color-primary: 191 96% 68%;        /* #5ED6FF - Neon cyan */
-    --color-secondary: 205 100% 56%;     /* #1FA2FF - Electric blue */
-    --color-accent: 4 75% 56%;           /* #E53935 - Crimson red */
+    --color-primary: 191 96% 68%; /* #5ED6FF - Neon cyan */
+    --color-secondary: 205 100% 56%; /* #1FA2FF - Electric blue */
+    --color-accent: 4 75% 56%; /* #E53935 - Crimson red */
 
     /* Backgrounds */
-    --color-bg-primary: 217 26% 7%;      /* #0B0E13 - Main dark */
-    --color-bg-secondary: 220 32% 12%;   /* #121826 - Panels */
-    --color-bg-elevated: 217 29% 16%;    /* #1A2233 - Modals */
+    --color-bg-primary: 217 26% 7%; /* #0B0E13 - Main dark */
+    --color-bg-secondary: 220 32% 12%; /* #121826 - Panels */
+    --color-bg-elevated: 217 29% 16%; /* #1A2233 - Modals */
 
     /* Text */
-    --color-text-primary: 211 100% 95%;  /* #E6F1FF - Primary text */
+    --color-text-primary: 211 100% 95%; /* #E6F1FF - Primary text */
     --color-text-secondary: 209 27% 69%; /* #9FB3C8 - Muted text */
-    --color-text-inverse: 217 26% 7%;    /* #0B0E13 - Text on light */
+    --color-text-inverse: 217 26% 7%; /* #0B0E13 - Text on light */
 
     /* UI Elements */
-    --color-border-subtle: 218 34% 22%;  /* #243048 */
-    --color-border-strong: 217 79% 56%;  /* #2F80ED */
+    --color-border-subtle: 218 34% 22%; /* #243048 */
+    --color-border-strong: 217 79% 56%; /* #2F80ED */
 
     /* States */
-    --color-success: 151 71% 50%;        /* #2ED573 */
-    --color-warning: 47 90% 61%;         /* #F5C542 */
-    --color-error: 4 75% 56%;            /* #E53935 */
+    --color-success: 151 71% 50%; /* #2ED573 */
+    --color-warning: 47 90% 61%; /* #F5C542 */
+    --color-error: 4 75% 56%; /* #E53935 */
 
     /* Shadcn mapping */
-    --background: 217 26% 7%;            /* bg-primary */
-    --foreground: 211 100% 95%;          /* text-primary */
-    --card: 220 32% 12%;                 /* bg-secondary */
+    --background: 217 26% 7%; /* bg-primary */
+    --foreground: 211 100% 95%; /* text-primary */
+    --card: 220 32% 12%; /* bg-secondary */
     --card-foreground: 211 100% 95%;
-    --popover: 217 29% 16%;              /* bg-elevated */
+    --popover: 217 29% 16%; /* bg-elevated */
     --popover-foreground: 211 100% 95%;
-    --primary: 191 96% 68%;              /* neon cyan */
+    --primary: 191 96% 68%; /* neon cyan */
     --primary-foreground: 217 26% 7%;
-    --secondary: 205 100% 56%;           /* electric blue */
+    --secondary: 205 100% 56%; /* electric blue */
     --secondary-foreground: 211 100% 95%;
     --muted: 218 34% 22%;
     --muted-foreground: 209 27% 69%;
-    --accent: 4 75% 56%;                 /* crimson */
+    --accent: 4 75% 56%; /* crimson */
     --accent-foreground: 0 0% 100%;
-    --destructive: 4 75% 56%;            /* error red */
+    --destructive: 4 75% 56%; /* error red */
     --destructive-foreground: 0 0% 100%;
-    --border: 218 34% 22%;               /* border-subtle */
+    --border: 218 34% 22%; /* border-subtle */
     --input: 218 34% 22%;
-    --ring: 191 96% 68%;                 /* primary cyan */
+    --ring: 191 96% 68%; /* primary cyan */
     --radius: 1rem;
   }
   .dark {
@@ -163,7 +168,7 @@
 
   /* Badge styles */
   .badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+    @apply inline-flex items-center px-3 py-1 rounded-md text-sm font-medium;
   }
 
   .badge-primary {
@@ -201,25 +206,23 @@
   /* Neon text gradient */
   .text-neon-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #5ED6FF 0%, #1FA2FF 50%, #0B5ED7 100%);
+    background-image: linear-gradient(135deg, #5ed6ff 0%, #1fa2ff 50%, #0b5ed7 100%);
   }
 
   /* Accent gradient (crimson) */
   .bg-accent-gradient {
-    background-image: radial-gradient(circle at top right, #FF4D4D 0%, #B71C1C 60%, #0B0E13 100%);
+    background-image: radial-gradient(circle at top right, #ff4d4d 0%, #b71c1c 60%, #0b0e13 100%);
   }
 
   /* Animated neon glow */
   .neon-glow {
-    text-shadow: 0 0 10px hsl(var(--color-primary) / 0.8),
-                 0 0 20px hsl(var(--color-primary) / 0.6),
-                 0 0 30px hsl(var(--color-primary) / 0.4);
+    text-shadow: 0 0 3px hsl(var(--color-primary) / 0.8);
   }
 
   /* Button gradient */
   .btn-gradient {
-    background-image: linear-gradient(135deg, #5ED6FF 0%, #1FA2FF 50%, #0B5ED7 100%);
-    @apply text-[#0B0E13] font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-2xl;
+    background-image: linear-gradient(135deg, #5ed6ff 0%, #1fa2ff 50%, #0b5ed7 100%);
+    @apply text-[#0B0E13] font-semibold rounded-md transition-all duration-300 hover:scale-105 hover:shadow-2xl;
   }
 
   /* Card with subtle border glow */
@@ -228,8 +231,6 @@
     box-shadow: 0 0 20px hsl(var(--color-primary) / 0.1);
   }
 }
-
-
 
 @layer base {
   * {

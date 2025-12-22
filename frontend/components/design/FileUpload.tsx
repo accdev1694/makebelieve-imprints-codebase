@@ -39,11 +39,14 @@ export function FileUpload({
     return true;
   };
 
-  const handleFile = useCallback((file: File) => {
-    if (validateFile(file)) {
-      onFileSelect(file);
-    }
-  }, [onFileSelect, maxSize, acceptedTypes]);
+  const handleFile = useCallback(
+    (file: File) => {
+      if (validateFile(file)) {
+        onFileSelect(file);
+      }
+    },
+    [onFileSelect, maxSize, acceptedTypes]
+  );
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -86,11 +89,7 @@ export function FileUpload({
       >
         {preview ? (
           <div className="relative group">
-            <img
-              src={preview}
-              alt="Preview"
-              className="w-full h-auto max-h-96 object-contain"
-            />
+            <img src={preview} alt="Preview" className="w-full h-auto max-h-96 object-contain" />
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
               <label htmlFor="file-upload" className="cursor-pointer">
                 <Button type="button" variant="secondary" asChild>
@@ -102,7 +101,7 @@ export function FileUpload({
         ) : (
           <div className="text-center space-y-4">
             <div className="flex justify-center">
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-md bg-primary/20 flex items-center justify-center">
                 <svg
                   className="w-8 h-8 text-primary"
                   fill="none"
@@ -123,9 +122,7 @@ export function FileUpload({
               <p className="text-lg font-medium text-foreground mb-2">
                 {isDragging ? 'Drop your image here' : 'Upload your design'}
               </p>
-              <p className="text-sm text-muted-foreground">
-                Drag and drop or click to browse
-              </p>
+              <p className="text-sm text-muted-foreground">Drag and drop or click to browse</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Supports: JPG, PNG, WebP, GIF (Max {maxSize}MB)
               </p>

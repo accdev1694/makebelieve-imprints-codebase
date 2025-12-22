@@ -107,7 +107,9 @@ function DashboardContent() {
               <Button variant="outline">Account Settings</Button>
             </Link>
             {user?.userType === 'PRINTER_ADMIN' && (
-              <Button variant="secondary">Admin Panel</Button>
+              <Link href="/admin">
+                <Button variant="secondary">Admin Panel</Button>
+              </Link>
             )}
           </CardContent>
         </Card>

@@ -160,10 +160,14 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
     - [✅] Account information card
     - [✅] Security status display
     - [✅] Navigation from dashboard
-- [ ] Build admin dashboard for printer
-  - [ ] Order management (pending, printing, shipped)
+- [✅] Build admin dashboard for printer
+  - [✅] Admin dashboard homepage with statistics
+  - [✅] Order management page with filtering
+  - [✅] Order status update functionality
+  - [✅] Individual order details page (admin view)
+  - [✅] Customer management page
+  - [✅] Navigation from main dashboard
   - [ ] Manual Royal Mail label fallback UI
-  - [ ] Customer management
 - [✅] Configure API client for backend communication
 - [ ] Write E2E tests for critical user journeys (Cypress)
   - [ ] User registration and login

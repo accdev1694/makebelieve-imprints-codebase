@@ -130,7 +130,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 - [✅] Implement authentication pages (login, register)
   - [✅] Login and register pages with forms
   - [✅] Protected route component
-  - [ ] JWT token management (store in httpOnly cookies)
+  - [✅] JWT token management (store in httpOnly cookies)
 - [✅] Implement "About the Printer" page
 - [✅] Add design customization UI
   - [✅] File upload with drag-and-drop
@@ -139,18 +139,32 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Integration with backend preview endpoints
 - [✅] Implement gifting experience UI (emotional previews with templates)
 - [✅] Add material selection UI (MaterialSelector component)
-- [ ] Implement order placement and checkout flow
+- [✅] Implement order placement and checkout flow
+  - [✅] Orders API service (list, create, get)
+  - [✅] Checkout page with shipping address form
+  - [✅] Order confirmation page
+  - [✅] Price calculation utilities
+  - [✅] Order button on My Designs page
 - [ ] Add order tracking UI (Royal Mail integration)
 - [✅] Build customer dashboard (basic structure)
   - [✅] Dashboard page created
   - [✅] My Designs page
-  - [ ] Order history
-  - [ ] Account settings
+  - [✅] Order history
+    - [✅] Order list page with filtering
+    - [✅] Individual order details page
+    - [✅] Order status timeline
+    - [✅] Navigation from dashboard
+  - [✅] Account settings
+    - [✅] Profile information display
+    - [✅] Profile update form (name)
+    - [✅] Account information card
+    - [✅] Security status display
+    - [✅] Navigation from dashboard
 - [ ] Build admin dashboard for printer
   - [ ] Order management (pending, printing, shipped)
   - [ ] Manual Royal Mail label fallback UI
   - [ ] Customer management
-- [ ] Configure API client for backend communication
+- [✅] Configure API client for backend communication
 - [ ] Write E2E tests for critical user journeys (Cypress)
   - [ ] User registration and login
   - [ ] Design upload and customization

@@ -130,6 +130,16 @@ function MyDesignsContent() {
                         View
                       </Button>
                       <Button
+                        className="btn-gradient"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/checkout?designId=${design.id}`);
+                        }}
+                      >
+                        Order
+                      </Button>
+                      <Button
                         variant="destructive"
                         size="sm"
                         onClick={(e) => {

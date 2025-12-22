@@ -100,7 +100,12 @@ function DashboardContent() {
             <Link href="/design/my-designs">
               <Button variant="outline">My Designs</Button>
             </Link>
-            <Button variant="outline">View Orders</Button>
+            <Link href="/orders">
+              <Button variant="outline">View Orders</Button>
+            </Link>
+            <Link href="/settings">
+              <Button variant="outline">Account Settings</Button>
+            </Link>
             {user?.userType === 'PRINTER_ADMIN' && (
               <Button variant="secondary">Admin Panel</Button>
             )}

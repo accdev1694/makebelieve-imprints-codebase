@@ -209,17 +209,17 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Add product variants (sizes, materials, colors)
   - [✅] Add product images
   - [✅] Add sample templates
-- [ ] 4.1.6 Build Product API endpoints
-  - [ ] GET /api/products (list with filtering, search, pagination)
-  - [ ] GET /api/products/:id (get single product with variants)
-  - [ ] POST /api/products (admin only - create product)
-  - [ ] PUT /api/products/:id (admin only - update product)
-  - [ ] DELETE /api/products/:id (admin only - delete product)
-- [ ] 4.1.7 Build ProductVariant API endpoints
-  - [ ] GET /api/products/:id/variants (list variants)
-  - [ ] POST /api/products/:id/variants (admin only)
-  - [ ] PUT /api/variants/:id (admin only)
-  - [ ] DELETE /api/variants/:id (admin only)
+- [✅] 4.1.6 Build Product API endpoints
+  - [✅] GET /api/products (list with filtering, search, pagination)
+  - [✅] GET /api/products/:id (get single product with variants)
+  - [✅] POST /api/products (admin only - create product)
+  - [✅] PUT /api/products/:id (admin only - update product)
+  - [✅] DELETE /api/products/:id (admin only - delete product)
+- [✅] 4.1.7 Build ProductVariant API endpoints
+  - [✅] GET /api/products/:id/variants (list variants)
+  - [✅] POST /api/products/:id/variants (admin only)
+  - [✅] PUT /api/variants/:id (admin only)
+  - [✅] DELETE /api/variants/:id (admin only)
 - [ ] 4.1.8 Build ProductTemplate API endpoints
   - [ ] GET /api/products/:id/templates (list templates for product)
   - [ ] GET /api/templates (browse all templates with filtering)

@@ -13,6 +13,7 @@ import paymentsRoutes from './routes/payments.routes';
 import shippingRoutes from './routes/shipping.routes';
 import uploadsRoutes from './routes/uploads.routes';
 import productsRoutes from './routes/products.routes';
+import variantsRoutes from './routes/variants.routes';
 import {
   errorHandler,
   notFoundHandler,
@@ -66,6 +67,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/designs', designsRoutes);
 app.use('/api/products', productsRoutes);
+app.use('/api', variantsRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/invoices', invoicesRoutes);

@@ -121,9 +121,9 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 - [✅] Configure Tailwind theme based on `mood.md` design system
   - [✅] Colors, typography, spacing
   - [✅] Custom animations, shadows, and design tokens
-- [ ] Set up Vercel project and connect to GitHub
-  - [ ] Configure environment variables (NEXT_PUBLIC_API_URL)
-  - [ ] Enable automatic deployments on push to main
+- [✅] Set up Vercel project and connect to GitHub
+  - [✅] Configure environment variables (NEXT_PUBLIC_API_URL)
+  - [✅] Enable automatic deployments on push to main
 - [✅] Create reusable UI component library
   - [✅] Buttons, cards, inputs, modals (components/ui/)
   - [✅] Feature-specific components (auth, design)

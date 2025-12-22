@@ -29,7 +29,7 @@ export const templates: Template[] = [
     previewUrl: '/templates/birthday-1.png',
     thumbnailUrl: '/templates/thumbs/birthday-1.png',
     recommendedSize: 'A4',
-    recommendedMaterial: 'GLOSSY_PAPER',
+    recommendedMaterial: 'GLOSSY',
   },
   {
     id: 'birthday-2',
@@ -39,7 +39,7 @@ export const templates: Template[] = [
     previewUrl: '/templates/birthday-2.png',
     thumbnailUrl: '/templates/thumbs/birthday-2.png',
     recommendedSize: 'A5',
-    recommendedMaterial: 'MATTE_PAPER',
+    recommendedMaterial: 'MATTE',
   },
   {
     id: 'wedding-1',
@@ -49,7 +49,7 @@ export const templates: Template[] = [
     previewUrl: '/templates/wedding-1.png',
     thumbnailUrl: '/templates/thumbs/wedding-1.png',
     recommendedSize: 'A4',
-    recommendedMaterial: 'MATTE_PAPER',
+    recommendedMaterial: 'MATTE',
   },
   {
     id: 'wedding-2',
@@ -59,7 +59,7 @@ export const templates: Template[] = [
     previewUrl: '/templates/wedding-2.png',
     thumbnailUrl: '/templates/thumbs/wedding-2.png',
     recommendedSize: 'A4',
-    recommendedMaterial: 'GLOSSY_PAPER',
+    recommendedMaterial: 'GLOSSY',
   },
   {
     id: 'anniversary-1',
@@ -69,7 +69,7 @@ export const templates: Template[] = [
     previewUrl: '/templates/anniversary-1.png',
     thumbnailUrl: '/templates/thumbs/anniversary-1.png',
     recommendedSize: 'A5',
-    recommendedMaterial: 'GLOSSY_PAPER',
+    recommendedMaterial: 'GLOSSY',
   },
   {
     id: 'baby-1',
@@ -79,7 +79,7 @@ export const templates: Template[] = [
     previewUrl: '/templates/baby-1.png',
     thumbnailUrl: '/templates/thumbs/baby-1.png',
     recommendedSize: 'A4',
-    recommendedMaterial: 'MATTE_PAPER',
+    recommendedMaterial: 'MATTE',
   },
   {
     id: 'graduation-1',
@@ -89,7 +89,7 @@ export const templates: Template[] = [
     previewUrl: '/templates/graduation-1.png',
     thumbnailUrl: '/templates/thumbs/graduation-1.png',
     recommendedSize: 'A4',
-    recommendedMaterial: 'GLOSSY_PAPER',
+    recommendedMaterial: 'GLOSSY',
   },
   {
     id: 'holiday-1',
@@ -99,7 +99,7 @@ export const templates: Template[] = [
     previewUrl: '/templates/holiday-1.png',
     thumbnailUrl: '/templates/thumbs/holiday-1.png',
     recommendedSize: 'A5',
-    recommendedMaterial: 'GLOSSY_PAPER',
+    recommendedMaterial: 'GLOSSY',
   },
   {
     id: 'general-1',
@@ -108,8 +108,8 @@ export const templates: Template[] = [
     category: 'general',
     previewUrl: '/templates/general-1.png',
     thumbnailUrl: '/templates/thumbs/general-1.png',
-    recommendedSize: 'A6',
-    recommendedMaterial: 'MATTE_PAPER',
+    recommendedSize: 'A5',
+    recommendedMaterial: 'MATTE',
   },
   {
     id: 'general-2',
@@ -119,7 +119,7 @@ export const templates: Template[] = [
     previewUrl: '/templates/general-2.png',
     thumbnailUrl: '/templates/thumbs/general-2.png',
     recommendedSize: 'A4',
-    recommendedMaterial: 'GLOSSY_PAPER',
+    recommendedMaterial: 'GLOSSY',
   },
 ];
 

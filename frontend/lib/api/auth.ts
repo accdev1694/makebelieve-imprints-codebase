@@ -22,7 +22,10 @@ export interface User {
 }
 
 export interface AuthResponse {
-  user: User;
+  success: boolean;
+  data: {
+    user: User;
+  };
 }
 
 /**
@@ -33,17 +36,17 @@ export const authService = {
   /**
    * Register a new user
    */
-  async register(data: RegisterData): Promise<AuthResponse> {
+  async register(data: RegisterData): Promise<User> {
     const response = await apiClient.post<AuthResponse>('/auth/register', data);
-    return response.data;
+    return response.data.data.user;
   },
 
   /**
    * Login user
    */
-  async login(data: LoginData): Promise<AuthResponse> {
+  async login(data: LoginData): Promise<User> {
     const response = await apiClient.post<AuthResponse>('/auth/login', data);
-    return response.data;
+    return response.data.data.user;
   },
 
   /**
@@ -57,8 +60,8 @@ export const authService = {
    * Get current user
    */
   async getMe(): Promise<User> {
-    const response = await apiClient.get<{ user: User }>('/auth/me');
-    return response.data.user;
+    const response = await apiClient.get<{ success: boolean; data: { user: User } }>('/auth/me');
+    return response.data.data.user;
   },
 
   /**

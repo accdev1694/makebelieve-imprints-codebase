@@ -9,32 +9,21 @@ interface MaterialSelectorProps {
 }
 
 const MATERIAL_DESCRIPTIONS: Record<Material, string> = {
-  GLOSSY_PAPER: 'Vibrant colors with a shiny finish',
-  MATTE_PAPER: 'Smooth, non-reflective surface',
+  MATTE: 'Smooth, non-reflective surface',
+  GLOSSY: 'Vibrant colors with a shiny finish',
   CANVAS: 'Premium textured canvas print',
-  METAL: 'Modern aluminum with vivid colors',
-  WOOD: 'Rustic natural wood finish',
-  ACRYLIC: 'Sleek glass-like appearance',
+  FINE_ART: 'Museum-quality fine art print',
 };
 
 const MATERIAL_ICONS: Record<Material, string> = {
-  GLOSSY_PAPER: '📄',
-  MATTE_PAPER: '📋',
+  MATTE: '📋',
+  GLOSSY: '📄',
   CANVAS: '🖼️',
-  METAL: '🔩',
-  WOOD: '🪵',
-  ACRYLIC: '💎',
+  FINE_ART: '🎨',
 };
 
 export function MaterialSelector({ selected, onSelect }: MaterialSelectorProps) {
-  const materials: Material[] = [
-    'GLOSSY_PAPER',
-    'MATTE_PAPER',
-    'CANVAS',
-    'METAL',
-    'WOOD',
-    'ACRYLIC',
-  ];
+  const materials: Material[] = ['MATTE', 'GLOSSY', 'CANVAS', 'FINE_ART'];
 
   return (
     <div>

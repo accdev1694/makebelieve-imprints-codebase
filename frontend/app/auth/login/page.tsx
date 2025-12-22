@@ -22,7 +22,21 @@ export default function LoginPage() {
     try {
       await login({ email, password });
     } catch (err: any) {
-      setError(err?.error || err?.message || 'Login failed. Please check your credentials.');
+      console.error('Login error:', err);
+      // Handle different error formats from the API
+      let errorMessage = 'Login failed. Please check your credentials.';
+
+      if (typeof err === 'string') {
+        errorMessage = err;
+      } else if (err?.error?.message) {
+        errorMessage = err.error.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (err?.error) {
+        errorMessage = typeof err.error === 'string' ? err.error : errorMessage;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

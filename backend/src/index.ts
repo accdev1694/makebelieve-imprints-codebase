@@ -24,17 +24,41 @@ const app: Application = express();
 const PORT = process.env.PORT || 4000;
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow cross-origin resource sharing
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'http://localhost:3000', 'http://localhost:4000'], // Allow images from both origins
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+      fontSrc: ["'self'", 'https:', 'data:'],
+    },
+  },
+}));
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
 }));
-app.use(express.json());
+// Skip JSON parsing for raw file upload endpoint
+app.use((req, res, next) => {
+  if (req.path === '/api/uploads/proxy') {
+    return next();
+  }
+  express.json()(req, res, next);
+});
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); // Parse cookies for JWT auth
 
 // Rate limiting - Apply to all API routes
 app.use('/api/', apiLimiter);
+
+// Serve uploaded files from local storage (for development)
+if (process.env.USE_LOCAL_STORAGE === 'true') {
+  const uploadsDir = process.env.LOCAL_STORAGE_DIR || './uploads';
+  app.use('/uploads', express.static(uploadsDir));
+  console.log(`📁 Serving static files from ${uploadsDir} at /uploads`);
+}
 
 // API Routes
 app.use('/api/auth', authRoutes);

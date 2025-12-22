@@ -2,116 +2,81 @@ import apiClient from './client';
 
 /**
  * Storage Service
- * Handles file uploads to backend storage (IONOS Object Storage / Local FS)
+ * Handles file uploads via a server-side proxy to avoid CORS issues.
  */
-
-export interface UploadUrlResponse {
-  uploadUrl: string;
-  fileKey: string;
-  publicUrl: string;
-}
-
-export interface FileMetadata {
-  name: string;
-  type: string;
-  size: number;
-}
-
 export const storageService = {
   /**
-   * Request a signed upload URL from the backend
-   */
-  async getUploadUrl(fileName: string, contentType: string): Promise<UploadUrlResponse> {
-    const response = await apiClient.post<UploadUrlResponse>('/files/upload-url', {
-      fileName,
-      contentType,
-    });
-    return response.data;
-  },
-
-  /**
-   * Upload file directly to storage using signed URL
+   * Upload file directly to our backend, which then streams it to storage.
    */
   async uploadFile(file: File): Promise<string> {
-    // Step 1: Get signed upload URL from backend
-    const { uploadUrl, publicUrl } = await this.getUploadUrl(file.name, file.type);
-
-    // Step 2: Upload file directly to storage
-    const uploadResponse = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': file.type,
-      },
-    });
-
-    if (!uploadResponse.ok) {
-      throw new Error('Failed to upload file to storage');
+    try {
+      const response = await apiClient.put<{ data: { fileUrl: string } }>(
+        `/uploads/proxy?filename=${encodeURIComponent(file.name)}`,
+        file,
+        {
+          headers: {
+            'Content-Type': file.type,
+          },
+        }
+      );
+      return response.data.data.fileUrl;
+    } catch (error: any) {
+      // Log detailed error information
+      console.error('File upload failed:', {
+        message: error?.message,
+        statusCode: error?.statusCode,
+        error: error?.error,
+        data: error?.data,
+        fullError: error,
+      });
+      // Re-throw the error to be handled by the calling component
+      throw error;
     }
-
-    // Step 3: Return the public URL
-    return publicUrl;
   },
 
   /**
-   * Upload file with progress tracking
+   * Upload file with progress tracking using the server-side proxy.
    */
   async uploadFileWithProgress(
     file: File,
     onProgress?: (progress: number) => void
   ): Promise<string> {
-    // Get signed upload URL
-    const { uploadUrl, publicUrl } = await this.getUploadUrl(file.name, file.type);
-
-    // Upload with progress tracking using XMLHttpRequest
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-
-      // Track upload progress
-      if (onProgress) {
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            const progress = (e.loaded / e.total) * 100;
-            onProgress(progress);
+    const response = await apiClient.put<{ data: { fileUrl: string } }>(
+      `/uploads/proxy?filename=${encodeURIComponent(file.name)}`,
+      file,
+      {
+        headers: {
+          'Content-Type': file.type,
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            onProgress?.(percentCompleted);
           }
-        });
+        },
       }
-
-      // Handle completion
-      xhr.addEventListener('load', () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(publicUrl);
-        } else {
-          reject(new Error('Failed to upload file'));
-        }
-      });
-
-      // Handle errors
-      xhr.addEventListener('error', () => {
-        reject(new Error('Upload failed'));
-      });
-
-      // Send request
-      xhr.open('PUT', uploadUrl);
-      xhr.setRequestHeader('Content-Type', file.type);
-      xhr.send(file);
-    });
+    );
+    return response.data.data.fileUrl;
   },
 
   /**
    * Delete a file from storage
    */
   async deleteFile(fileKey: string): Promise<void> {
-    await apiClient.delete(`/files/${encodeURIComponent(fileKey)}`);
+    await apiClient.delete(`/uploads/${encodeURIComponent(fileKey)}`);
   },
 
   /**
    * Get download URL for a file
    */
   async getDownloadUrl(fileKey: string): Promise<string> {
-    const response = await apiClient.get<{ url: string }>(
-      `/files/${encodeURIComponent(fileKey)}/download`
+    const response = await apiClient.post<{ data: { downloadUrl: string } }>(
+      `/uploads/request-download-url`,
+      { fileKey }
     );
-    return response.data.url;
+    return response.data.data.downloadUrl;
   },
 };
+

@@ -1,7 +1,7 @@
 import apiClient from './client';
 
-export type PrintSize = 'A4' | 'A5' | 'A6' | 'SQUARE_10x10' | 'SQUARE_15x15' | 'CUSTOM';
-export type Material = 'GLOSSY_PAPER' | 'MATTE_PAPER' | 'CANVAS' | 'METAL' | 'WOOD' | 'ACRYLIC';
+export type PrintSize = 'A4' | 'A3' | 'A5' | 'SQUARE_20CM' | 'SQUARE_30CM' | 'CUSTOM';
+export type Material = 'MATTE' | 'GLOSSY' | 'CANVAS' | 'FINE_ART';
 export type Orientation = 'PORTRAIT' | 'LANDSCAPE' | 'SQUARE';
 
 export interface Design {
@@ -54,32 +54,32 @@ export const designsService = {
    * Create a new design
    */
   async create(data: CreateDesignData): Promise<Design> {
-    const response = await apiClient.post<{ design: Design }>('/designs', data);
-    return response.data.design;
+    const response = await apiClient.post<{ data: { design: Design } }>('/designs', data);
+    return response.data.data.design;
   },
 
   /**
    * Get all designs for current user
    */
   async list(): Promise<Design[]> {
-    const response = await apiClient.get<{ designs: Design[] }>('/designs');
-    return response.data.designs;
+    const response = await apiClient.get<{ data: { designs: Design[] } }>('/designs');
+    return response.data.data.designs;
   },
 
   /**
    * Get a specific design by ID
    */
   async get(id: string): Promise<Design> {
-    const response = await apiClient.get<{ design: Design }>(`/designs/${id}`);
-    return response.data.design;
+    const response = await apiClient.get<{ data: { design: Design } }>(`/designs/${id}`);
+    return response.data.data.design;
   },
 
   /**
    * Update a design
    */
   async update(id: string, data: UpdateDesignData): Promise<Design> {
-    const response = await apiClient.put<{ design: Design }>(`/designs/${id}`, data);
-    return response.data.design;
+    const response = await apiClient.put<{ data: { design: Design } }>(`/designs/${id}`, data);
+    return response.data.data.design;
   },
 
   /**
@@ -94,12 +94,10 @@ export const designsService = {
  * Material labels for UI display
  */
 export const MATERIAL_LABELS: Record<Material, string> = {
-  GLOSSY_PAPER: 'Glossy Paper',
-  MATTE_PAPER: 'Matte Paper',
+  MATTE: 'Matte Paper',
+  GLOSSY: 'Glossy Paper',
   CANVAS: 'Canvas',
-  METAL: 'Metal Print',
-  WOOD: 'Wood Print',
-  ACRYLIC: 'Acrylic Glass',
+  FINE_ART: 'Fine Art Print',
 };
 
 /**
@@ -107,10 +105,10 @@ export const MATERIAL_LABELS: Record<Material, string> = {
  */
 export const PRINT_SIZE_LABELS: Record<PrintSize, string> = {
   A4: 'A4 (21 × 29.7 cm)',
+  A3: 'A3 (29.7 × 42 cm)',
   A5: 'A5 (14.8 × 21 cm)',
-  A6: 'A6 (10.5 × 14.8 cm)',
-  SQUARE_10x10: 'Square 10×10 cm',
-  SQUARE_15x15: 'Square 15×15 cm',
+  SQUARE_20CM: 'Square 20×20 cm',
+  SQUARE_30CM: 'Square 30×30 cm',
   CUSTOM: 'Custom Size',
 };
 

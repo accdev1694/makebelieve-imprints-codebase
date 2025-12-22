@@ -16,6 +16,7 @@ import { designsService, Material, PrintSize, Orientation } from '@/lib/api/desi
 import { storageService } from '@/lib/api/storage';
 import { Template, getTemplateById } from '@/lib/templates';
 import Link from 'next/link';
+import Image from 'next/image';
 
 function DesignEditorContent() {
   const router = useRouter();
@@ -29,7 +30,7 @@ function DesignEditorContent() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [designMode, setDesignMode] = useState<'upload' | 'template'>('upload');
   const [preview, setPreview] = useState<string>('');
-  const [material, setMaterial] = useState<Material>('GLOSSY_PAPER');
+  const [material, setMaterial] = useState<Material>('GLOSSY');
   const [printSize, setPrintSize] = useState<PrintSize>('A4');
   const [orientation, setOrientation] = useState<Orientation>('PORTRAIT');
   const [customWidth, setCustomWidth] = useState<number>(0);
@@ -136,7 +137,41 @@ function DesignEditorContent() {
       // Redirect to designs gallery
       router.push('/design/my-designs');
     } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to save design');
+      console.error('Save design error:', {
+        message: err?.message,
+        statusCode: err?.statusCode,
+        error: err?.error,
+        data: err?.data,
+        validationErrors: err?.data?.error?.errors || err?.error?.errors,
+        fullError: err,
+      });
+
+      // Extract error message from various possible formats
+      let errorMessage = 'Failed to save design. Please try again.';
+
+      // Handle validation errors with specific field messages
+      if (err?.data?.error?.errors || err?.error?.errors) {
+        const errors = err?.data?.error?.errors || err?.error?.errors;
+        const errorMessages = Object.entries(errors)
+          .map(([field, msgs]: [string, any]) => {
+            const messages = Array.isArray(msgs) ? msgs : [msgs];
+            return `${field}: ${messages.join(', ')}`;
+          })
+          .join('; ');
+        errorMessage = `Validation failed: ${errorMessages}`;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      } else if (err?.data?.error?.message) {
+        errorMessage = err.data.error.message;
+      } else if (err?.data?.message) {
+        errorMessage = err.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (err?.error) {
+        errorMessage = typeof err.error === 'string' ? err.error : errorMessage;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -98,8 +98,33 @@ apiClient.interceptors.response.use(
     }
 
     // Handle other errors
-    const errorMessage = error.response?.data || error.message || 'An error occurred';
-    return Promise.reject(errorMessage);
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      const apiError = error.response.data as any; // Cast to any to check for message property
+      const message =
+        apiError?.message || 'An error occurred during the request. Please try again.';
+      return Promise.reject({
+        statusCode: error.response.status,
+        message,
+        error: apiError?.error || 'Error',
+        data: apiError,
+      });
+    } else if (error.request) {
+      // The request was made but no response was received
+      return Promise.reject({
+        statusCode: -1,
+        message: 'No response from server. Check your network connection.',
+        error: 'Network Error',
+      });
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      return Promise.reject({
+        statusCode: -1,
+        message: error.message,
+        error: 'Request Setup Error',
+      });
+    }
   }
 );
 

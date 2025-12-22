@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { designsService, Design, MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import Link from 'next/link';
+import Image from 'next/image';
 
 function MyDesignsContent() {
   const router = useRouter();
@@ -116,10 +117,13 @@ function MyDesignsContent() {
               >
                 <CardHeader className="p-0">
                   <div className="aspect-square bg-card/30 rounded-t-xl overflow-hidden relative">
-                    <img
+                    <Image
                       src={design.imageUrl}
                       alt={design.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover group-hover:scale-110 transition-transform duration-300"
+                      unoptimized
                     />
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
                       <Button

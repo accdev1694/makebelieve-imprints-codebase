@@ -40,14 +40,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (data: LoginData) => {
-    const response = await authService.login(data);
-    setUser(response.user);
+    const user = await authService.login(data);
+    setUser(user);
     router.push('/dashboard');
   };
 
   const register = async (data: RegisterData) => {
-    const response = await authService.register(data);
-    setUser(response.user);
+    const user = await authService.register(data);
+    setUser(user);
     router.push('/dashboard');
   };
 

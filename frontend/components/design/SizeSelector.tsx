@@ -23,7 +23,7 @@ export function SizeSelector({
   onOrientationSelect,
   onCustomDimensionsChange,
 }: SizeSelectorProps) {
-  const sizes: PrintSize[] = ['A4', 'A5', 'A6', 'SQUARE_10x10', 'SQUARE_15x15', 'CUSTOM'];
+  const sizes: PrintSize[] = ['A4', 'A3', 'A5', 'SQUARE_20CM', 'SQUARE_30CM', 'CUSTOM'];
   const orientations: Orientation[] = ['PORTRAIT', 'LANDSCAPE', 'SQUARE'];
 
   return (

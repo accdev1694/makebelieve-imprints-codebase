@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
   // Image optimization (disabled for static export)
   images: {
     // unoptimized: true, // Enable when using static export
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '4000',
+        pathname: '/uploads/**',
+      },
+    ],
   },
 };
 

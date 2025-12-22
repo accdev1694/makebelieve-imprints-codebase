@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient, PrintSize, Material, Orientation } from '@prisma/client';
+import { Prisma, PrismaClient, PrintSize, Material, Orientation } from '@prisma/client';
 import { authenticate, requireAdmin } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/error.middleware';
 import { validateBody, validateParams, commonSchemas } from '../utils/validation';
@@ -10,18 +10,47 @@ const router = Router();
 const prisma = new PrismaClient();
 
 /**
+ * Helper to map Prisma Design to the format frontend expects
+ */
+const mapDesignToFrontend = (design: any) => {
+  if (!design) return null;
+
+  const { title, fileUrl, printWidth, printHeight, ...rest } = design;
+
+  // Make sure user object is not accidentally leaked if it's not selected
+  if (rest.user && !rest.user.id) {
+    delete rest.user;
+  }
+  
+  return {
+    ...rest,
+    name: title,
+    description: rest.description || '', // Ensure description is always a string
+    imageUrl: fileUrl,
+    customWidth: printWidth,
+    customHeight: printHeight,
+  };
+};
+
+/**
  * Validation schemas
  */
 const createDesignSchema = z.object({
-  title: z.string().min(1).max(255).optional(),
-  fileUrl: z.string().url('Invalid file URL'),
-  printSize: z.nativeEnum(PrintSize).optional(),
-  material: z.nativeEnum(Material).optional(),
-  orientation: z.nativeEnum(Orientation).optional(),
-  printWidth: z.number().int().positive().optional(),
-  printHeight: z.number().int().positive().optional(),
-  previewUrl: z.string().url().optional(),
-  metadata: z.record(z.any()).optional(),
+  name: z.string().min(1).max(255),
+  description: z.string().max(1000).optional(),
+  imageUrl: z.string().min(1).refine(
+    (val) => val.startsWith('http://') || val.startsWith('https://') || val.startsWith('/'),
+    { message: 'Invalid image URL - must be a full URL or relative path' }
+  ),
+  printSize: z.nativeEnum(PrintSize),
+  material: z.nativeEnum(Material),
+  orientation: z.nativeEnum(Orientation),
+  customWidth: z.number().int().positive().optional(),
+  customHeight: z.number().int().positive().optional(),
+  thumbnailUrl: z.string().min(1).refine(
+    (val) => val.startsWith('http://') || val.startsWith('https://') || val.startsWith('/'),
+    { message: 'Invalid thumbnail URL - must be a full URL or relative path' }
+  ).optional(),
 });
 
 const updateDesignSchema = createDesignSchema.partial();
@@ -35,16 +64,22 @@ router.post(
   authenticate,
   validateBody(createDesignSchema),
   asyncHandler(async (req: Request, res: Response) => {
+    const { name, imageUrl, description, customWidth, customHeight, ...rest } = req.body;
+
     const design = await prisma.design.create({
       data: {
-        ...req.body,
+        ...rest,
+        title: name,
+        fileUrl: imageUrl,
+        printWidth: customWidth,
+        printHeight: customHeight,
         userId: req.user!.userId,
       },
     });
 
     res.status(201).json({
       success: true,
-      data: { design },
+      data: { design: mapDesignToFrontend(design) },
     });
   })
 );
@@ -61,7 +96,7 @@ router.get(
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
 
-    const where =
+    const where: Prisma.DesignWhereInput =
       req.user!.type === 'admin'
         ? {} // Admin sees all designs
         : { userId: req.user!.userId }; // Users see only their designs
@@ -93,7 +128,7 @@ router.get(
     res.json({
       success: true,
       data: {
-        designs,
+        designs: designs.map(mapDesignToFrontend),
         pagination: {
           page,
           limit,
@@ -144,7 +179,7 @@ router.get(
 
     res.json({
       success: true,
-      data: { design },
+      data: { design: mapDesignToFrontend(design) },
     });
   })
 );
@@ -173,14 +208,23 @@ router.put(
       throw new ForbiddenError('Access denied');
     }
 
+    const { name, imageUrl, description, customWidth, customHeight, ...rest } = req.body;
+
+    const dataToUpdate: Prisma.DesignUpdateInput = { ...rest };
+    if (name) dataToUpdate.title = name;
+    if (imageUrl) dataToUpdate.fileUrl = imageUrl;
+    if (customWidth) dataToUpdate.printWidth = customWidth;
+    if (customHeight) dataToUpdate.printHeight = customHeight;
+    // Description is not in the db model, so we don't add it.
+
     const design = await prisma.design.update({
       where: { id: req.params.id },
-      data: req.body,
+      data: dataToUpdate,
     });
 
     res.json({
       success: true,
-      data: { design },
+      data: { design: mapDesignToFrontend(design) },
     });
   })
 );
@@ -220,3 +264,4 @@ router.delete(
 );
 
 export default router;
+

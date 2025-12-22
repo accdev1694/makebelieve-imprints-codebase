@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import express, { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth.middleware';
 import { asyncHandler } from '../middleware/error.middleware';
 import { validateBody } from '../utils/validation';
@@ -14,6 +14,76 @@ import { uploadLimiter } from '../middleware/rate-limit.middleware';
 import { z } from 'zod';
 
 const router = Router();
+
+/**
+ * NEW: Server-side upload proxy endpoint
+ * This endpoint receives the raw file and uploads it to storage on behalf of the client.
+ * This avoids CORS issues with direct-to-S3 uploads from the browser.
+ */
+router.put(
+  '/proxy',
+  authenticate,
+  uploadLimiter,
+  express.raw({
+    limit: '50mb', // Match MAX_IMAGE_SIZE
+    type: '*/*', // Accept any content type
+  }),
+  asyncHandler(async (req: Request, res: Response) => {
+    console.log('[UPLOAD] Received upload request:', {
+      filename: req.query.filename,
+      contentType: req.headers['content-type'],
+      bodySize: req.body?.length,
+      bodyType: typeof req.body,
+    });
+
+    const originalFilename = req.query.filename as string;
+    const contentType = req.headers['content-type'];
+    const fileSize = req.body.length;
+
+    if (!originalFilename || !contentType) {
+      console.error('[UPLOAD] Missing filename or content-type');
+      return res.status(400).json({
+        success: false,
+        error: 'Filename and Content-Type are required.',
+      });
+    }
+
+    // You might want to add more validation here for file type and size
+    if (fileSize > MAX_IMAGE_SIZE) {
+       return res.status(400).json({
+        success: false,
+        error: `File size exceeds maximum allowed (${Math.floor(MAX_IMAGE_SIZE / 1024 / 1024)}MB)`,
+      });
+    }
+    
+    // Generate a unique file key
+    const fileKey = generateFileKey(req.user!.userId, originalFilename, 'image');
+
+    // Call the server-side upload function from the storage service
+    const result = await storageService.uploadFile(fileKey, req.body, {
+      filename: fileKey,
+      mimeType: contentType,
+      size: fileSize,
+      userId: req.user!.userId,
+      isPublic: true, // Designs are public
+    });
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: result.error || 'Failed to upload file.',
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      data: {
+        fileUrl: result.fileUrl,
+        fileKey: result.fileKey,
+      },
+    });
+  })
+);
 
 /**
  * Validation schemas

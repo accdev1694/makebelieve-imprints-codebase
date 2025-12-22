@@ -112,21 +112,19 @@ export const ordersService = {
 export const calculateOrderPrice = (material: Material, printSize: PrintSize): number => {
   // Base prices for materials (in GBP)
   const materialPrices: Record<Material, number> = {
-    GLOSSY_PAPER: 10,
-    MATTE_PAPER: 10,
+    MATTE: 10,
+    GLOSSY: 10,
     CANVAS: 25,
-    METAL: 40,
-    WOOD: 35,
-    ACRYLIC: 45,
+    FINE_ART: 40,
   };
 
   // Size multipliers
   const sizeMultipliers: Record<PrintSize, number> = {
-    A6: 0.5,
     A5: 0.75,
     A4: 1.0,
-    SQUARE_10x10: 0.6,
-    SQUARE_15x15: 0.8,
+    A3: 1.5,
+    SQUARE_20CM: 0.8,
+    SQUARE_30CM: 1.2,
     CUSTOM: 1.0, // Base multiplier, actual price should be calculated differently
   };
 
@@ -145,10 +143,10 @@ export const getPrintDimensions = (
 ): { width: number; height: number } => {
   const sizes: Record<PrintSize, { width: number; height: number }> = {
     A4: { width: 21, height: 29.7 },
+    A3: { width: 29.7, height: 42 },
     A5: { width: 14.8, height: 21 },
-    A6: { width: 10.5, height: 14.8 },
-    SQUARE_10x10: { width: 10, height: 10 },
-    SQUARE_15x15: { width: 15, height: 15 },
+    SQUARE_20CM: { width: 20, height: 20 },
+    SQUARE_30CM: { width: 30, height: 30 },
     CUSTOM: { width: 0, height: 0 }, // Will be provided by user
   };
 

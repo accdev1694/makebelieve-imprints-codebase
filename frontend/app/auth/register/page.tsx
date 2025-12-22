@@ -41,7 +41,21 @@ export default function RegisterPage() {
         userType: 'CUSTOMER', // Default to customer
       });
     } catch (err: any) {
-      setError(err?.error || err?.message || 'Registration failed. Please try again.');
+      console.error('Registration error:', err);
+      // Handle different error formats from the API
+      let errorMessage = 'Registration failed. Please try again.';
+
+      if (typeof err === 'string') {
+        errorMessage = err;
+      } else if (err?.error?.message) {
+        errorMessage = err.error.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (err?.error) {
+        errorMessage = typeof err.error === 'string' ? err.error : errorMessage;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

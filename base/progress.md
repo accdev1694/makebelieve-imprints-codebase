@@ -194,21 +194,21 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] ProductCategory enum (SUBLIMATION, STATIONERY, LARGE_FORMAT, PHOTO_PRINTS, DIGITAL, CUSTOM_ORDER)
   - [✅] ProductType enum (TSHIRT, MUG, WATER_BOTTLE, MOUSEMAT, KEYCHAIN, CUSHION_PILLOW, BUSINESS_CARD, LEAFLET, GREETING_CARD, POSTCARD, BANNER, POSTER, CANVAS_PRINT, ALUMINUM_PRINT, PHOTO_PAPER_PRINT, ACRYLIC_LED_PRINT, DIGITAL_PDF)
   - [✅] CustomizationType enum (TEMPLATE_BASED, UPLOAD_OWN, FULLY_CUSTOM, DIGITAL_DOWNLOAD)
-- [ ] 4.1.2 Create Product model and related models
-  - [ ] Product model (name, slug, description, category, pricing, status, SEO fields)
-  - [ ] ProductVariant model (size, material, color, finish, dimensions, pricing)
-  - [ ] ProductImage model (multiple images per product)
-  - [ ] ProductTemplate model (pre-made designs for products)
-- [ ] 4.1.3 Create OrderItem model and update Order model
-  - [ ] OrderItem model (links products, variants, designs, customization)
-  - [ ] Update Order model to support multiple line items
-  - [ ] Add items relationship to Order
-- [ ] 4.1.4 Run Prisma migration for product catalog
-- [ ] 4.1.5 Create product seeding script
-  - [ ] Seed initial products for each category
-  - [ ] Add product variants (sizes, materials, colors)
-  - [ ] Add product images
-  - [ ] Add sample templates
+- [✅] 4.1.2 Create Product model and related models
+  - [✅] Product model (name, slug, description, category, pricing, status, SEO fields)
+  - [✅] ProductVariant model (size, material, color, finish, dimensions, pricing)
+  - [✅] ProductImage model (multiple images per product)
+  - [✅] ProductTemplate model (pre-made designs for products)
+- [✅] 4.1.3 Create OrderItem model and update Order model
+  - [✅] OrderItem model (links products, variants, designs, customization)
+  - [✅] Update Order model to support multiple line items
+  - [✅] Add items relationship to Order
+- [✅] 4.1.4 Run Prisma migration for product catalog
+- [✅] 4.1.5 Create product seeding script
+  - [✅] Seed initial products for each category
+  - [✅] Add product variants (sizes, materials, colors)
+  - [✅] Add product images
+  - [✅] Add sample templates
 - [ ] 4.1.6 Build Product API endpoints
   - [ ] GET /api/products (list with filtering, search, pagination)
   - [ ] GET /api/products/:id (get single product with variants)

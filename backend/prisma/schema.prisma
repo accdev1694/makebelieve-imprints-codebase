@@ -87,6 +87,13 @@ enum CustomizationType {
   DIGITAL_DOWNLOAD
 }
 
+enum ProductStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+  OUT_OF_STOCK
+}
+
 // Financial Enums
 enum PaymentMethod {
   STRIPE
@@ -189,26 +196,192 @@ model Design {
   metadata     Json?        @db.JsonB
   createdAt    DateTime     @default(now()) @map("created_at")
 
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders Order[]
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders     Order[]
+  orderItems OrderItem[]
 
   @@index([userId])
   @@index([createdAt(sort: Desc)])
   @@map("designs")
 }
 
+// ============================================
+// PRODUCT CATALOG MODELS
+// ============================================
+
+model Product {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String         @db.VarChar(255)
+  slug            String         @unique @db.VarChar(255)
+  description     String         @db.Text
+  category        ProductCategory
+  productType     ProductType    @map("product_type")
+  customizationType CustomizationType @map("customization_type")
+
+  // Pricing
+  basePrice       Decimal        @map("base_price") @db.Decimal(10, 2)
+  currency        String         @default("GBP") @db.VarChar(3)
+
+  // Status and visibility
+  status          ProductStatus  @default(DRAFT)
+  featured        Boolean        @default(false)
+
+  // SEO
+  seoTitle        String?        @map("seo_title") @db.VarChar(255)
+  seoDescription  String?        @map("seo_description") @db.VarChar(500)
+  seoKeywords     String?        @map("seo_keywords") @db.VarChar(500)
+
+  // Flexible metadata
+  metadata        Json?          @db.JsonB
+
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at")
+
+  variants        ProductVariant[]
+  images          ProductImage[]
+  templates       ProductTemplate[]
+  orderItems      OrderItem[]
+
+  @@index([slug])
+  @@index([category])
+  @@index([productType])
+  @@index([status])
+  @@index([featured])
+  @@map("products")
+}
+
+model ProductVariant {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId       String    @map("product_id") @db.Uuid
+
+  name            String    @db.VarChar(255)
+  sku             String?   @unique @db.VarChar(100)
+
+  // Variant attributes
+  size            String?   @db.VarChar(50)
+  material        String?   @db.VarChar(100)
+  color           String?   @db.VarChar(50)
+  finish          String?   @db.VarChar(50)
+  dimensions      Json?     @db.JsonB // { width, height, depth, unit }
+
+  // Pricing and inventory
+  price           Decimal   @db.Decimal(10, 2) // Additional cost on top of base price
+  stock           Int       @default(0)
+  isDefault       Boolean   @default(false) @map("is_default")
+
+  // Flexible metadata
+  metadata        Json?     @db.JsonB
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  images          ProductImage[]
+  orderItems      OrderItem[]
+
+  @@index([productId])
+  @@index([sku])
+  @@map("product_variants")
+}
+
+model ProductImage {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId       String          @map("product_id") @db.Uuid
+  variantId       String?         @map("variant_id") @db.Uuid
+
+  imageUrl        String          @map("image_url") @db.VarChar(500)
+  altText         String?         @map("alt_text") @db.VarChar(255)
+  displayOrder    Int             @default(0) @map("display_order")
+  isPrimary       Boolean         @default(false) @map("is_primary")
+
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  product         Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([variantId])
+  @@index([displayOrder])
+  @@map("product_images")
+}
+
+model ProductTemplate {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId       String    @map("product_id") @db.Uuid
+
+  name            String    @db.VarChar(255)
+  description     String?   @db.Text
+  thumbnailUrl    String    @map("thumbnail_url") @db.VarChar(500)
+  designFileUrl   String    @map("design_file_url") @db.VarChar(500)
+
+  // Categorization
+  category        String?   @db.VarChar(100) // "Birthday", "Wedding", "Business", etc.
+  tags            Json?     @db.JsonB // Array of tags
+
+  // Premium templates
+  isPremium       Boolean   @default(false) @map("is_premium")
+  price           Decimal?  @db.Decimal(10, 2)
+
+  // Flexible metadata
+  metadata        Json?     @db.JsonB
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([category])
+  @@index([isPremium])
+  @@map("product_templates")
+}
+
+model OrderItem {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId          String          @map("order_id") @db.Uuid
+
+  // Product references (for catalog products)
+  productId        String?         @map("product_id") @db.Uuid
+  variantId        String?         @map("variant_id") @db.Uuid
+
+  // Design reference (for custom designs or legacy orders)
+  designId         String?         @map("design_id") @db.Uuid
+
+  // Item details
+  quantity         Int             @default(1)
+  unitPrice        Decimal         @map("unit_price") @db.Decimal(10, 2)
+  totalPrice       Decimal         @map("total_price") @db.Decimal(10, 2)
+
+  // Customization and metadata
+  customization    Json?           @db.JsonB
+  metadata         Json?           @db.JsonB
+
+  createdAt        DateTime        @default(now()) @map("created_at")
+
+  order            Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          Product?        @relation(fields: [productId], references: [id])
+  variant          ProductVariant? @relation(fields: [variantId], references: [id])
+  design           Design?         @relation(fields: [designId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([designId])
+  @@map("order_items")
+}
+
 model Order {
   id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   customerId       String      @map("customer_id") @db.Uuid
-  designId         String      @map("design_id") @db.Uuid
+  designId         String?     @map("design_id") @db.Uuid // Made optional for multi-item orders
   status           OrderStatus @default(pending)
 
-  // Snapshot of print specifications at order time
-  printSize        PrintSize   @map("print_size")
-  material         Material
-  orientation      Orientation
-  printWidth       Int         @map("print_width")  // Width in millimeters
-  printHeight      Int         @map("print_height") // Height in millimeters
+  // Snapshot of print specifications at order time (legacy/single-item orders)
+  printSize        PrintSize?  @map("print_size")
+  material         Material?
+  orientation      Orientation?
+  printWidth       Int?        @map("print_width")  // Width in millimeters
+  printHeight      Int?        @map("print_height") // Height in millimeters
   previewUrl       String?     @map("preview_url") @db.VarChar(500)
 
   // Pricing and shipping
@@ -224,7 +397,8 @@ model Order {
   updatedAt        DateTime    @default(now()) @updatedAt @map("updated_at")
 
   customer        User      @relation(fields: [customerId], references: [id])
-  design          Design    @relation(fields: [designId], references: [id])
+  design          Design?   @relation(fields: [designId], references: [id])
+  items           OrderItem[]
   review          Review?
   invoice         Invoice?
   payment         Payment?

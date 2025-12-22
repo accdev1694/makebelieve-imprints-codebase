@@ -3,6 +3,8 @@
  * These templates provide starting points for users who don't want to upload their own designs
  */
 
+import { Material, PrintSize } from './api/designs';
+
 export interface Template {
   id: string;
   name: string;
@@ -10,8 +12,8 @@ export interface Template {
   category: 'birthday' | 'wedding' | 'anniversary' | 'graduation' | 'baby' | 'holiday' | 'general';
   previewUrl: string;
   thumbnailUrl: string;
-  recommendedSize: 'A4' | 'A5' | 'A6' | '10X15' | '13X18';
-  recommendedMaterial: 'GLOSSY_PAPER' | 'MATTE_PAPER' | 'CANVAS' | 'PHOTO_PAPER';
+  recommendedSize: PrintSize;
+  recommendedMaterial: Material;
 }
 
 /**
@@ -57,7 +59,7 @@ export const templates: Template[] = [
     previewUrl: '/templates/wedding-2.png',
     thumbnailUrl: '/templates/thumbs/wedding-2.png',
     recommendedSize: 'A4',
-    recommendedMaterial: 'PHOTO_PAPER',
+    recommendedMaterial: 'GLOSSY_PAPER',
   },
   {
     id: 'anniversary-1',
@@ -117,7 +119,7 @@ export const templates: Template[] = [
     previewUrl: '/templates/general-2.png',
     thumbnailUrl: '/templates/thumbs/general-2.png',
     recommendedSize: 'A4',
-    recommendedMaterial: 'PHOTO_PAPER',
+    recommendedMaterial: 'GLOSSY_PAPER',
   },
 ];
 

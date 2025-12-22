@@ -50,6 +50,32 @@ export function validateParams(schema: ZodSchema) {
 }
 
 /**
+ * Validate entire request (body, query, params) against Zod schema
+ * Schema should be an object with optional 'body', 'query', and 'params' properties
+ * @param schema - Zod schema to validate against
+ * @returns Express middleware function
+ */
+export function validateRequest(schema: ZodSchema) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const validated = schema.parse({
+        body: req.body,
+        query: req.query,
+        params: req.params,
+      });
+
+      if (validated.body) req.body = validated.body;
+      if (validated.query) req.query = validated.query;
+      if (validated.params) req.params = validated.params;
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+/**
  * Common validation schemas
  */
 export const commonSchemas = {

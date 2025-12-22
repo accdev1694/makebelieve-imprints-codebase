@@ -145,7 +145,12 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Order confirmation page
   - [✅] Price calculation utilities
   - [✅] Order button on My Designs page
-- [ ] Add order tracking UI (Royal Mail integration)
+- [✅] Add order tracking UI (Royal Mail integration)
+  - [✅] Shipping API service with tracking endpoints
+  - [✅] Standalone tracking page with search functionality
+  - [✅] Track Order buttons on order details pages
+  - [✅] Tracking number display with quick access links
+  - [✅] Royal Mail tracking status integration
 - [✅] Build customer dashboard (basic structure)
   - [✅] Dashboard page created
   - [✅] My Designs page

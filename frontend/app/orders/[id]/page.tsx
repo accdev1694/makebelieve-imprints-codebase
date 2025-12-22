@@ -241,7 +241,12 @@ function OrderDetailsContent() {
                       {order.trackingNumber && (
                         <div className="mt-2">
                           <p className="text-xs text-muted-foreground">Tracking Number:</p>
-                          <p className="font-mono text-sm">{order.trackingNumber}</p>
+                          <p className="font-mono text-sm mb-2">{order.trackingNumber}</p>
+                          <Link href={`/track?number=${order.trackingNumber}`}>
+                            <Button size="sm" variant="outline" className="text-xs">
+                              Track Shipment →
+                            </Button>
+                          </Link>
                         </div>
                       )}
                     </div>
@@ -354,6 +359,13 @@ function OrderDetailsContent() {
               Back to Orders
             </Button>
           </Link>
+          {order.trackingNumber && (
+            <Link href={`/track?number=${order.trackingNumber}`}>
+              <Button variant="outline" className="w-full sm:w-auto">
+                Track Shipment
+              </Button>
+            </Link>
+          )}
           <Link href="/design/new">
             <Button className="btn-gradient w-full sm:w-auto">Create Another Design</Button>
           </Link>

@@ -220,12 +220,12 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] POST /api/products/:id/variants (admin only)
   - [✅] PUT /api/variants/:id (admin only)
   - [✅] DELETE /api/variants/:id (admin only)
-- [ ] 4.1.8 Build ProductTemplate API endpoints
-  - [ ] GET /api/products/:id/templates (list templates for product)
-  - [ ] GET /api/templates (browse all templates with filtering)
-  - [ ] POST /api/templates (admin only)
-  - [ ] PUT /api/templates/:id (admin only)
-  - [ ] DELETE /api/templates/:id (admin only)
+- [✅] 4.1.8 Build ProductTemplate API endpoints
+  - [✅] GET /api/products/:id/templates (list templates for product)
+  - [✅] GET /api/templates (browse all templates with filtering)
+  - [✅] POST /api/templates (admin only)
+  - [✅] PUT /api/templates/:id (admin only)
+  - [✅] DELETE /api/templates/:id (admin only)
 
 ### 4.2 Product Catalog UI (Phase 2)
 

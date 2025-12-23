@@ -135,6 +135,16 @@ export interface ProductsListParams {
   sortOrder?: 'asc' | 'desc';
 }
 
+export interface ProductFilters {
+  category: ProductCategory | 'all';
+  productType: ProductType | 'all';
+  customizationType: CustomizationType | 'all';
+  featured: boolean | null;
+  search: string;
+  sortBy: 'name' | 'price' | 'createdAt' | 'featured';
+  sortOrder: 'asc' | 'desc';
+}
+
 /**
  * Products Service
  * Handles all product-related API calls
@@ -225,6 +235,16 @@ export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   PHOTO_PAPER_PRINT: 'Photo Paper Print',
   ACRYLIC_LED_PRINT: 'Acrylic LED Print',
   DIGITAL_PDF: 'Digital PDF',
+};
+
+/**
+ * Customization type display labels
+ */
+export const CUSTOMIZATION_TYPE_LABELS: Record<CustomizationType, string> = {
+  TEMPLATE_BASED: 'Use a Template',
+  UPLOAD_OWN: 'Upload Your Own',
+  FULLY_CUSTOM: 'Fully Custom',
+  DIGITAL_DOWNLOAD: 'Digital Download',
 };
 
 /**

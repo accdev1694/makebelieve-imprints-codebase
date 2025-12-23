@@ -8,11 +8,16 @@ import {
   ProductCategory,
   productsService,
   CATEGORY_LABELS,
+  ProductFilters,
 } from '@/lib/api/products';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/ProductCard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Package } from 'lucide-react';
+import { FilterSidebar } from '@/components/products/FilterSidebar';
+import { MobileFilterButton } from '@/components/products/MobileFilterButton';
+import { ActiveFilters } from '@/components/products/ActiveFilters';
+import { useProductFilters } from '@/hooks/useProductFilters';
 
 function ProductsPageContent() {
   // Data state
@@ -25,7 +30,8 @@ function ProductsPageContent() {
   const [totalPages, setTotalPages] = useState(1);
 
   // Filter state
-  const [categoryFilter, setCategoryFilter] = useState<ProductCategory | 'all'>('all');
+  const { filters, updateFilters, clearFilters, activeFilterCount } = useProductFilters();
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   // Auth state for header navigation
   const { user } = useAuth();
@@ -37,23 +43,24 @@ function ProductsPageContent() {
   useEffect(() => {
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryFilter, currentPage]);
+  }, [filters, currentPage]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       const params: any = {
+        ...filters,
         page: currentPage,
         limit: ITEMS_PER_PAGE,
         status: 'ACTIVE', // Only show active products
-        sortBy: 'featured', // Featured products first
-        sortOrder: 'desc',
       };
 
-      // Add category filter if not 'all'
-      if (categoryFilter !== 'all') {
-        params.category = categoryFilter;
-      }
+      // Remove 'all' values - backend doesn't need them
+      if (params.category === 'all') delete params.category;
+      if (params.productType === 'all') delete params.productType;
+      if (params.customizationType === 'all') delete params.customizationType;
+      if (params.featured === null) delete params.featured;
+      if (!params.search) delete params.search;
 
       const data = await productsService.list(params);
       setProducts(data.products);
@@ -67,9 +74,23 @@ function ProductsPageContent() {
     }
   };
 
-  const handleCategoryChange = (category: ProductCategory | 'all') => {
-    setCategoryFilter(category);
-    setCurrentPage(1); // Reset to page 1 when changing filters
+  const handleRemoveFilter = (key: keyof ProductFilters) => {
+    const defaults: Partial<ProductFilters> = {
+      category: 'all',
+      productType: 'all',
+      customizationType: 'all',
+      featured: null,
+      search: '',
+      sortBy: 'featured',
+      sortOrder: 'desc',
+    };
+    updateFilters({ [key]: defaults[key] });
+    setCurrentPage(1);
+  };
+
+  const handleClearAll = () => {
+    clearFilters();
+    setCurrentPage(1);
   };
 
   return (
@@ -128,132 +149,121 @@ function ProductsPageContent() {
           </p>
         </section>
 
-        {/* Category Filter Tabs */}
-        <div className="mb-8 flex gap-2 flex-wrap justify-center">
-          <Button
-            variant={categoryFilter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleCategoryChange('all')}
-            className={categoryFilter === 'all' ? 'btn-gradient' : ''}
-          >
-            All Products
-          </Button>
-          <Button
-            variant={categoryFilter === 'SUBLIMATION' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleCategoryChange('SUBLIMATION')}
-            className={categoryFilter === 'SUBLIMATION' ? 'btn-gradient' : ''}
-          >
-            {CATEGORY_LABELS.SUBLIMATION}
-          </Button>
-          <Button
-            variant={categoryFilter === 'STATIONERY' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleCategoryChange('STATIONERY')}
-            className={categoryFilter === 'STATIONERY' ? 'btn-gradient' : ''}
-          >
-            {CATEGORY_LABELS.STATIONERY}
-          </Button>
-          <Button
-            variant={categoryFilter === 'LARGE_FORMAT' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleCategoryChange('LARGE_FORMAT')}
-            className={categoryFilter === 'LARGE_FORMAT' ? 'btn-gradient' : ''}
-          >
-            {CATEGORY_LABELS.LARGE_FORMAT}
-          </Button>
-          <Button
-            variant={categoryFilter === 'PHOTO_PRINTS' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleCategoryChange('PHOTO_PRINTS')}
-            className={categoryFilter === 'PHOTO_PRINTS' ? 'btn-gradient' : ''}
-          >
-            {CATEGORY_LABELS.PHOTO_PRINTS}
-          </Button>
-          <Button
-            variant={categoryFilter === 'DIGITAL' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleCategoryChange('DIGITAL')}
-            className={categoryFilter === 'DIGITAL' ? 'btn-gradient' : ''}
-          >
-            {CATEGORY_LABELS.DIGITAL}
-          </Button>
-        </div>
+        {/* Mobile Filter Button */}
+        <MobileFilterButton
+          onClick={() => setMobileFiltersOpen(true)}
+          activeCount={activeFilterCount}
+        />
 
-        {/* Error State */}
-        {error && (
-          <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm mb-6">
-            {error}
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <ProductCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : products.length === 0 ? (
-          /* Empty State */
-          <Card className="card-glow">
-            <CardContent className="py-20 text-center">
-              <div className="mb-6 flex justify-center">
-                <div className="rounded-full bg-muted p-6">
-                  <Package className="h-12 w-12 text-muted-foreground" />
-                </div>
-              </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                {categoryFilter === 'all'
-                  ? 'No products available'
-                  : `No ${CATEGORY_LABELS[categoryFilter]} products found`}
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                {categoryFilter === 'all'
-                  ? 'Check back soon for new products!'
-                  : 'Try selecting a different category to see other products.'}
-              </p>
-              {categoryFilter !== 'all' && (
-                <Button onClick={() => handleCategoryChange('all')}>
-                  View All Products
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {/* Product Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+        {/* Main Grid Layout */}
+        <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+          {/* Desktop Sidebar - sticky */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-20">
+              <FilterSidebar
+                filters={filters}
+                onFiltersChange={updateFilters}
+                onClearAll={handleClearAll}
+                totalResults={products.length}
+              />
             </div>
+          </aside>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-8">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground px-4">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
+          {/* Products Area */}
+          <div>
+            {/* Active Filters */}
+            <ActiveFilters
+              filters={filters}
+              onRemoveFilter={handleRemoveFilter}
+              onClearAll={handleClearAll}
+            />
+
+                {/* Error State */}
+            {error && (
+              <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm mb-6">
+                {error}
               </div>
             )}
-          </>
+
+            {/* Loading State */}
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : products.length === 0 ? (
+              /* Empty State */
+              <Card className="card-glow">
+                <CardContent className="py-20 text-center">
+                  <div className="mb-6 flex justify-center">
+                    <div className="rounded-full bg-muted p-6">
+                      <Package className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">
+                    No products found
+                  </h3>
+                  <p className="text-muted-foreground mb-6">
+                    {activeFilterCount > 0
+                      ? 'Try adjusting your filters to see more products.'
+                      : 'Check back soon for new products!'}
+                  </p>
+                  {activeFilterCount > 0 && (
+                    <Button onClick={handleClearAll}>Clear All Filters</Button>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Product Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {products.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 pt-8">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground px-4">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Filter Drawer */}
+        {mobileFiltersOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 bg-background">
+            <FilterSidebar
+              filters={filters}
+              onFiltersChange={updateFilters}
+              onClearAll={handleClearAll}
+              totalResults={products.length}
+              isOpen={mobileFiltersOpen}
+              onClose={() => setMobileFiltersOpen(false)}
+            />
+          </div>
         )}
       </main>
     </div>

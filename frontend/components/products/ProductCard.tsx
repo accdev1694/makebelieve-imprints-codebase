@@ -17,7 +17,7 @@ export function ProductCard({ product }: ProductCardProps) {
     : product.basePrice;
 
   return (
-    <Link href={`/products/${product.slug}`}>
+    <Link href={`/products/${product.id}`}>
       <Card className="group overflow-hidden transition-all hover:shadow-lg cursor-pointer h-full flex flex-col">
         {/* Product Image */}
         <div className="relative aspect-square w-full overflow-hidden bg-gray-100">

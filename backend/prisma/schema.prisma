@@ -209,13 +209,64 @@ model Design {
 // PRODUCT CATALOG MODELS
 // ============================================
 
+model Category {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String   @db.VarChar(255)
+  slug         String   @unique @db.VarChar(255)
+  description  String?  @db.Text
+  image        String?  @db.VarChar(500)
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  subcategories Subcategory[]
+  products      Product[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([displayOrder])
+  @@map("categories")
+}
+
+model Subcategory {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId   String   @map("category_id") @db.Uuid
+  name         String   @db.VarChar(255)
+  slug         String   @unique @db.VarChar(255)
+  description  String?  @db.Text
+  image        String?  @db.VarChar(500)
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  category     Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  products     Product[]
+
+  @@index([categoryId])
+  @@index([slug])
+  @@index([isActive])
+  @@index([displayOrder])
+  @@map("subcategories")
+}
+
 model Product {
   id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name            String         @db.VarChar(255)
   slug            String         @unique @db.VarChar(255)
   description     String         @db.Text
-  category        ProductCategory
-  productType     ProductType    @map("product_type")
+
+  // Dynamic category relations
+  categoryId      String         @map("category_id") @db.Uuid
+  subcategoryId   String?        @map("subcategory_id") @db.Uuid
+
+  // Legacy enum fields (kept for backward compatibility during migration)
+  legacyCategory  ProductCategory? @map("legacy_category")
+  legacyProductType ProductType?  @map("legacy_product_type")
+
   customizationType CustomizationType @map("customization_type")
 
   // Pricing
@@ -237,14 +288,18 @@ model Product {
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at")
 
+  category        Category         @relation(fields: [categoryId], references: [id])
+  subcategory     Subcategory?     @relation(fields: [subcategoryId], references: [id])
   variants        ProductVariant[]
   images          ProductImage[]
   templates       ProductTemplate[]
   orderItems      OrderItem[]
 
   @@index([slug])
-  @@index([category])
-  @@index([productType])
+  @@index([categoryId])
+  @@index([subcategoryId])
+  @@index([legacyCategory])
+  @@index([legacyProductType])
   @@index([status])
   @@index([featured])
   @@map("products")

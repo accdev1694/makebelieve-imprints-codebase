@@ -11,15 +11,15 @@ export function HeroSection() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="https://images.unsplash.com/photo-1542744094-3a31f272c490?w=1920&q=80"
-          alt="Custom printing hero"
+          src="/images/hero.png"
+          alt="MakeBelieve Imprints - Professional printing services"
           fill
           className="object-cover"
           priority
           sizes="100vw"
         />
         {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/65 to-black/50" />
       </div>
 
       {/* Content */}
@@ -27,14 +27,12 @@ export function HeroSection() {
         <div className="max-w-3xl">
           {/* Badge */}
           <Badge variant="outline" className="border-primary/50 text-primary mb-6 text-sm px-4 py-2">
-            ✨ Professional Custom Printing
+            Custom Printing Made Simple
           </Badge>
 
           {/* Headline */}
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            <span className="text-white">Custom Printing</span>
-            <br />
-            <span className="text-neon-gradient">Made Simple</span>
+            <span className="text-neon-gradient">MakeBelieve Imprints</span>
           </h1>
 
           {/* Subheadline */}

@@ -1,5 +1,7 @@
 import apiClient from './client';
+import { Category, Subcategory } from './categories';
 
+// Legacy enums - kept for backward compatibility
 export type ProductCategory =
   | 'SUBLIMATION'
   | 'STATIONERY'
@@ -34,6 +36,9 @@ export type CustomizationType =
   | 'DIGITAL_DOWNLOAD';
 
 export type ProductStatus = 'ACTIVE' | 'DRAFT' | 'ARCHIVED' | 'OUT_OF_STOCK';
+
+// Re-export category types for convenience
+export type { Category, Subcategory };
 
 export interface ProductImage {
   id: string;
@@ -90,8 +95,14 @@ export interface Product {
   name: string;
   slug: string;
   description: string;
-  category: ProductCategory;
-  productType: ProductType;
+  // Dynamic category relations (new)
+  categoryId: string;
+  subcategoryId?: string | null;
+  category: Category;
+  subcategory?: Subcategory | null;
+  // Legacy enum fields (kept for backward compatibility)
+  legacyCategory?: ProductCategory;
+  legacyProductType?: ProductType;
   customizationType: CustomizationType;
   basePrice: number;
   currency: string;
@@ -125,6 +136,12 @@ export interface ProductsListResponse {
 export interface ProductsListParams {
   page?: number;
   limit?: number;
+  // Dynamic category filtering (new)
+  categoryId?: string;
+  categorySlug?: string;
+  subcategoryId?: string;
+  subcategorySlug?: string;
+  // Legacy enum filtering (kept for backward compatibility)
   category?: ProductCategory;
   productType?: ProductType;
   customizationType?: CustomizationType;
@@ -158,6 +175,12 @@ export const productsService = {
 
     if (params.page) searchParams.set('page', params.page.toString());
     if (params.limit) searchParams.set('limit', params.limit.toString());
+    // Dynamic category filtering (new)
+    if (params.categoryId) searchParams.set('categoryId', params.categoryId);
+    if (params.categorySlug) searchParams.set('categorySlug', params.categorySlug);
+    if (params.subcategoryId) searchParams.set('subcategoryId', params.subcategoryId);
+    if (params.subcategorySlug) searchParams.set('subcategorySlug', params.subcategorySlug);
+    // Legacy enum filtering
     if (params.category) searchParams.set('category', params.category);
     if (params.productType) searchParams.set('productType', params.productType);
     if (params.customizationType) searchParams.set('customizationType', params.customizationType);
@@ -206,7 +229,7 @@ export const productsService = {
  * Category display labels
  */
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
-  SUBLIMATION: 'Sublimation',
+  SUBLIMATION: 'Home & Lifestyle',
   STATIONERY: 'Stationery',
   LARGE_FORMAT: 'Large Format',
   PHOTO_PRINTS: 'Photo Prints',

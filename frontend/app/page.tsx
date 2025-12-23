@@ -5,12 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import {
-  Product,
-  ProductCategory,
-  productsService,
-  CATEGORY_LABELS,
-} from '@/lib/api/products';
+import { Product, productsService } from '@/lib/api/products';
+import { Category, categoriesService, getCategoryImage } from '@/lib/api/categories';
 
 // Home page components
 import { HeroSection } from '@/components/home/HeroSection';
@@ -25,110 +21,124 @@ export default function Home() {
   const { user, logout } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
-  const [categoryProducts, setCategoryProducts] = useState<Record<ProductCategory, Product[]>>({
-    SUBLIMATION: [],
-    STATIONERY: [],
-    LARGE_FORMAT: [],
-    PHOTO_PRINTS: [],
-    DIGITAL: [],
-  });
+  const [categoryProducts, setCategoryProducts] = useState<Record<string, Product[]>>({});
 
-  // Category data with images
-  const categories = [
+  // Fallback categories in case API fails
+  const fallbackCategories: Category[] = [
     {
-      title: 'Sublimation Gifts',
-      description: 'Custom mugs, tumblers, and personalized gifts',
-      image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=800&q=80',
-      href: '/products?category=SUBLIMATION',
-      category: 'SUBLIMATION' as ProductCategory,
+      id: '1',
+      name: 'Home & Lifestyle',
+      slug: 'home-lifestyle',
+      description: 'Custom mugs, keychains, t-shirts, and personalized lifestyle products',
+      image: '/images/home-lifestyle.png',
+      displayOrder: 1,
+      isActive: true,
+      createdAt: '',
+      updatedAt: '',
     },
     {
-      title: 'Business Stationery',
-      description: 'Business cards, letterheads, and brochures',
+      id: '2',
+      name: 'Business Stationery',
+      slug: 'stationery',
+      description: 'Business cards, letterheads, and professional print materials',
       image: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&q=80',
-      href: '/products?category=STATIONERY',
-      category: 'STATIONERY' as ProductCategory,
+      displayOrder: 2,
+      isActive: true,
+      createdAt: '',
+      updatedAt: '',
     },
     {
-      title: 'Large Format Prints',
-      description: 'Banners, posters, and signage',
+      id: '3',
+      name: 'Large Format Prints',
+      slug: 'large-format',
+      description: 'Banners, posters, and signage for maximum impact',
       image: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=800&q=80',
-      href: '/products?category=LARGE_FORMAT',
-      category: 'LARGE_FORMAT' as ProductCategory,
+      displayOrder: 3,
+      isActive: true,
+      createdAt: '',
+      updatedAt: '',
     },
     {
-      title: 'Photo Prints',
-      description: 'Canvas prints, framed photos, and albums',
+      id: '4',
+      name: 'Photo Prints',
+      slug: 'photo-prints',
+      description: 'Canvas prints, framed photos, and photo albums',
       image: 'https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81?w=800&q=80',
-      href: '/products?category=PHOTO_PRINTS',
-      category: 'PHOTO_PRINTS' as ProductCategory,
+      displayOrder: 4,
+      isActive: true,
+      createdAt: '',
+      updatedAt: '',
     },
     {
-      title: 'Digital Products',
+      id: '5',
+      name: 'Digital Products',
+      slug: 'digital',
       description: 'Templates, designs, and digital downloads',
       image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80',
-      href: '/products?category=DIGITAL',
-      category: 'DIGITAL' as ProductCategory,
+      displayOrder: 5,
+      isActive: true,
+      createdAt: '',
+      updatedAt: '',
     },
   ];
 
-  // Fetch products
+  // Fetch categories and products
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
 
+        // Fetch categories from API
+        try {
+          const categoriesData = await categoriesService.list({ includeSubcategories: true });
+          setCategories(categoriesData.length > 0 ? categoriesData : fallbackCategories);
+        } catch (catError) {
+          console.error('Failed to fetch categories, using fallback:', catError);
+          setCategories(fallbackCategories);
+        }
+
         // Fetch bestsellers (featured products)
-        const featuredData = await productsService.list({
-          featured: true,
-          limit: 8,
-          status: 'ACTIVE',
-          sortBy: 'featured',
-          sortOrder: 'desc',
-        });
-        setBestsellers(featuredData.products);
-
-        // Fetch new arrivals (sorted by creation date)
-        const newData = await productsService.list({
-          limit: 8,
-          status: 'ACTIVE',
-          sortBy: 'createdAt',
-          sortOrder: 'desc',
-        });
-        setNewArrivals(newData.products);
-
-        // Fetch products for each category (limited to show on home page)
-        const categoryData: Record<ProductCategory, Product[]> = {
-          SUBLIMATION: [],
-          STATIONERY: [],
-          LARGE_FORMAT: [],
-          PHOTO_PRINTS: [],
-          DIGITAL: [],
-        };
-
-        const categoryPromises = categories.map(async (cat) => {
-          const data = await productsService.list({
-            category: cat.category,
-            limit: 4,
+        try {
+          const featuredData = await productsService.list({
+            featured: true,
+            limit: 8,
             status: 'ACTIVE',
             sortBy: 'featured',
             sortOrder: 'desc',
           });
-          categoryData[cat.category] = data.products;
-        });
+          setBestsellers(featuredData.products);
+        } catch (err) {
+          console.error('Failed to fetch bestsellers:', err);
+        }
 
-        await Promise.all(categoryPromises);
-        setCategoryProducts(categoryData);
+        // Fetch new arrivals (sorted by creation date)
+        try {
+          const newData = await productsService.list({
+            limit: 8,
+            status: 'ACTIVE',
+            sortBy: 'createdAt',
+            sortOrder: 'desc',
+          });
+          setNewArrivals(newData.products);
+        } catch (err) {
+          console.error('Failed to fetch new arrivals:', err);
+        }
+
       } catch (error) {
-        console.error('Failed to fetch products:', error);
+        console.error('Failed to fetch data:', error);
+        // Ensure fallback categories are set even on complete failure
+        if (categories.length === 0) {
+          setCategories(fallbackCategories);
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    fetchData();
   }, []);
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
@@ -208,14 +218,14 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-              {categories.map((category, index) => (
+              {categories.map((category) => (
                 <CategoryCard
-                  key={index}
-                  title={category.title}
-                  description={category.description}
-                  image={category.image}
-                  href={category.href}
-                  productCount={categoryProducts[category.category]?.length}
+                  key={category.id}
+                  title={category.name}
+                  description={category.description || ''}
+                  image={getCategoryImage(category)}
+                  href={`/products/${category.slug}`}
+                  productCount={category._count?.products || categoryProducts[category.slug]?.length}
                 />
               ))}
             </div>
@@ -266,13 +276,13 @@ export default function Home() {
               {/* How It Works */}
               <HowItWorksSection />
 
-              {/* Featured Category: Sublimation */}
-              {categoryProducts.SUBLIMATION.length > 0 && (
+              {/* Featured Category: Home & Lifestyle */}
+              {categoryProducts['home-lifestyle']?.length > 0 && (
                 <section className="py-16">
                   <ProductGrid
-                    title="Popular Sublimation Gifts"
-                    products={categoryProducts.SUBLIMATION}
-                    viewAllLink="/products?category=SUBLIMATION"
+                    title="Popular Home & Lifestyle Products"
+                    products={categoryProducts['home-lifestyle']}
+                    viewAllLink="/products/home-lifestyle"
                     maxProducts={4}
                   />
                 </section>
@@ -281,9 +291,9 @@ export default function Home() {
               {/* Promo Banner 2 */}
               <PromoBanner
                 title="Custom Mugs & Tumblers"
-                description="Perfect for gifts, events, or promotional items. High-quality sublimation printing that lasts."
-                ctaText="Browse Sublimation"
-                ctaLink="/products?category=SUBLIMATION"
+                description="Perfect for gifts, events, or promotional items. High-quality custom printing that lasts."
+                ctaText="Browse Home & Lifestyle"
+                ctaLink="/products/home-lifestyle"
                 image="https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=800&q=80"
                 imagePosition="left"
               />
@@ -292,12 +302,12 @@ export default function Home() {
               <CustomerTestimonials />
 
               {/* Featured Category: Stationery */}
-              {categoryProducts.STATIONERY.length > 0 && (
+              {categoryProducts['stationery']?.length > 0 && (
                 <section className="py-16">
                   <ProductGrid
                     title="Business Stationery"
-                    products={categoryProducts.STATIONERY}
-                    viewAllLink="/products?category=STATIONERY"
+                    products={categoryProducts['stationery']}
+                    viewAllLink="/products/stationery"
                     maxProducts={4}
                   />
                 </section>

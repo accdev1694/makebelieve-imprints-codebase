@@ -6,10 +6,10 @@ async function main() {
   console.log('🌱 Starting database seeding...');
 
   // ============================================
-  // SUBLIMATION PRODUCTS
+  // HOME & LIFESTYLE PRODUCTS
   // ============================================
 
-  console.log('📦 Seeding sublimation products...');
+  console.log('📦 Seeding home & lifestyle products...');
 
   // T-Shirt
   const tshirt = await prisma.product.create({
@@ -1096,7 +1096,7 @@ async function main() {
   console.log('✅ Database seeding completed successfully!');
   console.log(`
 📊 Summary:
-  - Sublimation Products: 6 (T-shirt, Mug, Water Bottle, Mousemat, Cushion, Keychain)
+  - Home & Lifestyle Products: 6 (T-shirt, Mug, Water Bottle, Mousemat, Cushion, Keychain)
   - Stationery Products: 3 (Business Cards, Greeting Cards, Leaflets)
   - Large Format Products: 2 (Poster, Banner)
   - Photo Prints: 4 (Canvas, Aluminum, Acrylic LED, Photo Paper)

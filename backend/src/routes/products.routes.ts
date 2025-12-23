@@ -16,6 +16,12 @@ const getProductsSchema = z.object({
   query: z.object({
     page: z.string().optional().transform((val) => (val ? parseInt(val, 10) : 1)),
     limit: z.string().optional().transform((val) => (val ? parseInt(val, 10) : 20)),
+    // Dynamic category filtering (new)
+    categoryId: z.string().uuid().optional(),
+    categorySlug: z.string().optional(),
+    subcategoryId: z.string().uuid().optional(),
+    subcategorySlug: z.string().optional(),
+    // Legacy enum filtering (kept for backward compatibility)
     category: z.enum(['SUBLIMATION', 'STATIONERY', 'LARGE_FORMAT', 'PHOTO_PRINTS', 'DIGITAL', 'CUSTOM_ORDER']).optional(),
     productType: z.string().optional(),
     customizationType: z.enum(['TEMPLATE_BASED', 'UPLOAD_OWN', 'FULLY_CUSTOM', 'DIGITAL_DOWNLOAD']).optional(),
@@ -32,14 +38,9 @@ const createProductSchema = z.object({
     name: z.string().min(1).max(255),
     slug: z.string().min(1).max(255),
     description: z.string().min(1),
-    category: z.enum(['SUBLIMATION', 'STATIONERY', 'LARGE_FORMAT', 'PHOTO_PRINTS', 'DIGITAL', 'CUSTOM_ORDER']),
-    productType: z.enum([
-      'TSHIRT', 'MUG', 'WATER_BOTTLE', 'MOUSEMAT', 'KEYCHAIN', 'CUSHION_PILLOW',
-      'BUSINESS_CARD', 'LEAFLET', 'GREETING_CARD', 'POSTCARD',
-      'BANNER', 'POSTER',
-      'CANVAS_PRINT', 'ALUMINUM_PRINT', 'PHOTO_PAPER_PRINT', 'ACRYLIC_LED_PRINT',
-      'DIGITAL_PDF'
-    ]),
+    // Dynamic category references (new)
+    categoryId: z.string().uuid(),
+    subcategoryId: z.string().uuid().optional(),
     customizationType: z.enum(['TEMPLATE_BASED', 'UPLOAD_OWN', 'FULLY_CUSTOM', 'DIGITAL_DOWNLOAD']),
     basePrice: z.number().positive(),
     currency: z.string().default('GBP'),
@@ -57,14 +58,9 @@ const updateProductSchema = z.object({
     name: z.string().min(1).max(255).optional(),
     slug: z.string().min(1).max(255).optional(),
     description: z.string().min(1).optional(),
-    category: z.enum(['SUBLIMATION', 'STATIONERY', 'LARGE_FORMAT', 'PHOTO_PRINTS', 'DIGITAL', 'CUSTOM_ORDER']).optional(),
-    productType: z.enum([
-      'TSHIRT', 'MUG', 'WATER_BOTTLE', 'MOUSEMAT', 'KEYCHAIN', 'CUSHION_PILLOW',
-      'BUSINESS_CARD', 'LEAFLET', 'GREETING_CARD', 'POSTCARD',
-      'BANNER', 'POSTER',
-      'CANVAS_PRINT', 'ALUMINUM_PRINT', 'PHOTO_PAPER_PRINT', 'ACRYLIC_LED_PRINT',
-      'DIGITAL_PDF'
-    ]).optional(),
+    // Dynamic category references (new)
+    categoryId: z.string().uuid().optional(),
+    subcategoryId: z.string().uuid().nullable().optional(),
     customizationType: z.enum(['TEMPLATE_BASED', 'UPLOAD_OWN', 'FULLY_CUSTOM', 'DIGITAL_DOWNLOAD']).optional(),
     basePrice: z.number().positive().optional(),
     currency: z.string().optional(),
@@ -93,8 +89,12 @@ router.get(
     const {
       page,
       limit,
-      category,
-      productType,
+      categoryId,
+      categorySlug,
+      subcategoryId,
+      subcategorySlug,
+      category, // Legacy enum filter
+      productType, // Legacy enum filter
       customizationType,
       status,
       featured,
@@ -108,8 +108,27 @@ router.get(
     // Build where clause
     const where: any = {};
 
-    if (category) where.category = category;
-    if (productType) where.productType = productType;
+    // Dynamic category filtering (new approach)
+    if (categoryId) {
+      where.categoryId = categoryId;
+    } else if (categorySlug) {
+      // Look up category by slug
+      const cat = await prisma.category.findUnique({ where: { slug: categorySlug } });
+      if (cat) where.categoryId = cat.id;
+    }
+
+    // Dynamic subcategory filtering
+    if (subcategoryId) {
+      where.subcategoryId = subcategoryId;
+    } else if (subcategorySlug) {
+      const subcat = await prisma.subcategory.findUnique({ where: { slug: subcategorySlug } });
+      if (subcat) where.subcategoryId = subcat.id;
+    }
+
+    // Legacy enum filtering (for backward compatibility)
+    if (category) where.legacyCategory = category;
+    if (productType) where.legacyProductType = productType;
+
     if (customizationType) where.customizationType = customizationType;
     if (status) where.status = status;
     if (featured !== undefined) where.featured = featured;
@@ -124,13 +143,27 @@ router.get(
     // Get total count
     const total = await prisma.product.count({ where });
 
-    // Get products
+    // Get products with category and subcategory data
     const products = await prisma.product.findMany({
       where,
       skip,
       take: limit,
       orderBy: { [sortBy]: sortOrder },
       include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        subcategory: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         images: {
           where: { isPrimary: true },
           take: 1,
@@ -168,9 +201,17 @@ router.get(
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
 
-  const product = await prisma.product.findUnique({
-    where: { id },
+  // Support lookup by ID or slug
+  const product = await prisma.product.findFirst({
+    where: {
+      OR: [
+        { id: id.length === 36 ? id : undefined },
+        { slug: id },
+      ].filter(c => Object.values(c).some(v => v !== undefined)),
+    },
     include: {
+      category: true,
+      subcategory: true,
       variants: {
         orderBy: { isDefault: 'desc' },
         include: {

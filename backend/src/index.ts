@@ -15,6 +15,7 @@ import uploadsRoutes from './routes/uploads.routes';
 import productsRoutes from './routes/products.routes';
 import variantsRoutes from './routes/variants.routes';
 import templatesRoutes from './routes/templates.routes';
+import categoriesRoutes from './routes/categories.routes';
 import {
   errorHandler,
   notFoundHandler,
@@ -68,6 +69,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/designs', designsRoutes);
 app.use('/api/products', productsRoutes);
+app.use('/api/categories', categoriesRoutes);
 app.use('/api', variantsRoutes);
 app.use('/api', templatesRoutes);
 app.use('/api/orders', ordersRoutes);

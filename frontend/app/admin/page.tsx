@@ -180,6 +180,9 @@ function AdminDashboardContent() {
             <Link href="/admin/orders">
               <Button className="btn-gradient">Manage Orders</Button>
             </Link>
+            <Link href="/admin/categories">
+              <Button variant="outline">Manage Categories</Button>
+            </Link>
             <Link href="/admin/shipping">
               <Button variant="outline">Shipping & Labels</Button>
             </Link>

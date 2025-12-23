@@ -145,7 +145,7 @@ function ProductsPageContent() {
             Browse Our <span className="text-neon-gradient">Product Catalog</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Explore our range of customizable products from sublimation gifts to premium prints
+            Explore our range of customizable products from home & lifestyle items to premium prints
           </p>
         </section>
 

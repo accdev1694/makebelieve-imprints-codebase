@@ -119,7 +119,7 @@ export function ProductTabs({ description, specifications }: ProductTabsProps) {
                 </div>
                 <div className="flex justify-between py-3 border-b border-border">
                   <span className="font-semibold text-foreground">Print Method:</span>
-                  <span className="text-muted-foreground">Sublimation</span>
+                  <span className="text-muted-foreground">High-Quality Print</span>
                 </div>
                 <div className="flex justify-between py-3 border-b border-border">
                   <span className="font-semibold text-foreground">Durability:</span>

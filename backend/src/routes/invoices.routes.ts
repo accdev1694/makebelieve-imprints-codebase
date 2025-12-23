@@ -24,7 +24,7 @@ router.get(
     const where =
       req.user!.type === 'admin'
         ? { ...(status && { status }) }
-        : { customerId: req.user!.userId, ...(status && { status }) };
+        : { order: { customerId: req.user!.userId }, ...(status && { status }) };
 
     const [invoices, total] = await Promise.all([
       prisma.invoice.findMany({
@@ -37,24 +37,25 @@ router.get(
               id: true,
               status: true,
               totalPrice: true,
-            },
-          },
-          customer: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          payment: {
-            select: {
-              id: true,
-              status: true,
-              paymentMethod: true,
+              customerId: true,
+              customer: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              payment: {
+                select: {
+                  id: true,
+                  status: true,
+                  paymentMethod: true,
+                },
+              },
             },
           },
         },
-        orderBy: { issuedAt: 'desc' },
+        orderBy: { issueDate: 'desc' },
       }),
       prisma.invoice.count({ where }),
     ]);
@@ -87,7 +88,12 @@ router.get(
       where: { id: req.params.id },
       include: {
         order: {
-          include: {
+          select: {
+            id: true,
+            customerId: true,
+            status: true,
+            totalPrice: true,
+            shippingAddress: true,
             design: {
               select: {
                 id: true,
@@ -95,17 +101,23 @@ router.get(
                 previewUrl: true,
               },
             },
-            shippingAddress: true,
+            customer: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            payment: {
+              select: {
+                id: true,
+                status: true,
+                paymentMethod: true,
+                amount: true,
+              },
+            },
           },
         },
-        customer: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        payment: true,
       },
     });
 
@@ -114,7 +126,7 @@ router.get(
     }
 
     // Only owner or admin can view invoice
-    if (invoice.customerId !== req.user!.userId && req.user!.type !== 'admin') {
+    if (invoice.order.customerId !== req.user!.userId && req.user!.type !== 'admin') {
       throw new ForbiddenError('Access denied');
     }
 
@@ -138,9 +150,13 @@ router.get(
       where: { id: req.params.id },
       select: {
         id: true,
-        customerId: true,
         pdfUrl: true,
         invoiceNumber: true,
+        order: {
+          select: {
+            customerId: true,
+          },
+        },
       },
     });
 
@@ -149,7 +165,7 @@ router.get(
     }
 
     // Only owner or admin can download invoice PDF
-    if (invoice.customerId !== req.user!.userId && req.user!.type !== 'admin') {
+    if (invoice.order.customerId !== req.user!.userId && req.user!.type !== 'admin') {
       throw new ForbiddenError('Access denied');
     }
 

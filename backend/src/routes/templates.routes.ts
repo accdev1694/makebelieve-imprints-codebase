@@ -36,7 +36,6 @@ const createTemplateSchema = z.object({
     tags: z.string().optional(), // JSON string array
     isPremium: z.boolean().default(false),
     price: z.number().min(0).default(0),
-    isActive: z.boolean().default(true),
     metadata: z.record(z.any()).optional(),
   }),
 });
@@ -52,7 +51,6 @@ const updateTemplateSchema = z.object({
     tags: z.string().optional(), // JSON string array
     isPremium: z.boolean().optional(),
     price: z.number().min(0).optional(),
-    isActive: z.boolean().optional(),
     metadata: z.record(z.any()).optional(),
   }),
 });
@@ -81,7 +79,6 @@ router.get('/products/:productId/templates', async (req, res) => {
   const templates = await prisma.productTemplate.findMany({
     where: {
       productId,
-      isActive: true,
     },
     orderBy: [{ isPremium: 'asc' }, { createdAt: 'desc' }],
   });
@@ -112,9 +109,7 @@ router.get(
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: any = {
-      isActive: true,
-    };
+    const where: any = {};
 
     if (category) where.category = category;
     if (productId) where.productId = productId;

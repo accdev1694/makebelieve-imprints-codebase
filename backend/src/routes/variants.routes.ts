@@ -20,15 +20,10 @@ const createVariantSchema = z.object({
     color: z.string().max(50).optional(),
     material: z.string().max(100).optional(),
     finish: z.string().max(50).optional(),
-    orientation: z.string().max(50).optional(),
-    dimensions: z.string().max(100).optional(),
+    dimensions: z.record(z.any()).optional(), // JSON object for dimensions
     price: z.number().default(0),
-    compareAtPrice: z.number().optional(),
     stock: z.number().int().min(0).default(0),
-    lowStockThreshold: z.number().int().min(0).optional(),
     isDefault: z.boolean().default(false),
-    isActive: z.boolean().default(true),
-    weight: z.number().optional(),
     metadata: z.record(z.any()).optional(),
   }),
 });
@@ -41,15 +36,10 @@ const updateVariantSchema = z.object({
     color: z.string().max(50).optional(),
     material: z.string().max(100).optional(),
     finish: z.string().max(50).optional(),
-    orientation: z.string().max(50).optional(),
-    dimensions: z.string().max(100).optional(),
+    dimensions: z.record(z.any()).optional(), // JSON object for dimensions
     price: z.number().optional(),
-    compareAtPrice: z.number().optional(),
     stock: z.number().int().min(0).optional(),
-    lowStockThreshold: z.number().int().min(0).optional(),
     isDefault: z.boolean().optional(),
-    isActive: z.boolean().optional(),
-    weight: z.number().optional(),
     metadata: z.record(z.any()).optional(),
   }),
 });

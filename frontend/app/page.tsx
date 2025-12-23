@@ -81,7 +81,7 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
             <Link href="/gifts">
-              <Button size="lg" className="btn-gradient px-8 py-6 text-lg">
+              <Button size="lg" className="btn-gradient w-56 py-6 text-lg">
                 Explore Gift Ideas
               </Button>
             </Link>
@@ -89,7 +89,7 @@ export default function Home() {
               <Button
                 size="lg"
                 variant="outline"
-                className="px-8 py-6 text-lg border-primary/50 hover:border-primary/200"
+                className="w-56 py-6 text-lg border-primary/50 hover:border-primary/200"
               >
                 Start Designing
               </Button>
@@ -98,7 +98,7 @@ export default function Home() {
 
           {/* Quick signup */}
           <div className="max-w-md mx-auto mt-12">
-            <div className="flex gap-2">
+            <div className="flex gap-4">
               <Input
                 type="email"
                 placeholder="Enter your email"

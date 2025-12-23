@@ -24,10 +24,13 @@ export default function Home() {
       {/* Header Navigation */}
       <header className="relative z-10 border-b border-border/50 bg-card/30 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="text-xl font-bold">
+          <Link href="/" className="text-xl font-bold">
             <span className="text-neon-gradient">MakeBelieve</span>
-          </div>
+          </Link>
           <div className="flex items-center gap-4">
+            <Link href="/products">
+              <Button variant="ghost">Products</Button>
+            </Link>
             <Link href="/gifts">
               <Button variant="ghost">Gifts</Button>
             </Link>
@@ -79,9 +82,9 @@ export default function Home() {
             printing technology
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
+          <div className="flex gap-4 justify-center items-center mt-8">
             <Link href="/gifts">
-              <Button size="lg" className="btn-gradient w-56 py-6 text-lg">
+              <Button size="lg" className="btn-gradient w-54 py-6 text-lg">
                 Explore Gift Ideas
               </Button>
             </Link>
@@ -89,7 +92,7 @@ export default function Home() {
               <Button
                 size="lg"
                 variant="outline"
-                className="w-56 py-6 text-lg border-primary/50 hover:border-primary/200"
+                className="w-54 py-6 text-lg border-primary/50 hover:border-primary/200"
               >
                 Start Designing
               </Button>

@@ -109,6 +109,9 @@ export default function GiftsPage() {
             <span className="text-neon-gradient">MakeBelieve</span>
           </Link>
           <div className="flex items-center gap-4">
+            <Link href="/products">
+              <Button variant="ghost">Products</Button>
+            </Link>
             <Link href="/about">
               <Button variant="ghost">About</Button>
             </Link>

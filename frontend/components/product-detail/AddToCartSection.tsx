@@ -5,25 +5,43 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Minus, Plus, ShoppingCart, Heart } from 'lucide-react';
 import Link from 'next/link';
+import { useCart, AddToCartPayload } from '@/contexts/CartContext';
+import { formatPrice } from '@/lib/api/products';
+
+interface SelectedVariant {
+  id?: string;
+  name?: string;
+  size?: string;
+  color?: string;
+  material?: string;
+  finish?: string;
+}
 
 interface AddToCartSectionProps {
   productId: string;
   productName: string;
+  productSlug: string;
+  productImage: string;
   price: number;
   isCustomizable?: boolean;
-  onAddToCart?: (quantity: number) => void;
+  selectedVariant?: SelectedVariant;
+  customization?: AddToCartPayload['customization'];
 }
 
 export function AddToCartSection({
   productId,
   productName,
+  productSlug,
+  productImage,
   price,
   isCustomizable,
-  onAddToCart,
+  selectedVariant,
+  customization,
 }: AddToCartSectionProps) {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
+  const { addItem, openCart } = useCart();
 
   // Ensure price is a number
   const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
@@ -34,9 +52,32 @@ export function AddToCartSection({
 
   const handleAddToCart = async () => {
     setIsAddingToCart(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    onAddToCart?.(quantity);
+
+    // Small delay for UX feedback
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // Add item to cart using context
+    addItem({
+      productId,
+      productName,
+      productSlug,
+      productImage,
+      variantId: selectedVariant?.id,
+      variantName: selectedVariant?.name,
+      size: selectedVariant?.size,
+      color: selectedVariant?.color,
+      material: selectedVariant?.material,
+      finish: selectedVariant?.finish,
+      quantity,
+      unitPrice: numericPrice,
+      customization,
+    });
+
+    // Open the cart drawer
+    openCart();
+
+    // Reset quantity after adding
+    setQuantity(1);
     setIsAddingToCart(false);
   };
 
@@ -49,11 +90,11 @@ export function AddToCartSection({
         <div className="space-y-2">
           <div className="flex items-baseline justify-between">
             <span className="text-sm text-muted-foreground">Unit Price:</span>
-            <span className="text-lg font-semibold">${numericPrice.toFixed(2)}</span>
+            <span className="text-lg font-semibold">{formatPrice(numericPrice)}</span>
           </div>
           <div className="flex items-baseline justify-between border-t border-border pt-2">
             <span className="text-base font-semibold">Total:</span>
-            <span className="text-2xl font-bold text-primary">${totalPrice.toFixed(2)}</span>
+            <span className="text-2xl font-bold text-primary">{formatPrice(totalPrice)}</span>
           </div>
         </div>
 
@@ -131,7 +172,7 @@ export function AddToCartSection({
           </div>
           <div className="flex items-center justify-between">
             <span>Ships from:</span>
-            <span className="font-medium">Warehouse</span>
+            <span className="font-medium">UK Warehouse</span>
           </div>
           <div className="flex items-center justify-between">
             <span>Estimated delivery:</span>

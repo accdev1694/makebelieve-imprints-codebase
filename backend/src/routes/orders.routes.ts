@@ -263,4 +263,135 @@ router.put(
   })
 );
 
+/**
+ * GET /api/orders/:id/download/:itemId
+ * Generate a download link for a digital product in an order
+ */
+router.get(
+  '/:id/download/:itemId',
+  authenticate,
+  asyncHandler(async (req: Request, res: Response) => {
+    const { id: orderId, itemId } = req.params;
+
+    // Find the order
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          where: { id: itemId },
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundError('Order not found');
+    }
+
+    // Only owner can download
+    if (order.customerId !== req.user!.userId) {
+      throw new ForbiddenError('Access denied');
+    }
+
+    // Check if order is completed/paid
+    if (order.status !== 'DELIVERED' && order.status !== 'SHIPPED') {
+      // For now, allow downloads for any confirmed order (mock implementation)
+      if (order.status !== 'CONFIRMED' && order.status !== 'PRINTING') {
+        throw new ForbiddenError('Order must be confirmed before downloading');
+      }
+    }
+
+    const orderItem = order.items[0];
+    if (!orderItem) {
+      throw new NotFoundError('Order item not found');
+    }
+
+    // Check if product is digital
+    if (orderItem.product?.category !== 'DIGITAL') {
+      throw new ValidationError('This product is not a digital download');
+    }
+
+    // Generate download URL (mock implementation)
+    // In production, this would use the storage service to generate a signed URL
+    const downloadUrl = orderItem.product.seoKeywords || `https://downloads.example.com/${itemId}`;
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+    // Track download (update metadata if OrderItem has it)
+    // This is a simplified implementation
+
+    res.json({
+      success: true,
+      data: {
+        downloadUrl,
+        expiresAt: expiresAt.toISOString(),
+        productName: orderItem.product?.name,
+        fileName: `${orderItem.product?.slug || 'download'}.pdf`,
+      },
+    });
+  })
+);
+
+/**
+ * GET /api/orders/downloads
+ * List all digital downloads for the current user
+ */
+router.get(
+  '/user/downloads',
+  authenticate,
+  asyncHandler(async (req: Request, res: Response) => {
+    // Find all orders with digital products
+    const orders = await prisma.order.findMany({
+      where: {
+        customerId: req.user!.userId,
+        status: {
+          in: ['CONFIRMED', 'PRINTING', 'SHIPPED', 'DELIVERED'],
+        },
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                category: true,
+                images: {
+                  where: { isPrimary: true },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Filter to only digital products
+    const digitalDownloads = orders.flatMap(order =>
+      order.items
+        .filter(item => item.product?.category === 'DIGITAL')
+        .map(item => ({
+          orderId: order.id,
+          orderItemId: item.id,
+          orderDate: order.createdAt,
+          orderStatus: order.status,
+          product: item.product,
+          quantity: item.quantity,
+        }))
+    );
+
+    res.json({
+      success: true,
+      data: {
+        downloads: digitalDownloads,
+        total: digitalDownloads.length,
+      },
+    });
+  })
+);
+
 export default router;

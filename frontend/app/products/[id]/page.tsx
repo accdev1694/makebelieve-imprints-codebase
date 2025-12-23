@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, Home } from 'lucide-react';
 import { Product, ProductCategory, productsService, CATEGORY_LABELS } from '@/lib/api/products';
+import { CartIcon } from '@/components/cart/CartIcon';
 
 // Product detail components
 import { ProductImageGallery } from '@/components/product-detail/ProductImageGallery';
@@ -66,17 +67,25 @@ export default function ProductDetailPage() {
     }
   }, [productId]);
 
-  const handleAddToCart = (quantity: number) => {
-    console.log('Add to cart:', {
-      productId,
-      quantity,
-      selectedSize,
-      selectedMaterial,
-      selectedColor,
-      selectedFinish,
-    });
-    // TODO: Implement cart functionality
-    alert(`Added ${quantity} item(s) to cart!`);
+  // Get primary image URL for cart
+  const getPrimaryImage = () => {
+    const primaryImg = product?.images?.find((img) => img.isPrimary);
+    return primaryImg?.imageUrl || product?.images?.[0]?.imageUrl || '/placeholder-product.png';
+  };
+
+  // Build selected variant info
+  const getSelectedVariant = () => {
+    if (!selectedSize && !selectedMaterial && !selectedColor && !selectedFinish) {
+      return undefined;
+    }
+    return {
+      id: [selectedSize, selectedMaterial, selectedColor, selectedFinish].filter(Boolean).join('-'),
+      name: [selectedSize, selectedMaterial, selectedColor, selectedFinish].filter(Boolean).join(', '),
+      size: selectedSize || undefined,
+      material: selectedMaterial || undefined,
+      color: selectedColor || undefined,
+      finish: selectedFinish || undefined,
+    };
   };
 
   if (loading) {
@@ -159,6 +168,7 @@ export default function ProductDetailPage() {
             <Link href="/about">
               <Button variant="ghost">About</Button>
             </Link>
+            <CartIcon />
             {user ? (
               <>
                 <Link href="/dashboard">
@@ -265,9 +275,11 @@ export default function ProductDetailPage() {
             <AddToCartSection
               productId={product.id}
               productName={product.name}
+              productSlug={product.slug}
+              productImage={getPrimaryImage()}
               price={typeof product.basePrice === 'string' ? parseFloat(product.basePrice) : product.basePrice}
               isCustomizable={product.customizationType !== null}
-              onAddToCart={handleAddToCart}
+              selectedVariant={getSelectedVariant()}
             />
           </div>
         </div>

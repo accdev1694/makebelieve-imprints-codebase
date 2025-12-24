@@ -1,6 +1,5 @@
 'use client';
 
-import { Card } from '@/components/ui/card';
 import { Truck, Shield, Zap, Award } from 'lucide-react';
 
 export function TrustBadges() {

@@ -1,12 +1,8 @@
 // Import commands
 import './commands';
 
-// Preserve cookies between tests
-Cypress.Cookies.defaults({
-  preserve: (cookie) => {
-    return ['accessToken', 'refreshToken'].includes(cookie);
-  },
-});
+// Note: Cypress.Cookies.defaults was removed in Cypress 12+
+// Session cookies are now handled via cy.session() for preserving auth state
 
 // Global before hook
 before(() => {
@@ -16,11 +12,5 @@ before(() => {
 
 // Global after each hook
 afterEach(() => {
-  // Log any console errors
-  cy.window().then((win) => {
-    const errors = win.console.error;
-    if (errors && errors.callCount > 0) {
-      cy.log(`Console errors detected: ${errors.callCount}`);
-    }
-  });
+  // Placeholder for any cleanup needed after each test
 });

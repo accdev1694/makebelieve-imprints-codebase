@@ -203,9 +203,18 @@ const config: Config = {
 				'fade-in': 'fadeIn 0.3s ease-in-out',
 				'slide-up': 'slideUp 0.3s ease-out',
 				'slide-down': 'slideDown 0.3s ease-out',
-				gradient: 'gradient 3s ease infinite'
+				gradient: 'gradient 3s ease infinite',
+				shimmer: 'shimmer 1.5s infinite'
 			},
 			keyframes: {
+				shimmer: {
+					'0%': {
+						transform: 'translateX(-100%)'
+					},
+					'100%': {
+						transform: 'translateX(100%)'
+					}
+				},
 				fadeIn: {
 					'0%': {
 						opacity: '0'

@@ -1,16 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useMemo, Suspense } from 'react';
 import {
-  Product,
-  ProductCategory,
-  productsService,
-  CATEGORY_LABELS,
   ProductFilters,
 } from '@/lib/api/products';
-import { ProductCard, ProductCardSkeleton } from '@/components/products/ProductCard';
+import { ProductCard } from '@/components/products/ProductCard';
+import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Package } from 'lucide-react';
@@ -18,61 +13,44 @@ import { FilterSidebar } from '@/components/products/FilterSidebar';
 import { MobileFilterButton } from '@/components/products/MobileFilterButton';
 import { ActiveFilters } from '@/components/products/ActiveFilters';
 import { useProductFilters } from '@/hooks/useProductFilters';
+import { useProducts } from '@/hooks/useProducts';
 
 function ProductsPageContent() {
-  // Data state
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
   // Filter state
   const { filters, updateFilters, clearFilters, activeFilterCount } = useProductFilters();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  // Auth state for header navigation
-  const { user } = useAuth();
-
   // Constants
   const ITEMS_PER_PAGE = 12;
 
-  // Fetch products when filters or page changes
-  useEffect(() => {
-    fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Build query params from filters
+  const queryParams = useMemo(() => {
+    const params: any = {
+      page: currentPage,
+      limit: ITEMS_PER_PAGE,
+      status: 'ACTIVE',
+    };
+
+    // Add filters, excluding 'all' values
+    if (filters.category !== 'all') params.category = filters.category;
+    if (filters.productType !== 'all') params.productType = filters.productType;
+    if (filters.customizationType !== 'all') params.customizationType = filters.customizationType;
+    if (filters.featured !== null) params.featured = filters.featured;
+    if (filters.search) params.search = filters.search;
+    if (filters.sortBy) params.sortBy = filters.sortBy;
+    if (filters.sortOrder) params.sortOrder = filters.sortOrder;
+
+    return params;
   }, [filters, currentPage]);
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      const params: any = {
-        ...filters,
-        page: currentPage,
-        limit: ITEMS_PER_PAGE,
-        status: 'ACTIVE', // Only show active products
-      };
+  // Fetch products with React Query (cached!)
+  const { data, isLoading, error } = useProducts(queryParams);
 
-      // Remove 'all' values - backend doesn't need them
-      if (params.category === 'all') delete params.category;
-      if (params.productType === 'all') delete params.productType;
-      if (params.customizationType === 'all') delete params.customizationType;
-      if (params.featured === null) delete params.featured;
-      if (!params.search) delete params.search;
-
-      const data = await productsService.list(params);
-      setProducts(data.products);
-      setTotalPages(data.pagination.totalPages);
-      setError('');
-    } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to load products');
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const products = data?.products || [];
+  const totalPages = data?.pagination?.totalPages || 1;
 
   const handleRemoveFilter = (key: keyof ProductFilters) => {
     const defaults: Partial<ProductFilters> = {
@@ -100,42 +78,6 @@ function ProductsPageContent() {
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/30 rounded-full blur-[120px]" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-secondary/30 rounded-full blur-[120px]" />
       </div>
-
-      {/* Header Navigation */}
-      <header className="relative z-10 border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold">
-            <span className="text-neon-gradient">MakeBelieve</span>
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/products">
-              <Button variant="default" className="btn-gradient">
-                Products
-              </Button>
-            </Link>
-            <Link href="/gifts">
-              <Button variant="ghost">Gifts</Button>
-            </Link>
-            <Link href="/about">
-              <Button variant="ghost">About</Button>
-            </Link>
-            {user ? (
-              <Link href="/dashboard">
-                <Button variant="ghost">Dashboard</Button>
-              </Link>
-            ) : (
-              <>
-                <Link href="/auth/login">
-                  <Button variant="ghost">Login</Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button className="btn-gradient">Sign Up</Button>
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
 
       {/* Main Content */}
       <main className="relative z-10 container mx-auto px-4 py-8">
@@ -181,17 +123,13 @@ function ProductsPageContent() {
                 {/* Error State */}
             {error && (
               <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm mb-6">
-                {error}
+                {error instanceof Error ? error.message : 'Failed to load products'}
               </div>
             )}
 
             {/* Loading State */}
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <ProductCardSkeleton key={i} />
-                ))}
-              </div>
+            {isLoading ? (
+              <ProductGridSkeleton count={8} />
             ) : products.length === 0 ? (
               /* Empty State */
               <Card className="card-glow">
@@ -271,5 +209,38 @@ function ProductsPageContent() {
 }
 
 export default function ProductsPage() {
-  return <ProductsPageContent />;
+  return (
+    <Suspense fallback={<ProductsLoadingFallback />}>
+      <ProductsPageContent />
+    </Suspense>
+  );
+}
+
+function ProductsLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="fixed inset-0 opacity-20 pointer-events-none">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/30 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-secondary/30 rounded-full blur-[120px]" />
+      </div>
+      <main className="relative z-10 container mx-auto px-4 py-8">
+        <section className="text-center py-12 mb-8">
+          <h1 className="text-5xl md:text-6xl font-bold mb-4">
+            Browse Our <span className="text-neon-gradient">Product Catalog</span>
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Explore our range of customizable products from home & lifestyle items to premium prints
+          </p>
+        </section>
+        <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+          <aside className="hidden lg:block">
+            <div className="h-[600px] bg-card/50 rounded-lg animate-pulse" />
+          </aside>
+          <div>
+            <ProductGridSkeleton count={8} />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
 }

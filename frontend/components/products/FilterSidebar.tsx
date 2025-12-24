@@ -25,7 +25,6 @@ export function FilterSidebar({
   onFiltersChange,
   onClearAll,
   totalResults = 0,
-  isOpen,
   onClose,
 }: FilterSidebarProps) {
   return (

@@ -19,9 +19,47 @@ import {
   ShippingAddress,
 } from '@/lib/api/orders';
 import { formatPrice } from '@/lib/api/products';
-import { ShoppingBag, CreditCard, Lock } from 'lucide-react';
+import { ShoppingBag, CreditCard, Lock, Truck, Clock, Zap, CheckCircle } from 'lucide-react';
 
 type CheckoutMode = 'cart' | 'design';
+
+type ShippingMethod = 'standard' | 'express' | 'rush';
+
+interface ShippingOption {
+  id: ShippingMethod;
+  name: string;
+  price: number;
+  description: string;
+  deliveryDays: string;
+  icon: React.ElementType;
+}
+
+const SHIPPING_OPTIONS: ShippingOption[] = [
+  {
+    id: 'standard',
+    name: 'Standard Delivery',
+    price: 0,
+    description: 'Free on orders over £50',
+    deliveryDays: '3-5 business days',
+    icon: Truck,
+  },
+  {
+    id: 'express',
+    name: 'Express Delivery',
+    price: 7.99,
+    description: 'Faster delivery',
+    deliveryDays: '1-2 business days',
+    icon: Clock,
+  },
+  {
+    id: 'rush',
+    name: 'Rush Delivery',
+    price: 14.99,
+    description: 'Priority production & shipping',
+    deliveryDays: 'Next business day',
+    icon: Zap,
+  },
+];
 
 function CheckoutContent() {
   const router = useRouter();
@@ -40,6 +78,10 @@ function CheckoutContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Contact information state
+  const [email, setEmail] = useState(user?.email || '');
+  const [phone, setPhone] = useState('');
+
   // Shipping address state
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
     name: user?.name || '',
@@ -49,6 +91,9 @@ function CheckoutContent() {
     postcode: '',
     country: 'UK',
   });
+
+  // Shipping method state
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('standard');
 
   // Load design for legacy mode
   useEffect(() => {
@@ -78,10 +123,18 @@ function CheckoutContent() {
       : getPrintDimensions(design.printSize, design.orientation)
     : { width: 0, height: 0 };
 
+  // Get shipping cost
+  const selectedShipping = SHIPPING_OPTIONS.find((opt) => opt.id === shippingMethod);
+  const shippingCost = selectedShipping?.price || 0;
+  // Free shipping on orders over £50
+  const freeShippingThreshold = 50;
+  const qualifiesForFreeShipping = (mode === 'cart' ? subtotal : designPrice) >= freeShippingThreshold;
+  const actualShippingCost = qualifiesForFreeShipping && shippingMethod === 'standard' ? 0 : shippingCost;
+
   // Get the final total based on mode
-  const finalTotal = mode === 'cart' ? total : designPrice;
   const finalSubtotal = mode === 'cart' ? subtotal : designPrice;
   const finalTax = mode === 'cart' ? tax : 0;
+  const finalTotal = finalSubtotal + finalTax + actualShippingCost;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +184,7 @@ function CheckoutContent() {
           designId: cartItems[0]?.productId || 'cart-order',
           printSize: 'A4',
           material: 'MATTE',
-          orientation: 'portrait',
+          orientation: 'PORTRAIT',
           printWidth: 21,
           printHeight: 29.7,
           previewUrl: cartItems[0]?.productImage || '',
@@ -217,9 +270,10 @@ function CheckoutContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Link href={mode === 'cart' ? '/cart' : '/design/my-designs'}>
               <Button variant="ghost" size="sm">
@@ -235,10 +289,6 @@ function CheckoutContent() {
             Secure Checkout
           </div>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
         {error && (
           <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm mb-6">
             {error}
@@ -249,6 +299,44 @@ function CheckoutContent() {
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Left Column - Shipping & Payment */}
             <div className="space-y-6">
+              {/* Contact Information */}
+              <Card className="card-glow">
+                <CardHeader>
+                  <CardTitle>Contact Information</CardTitle>
+                  <CardDescription>We'll use this to send order updates</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+                      Email Address *
+                    </label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="bg-card/50"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
+                      Phone Number (Optional)
+                    </label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="+44 7700 900000"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="bg-card/50"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">For delivery updates</p>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Shipping Address */}
               <Card className="card-glow">
                 <CardHeader>
@@ -347,6 +435,60 @@ function CheckoutContent() {
                     />
                     <p className="text-xs text-muted-foreground mt-1">Currently shipping to UK only</p>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Shipping Method */}
+              <Card className="card-glow">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Truck className="h-5 w-5" />
+                    Shipping Method
+                  </CardTitle>
+                  <CardDescription>Choose your delivery speed</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {SHIPPING_OPTIONS.map((option) => {
+                    const IconComponent = option.icon;
+                    const isSelected = shippingMethod === option.id;
+                    const isFreeStandard = option.id === 'standard' && qualifiesForFreeShipping;
+                    return (
+                      <div
+                        key={option.id}
+                        onClick={() => setShippingMethod(option.id)}
+                        className={`flex items-center gap-4 p-4 rounded-lg border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <div className={`p-2 rounded-full ${isSelected ? 'bg-primary/10 text-primary' : 'bg-muted'}`}>
+                          <IconComponent className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{option.name}</span>
+                            {isFreeStandard && (
+                              <span className="text-xs bg-green-500/10 text-green-500 px-2 py-0.5 rounded">FREE</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{option.deliveryDays}</p>
+                        </div>
+                        <div className="text-right">
+                          {isFreeStandard ? (
+                            <span className="text-green-500 font-medium">FREE</span>
+                          ) : option.price === 0 ? (
+                            <span className="font-medium">FREE</span>
+                          ) : (
+                            <span className="font-medium">{formatPrice(option.price)}</span>
+                          )}
+                        </div>
+                        {isSelected && (
+                          <CheckCircle className="h-5 w-5 text-primary" />
+                        )}
+                      </div>
+                    );
+                  })}
                 </CardContent>
               </Card>
 
@@ -488,8 +630,14 @@ function CheckoutContent() {
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Shipping:</span>
-                      <span className="text-green-500">FREE</span>
+                      <span className="text-muted-foreground">
+                        Shipping ({selectedShipping?.name || 'Standard'}):
+                      </span>
+                      {actualShippingCost === 0 ? (
+                        <span className="text-green-500">FREE</span>
+                      ) : (
+                        <span>{formatPrice(actualShippingCost)}</span>
+                      )}
                     </div>
                     <Separator />
                     <div className="flex justify-between text-lg font-bold">

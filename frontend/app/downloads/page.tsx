@@ -232,7 +232,7 @@ function DownloadsContent() {
                               <ExternalLink className="h-3 w-3" />
                             </Link>
                             <Link
-                              href={`/products/${download.product.slug || download.product.id}`}
+                              href={`/product/${download.product.slug || download.product.id}`}
                               className="text-muted-foreground hover:text-foreground"
                             >
                               View Product

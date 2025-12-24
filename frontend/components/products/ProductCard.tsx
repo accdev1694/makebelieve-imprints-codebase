@@ -1,8 +1,10 @@
-import Link from 'next/link';
+'use client';
+
 import Image from 'next/image';
-import { Product, formatPrice, CATEGORY_LABELS } from '@/lib/api/products';
+import { Product, formatPrice } from '@/lib/api/products';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { PrefetchLink } from '@/components/ui/PrefetchLink';
 
 interface ProductCardProps {
   product: Product;
@@ -13,11 +15,18 @@ export function ProductCard({ product }: ProductCardProps) {
   const defaultVariant = product.variants?.find((v) => v.isDefault) || product.variants?.[0];
 
   const displayPrice = defaultVariant
-    ? product.basePrice + defaultVariant.price
-    : product.basePrice;
+    ? Number(product.basePrice) + Number(defaultVariant.price)
+    : Number(product.basePrice);
+
+  // Get category name from the category object or fall back to legacy
+  const categoryName = product.category?.name || 'Product';
 
   return (
-    <Link href={`/products/${product.id}`}>
+    <PrefetchLink
+      href={`/product/${product.id}`}
+      prefetchType="product"
+      prefetchId={product.id}
+    >
       <Card className="group overflow-hidden transition-all hover:shadow-lg cursor-pointer h-full flex flex-col">
         {/* Product Image */}
         <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
@@ -50,7 +59,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <CardContent className="flex-1 p-4">
           <div className="mb-2">
             <Badge variant="outline" className="text-xs">
-              {CATEGORY_LABELS[product.category]}
+              {categoryName}
             </Badge>
           </div>
 
@@ -78,7 +87,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         </CardFooter>
       </Card>
-    </Link>
+    </PrefetchLink>
   );
 }
 

@@ -14,7 +14,7 @@ export function CartDrawer() {
   const { items, isOpen, closeCart, itemCount } = useCart();
 
   return (
-    <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && closeCart()}>
+    <DialogPrimitive.Root open={isOpen} onOpenChange={(open: boolean) => !open && closeCart()}>
       <DialogPrimitive.Portal>
         {/* Overlay */}
         <DialogPrimitive.Overlay

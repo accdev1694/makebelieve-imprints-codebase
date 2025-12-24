@@ -91,7 +91,7 @@ export function ProductTabs({ description, specifications }: ProductTabsProps) {
             </ul>
 
             <h3 className="text-lg font-semibold text-foreground mt-6 mb-3">
-              What's Included:
+              What&apos;s Included:
             </h3>
             <ul className="list-disc list-inside text-muted-foreground space-y-2">
               <li>High-quality printed product</li>

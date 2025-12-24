@@ -8,38 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 
 function DashboardContent() {
-  const { user, logout } = useAuth();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">
-            <span className="text-neon-gradient">MakeBelieve</span> Dashboard
-          </h1>
-          <div className="flex items-center gap-4">
-            <div className="text-sm">
-              <p className="text-foreground font-medium">{user?.name}</p>
-              <p className="text-muted-foreground text-xs">{user?.email}</p>
-            </div>
-            <Button variant="outline" onClick={handleLogout}>
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
-
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold mb-2">
             Welcome back, <span className="text-primary">{user?.name}</span>!
@@ -145,7 +119,7 @@ function DashboardContent() {
             </div>
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }

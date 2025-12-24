@@ -143,12 +143,21 @@ router.get(
     // Get total count
     const total = await prisma.product.count({ where });
 
+    // Map sortBy to actual database fields
+    const sortFieldMap: Record<string, string> = {
+      name: 'name',
+      price: 'basePrice',
+      createdAt: 'createdAt',
+      featured: 'featured',
+    };
+    const actualSortField = sortFieldMap[sortBy] || 'createdAt';
+
     // Get products with category and subcategory data
     const products = await prisma.product.findMany({
       where,
       skip,
       take: limit,
-      orderBy: { [sortBy]: sortOrder },
+      orderBy: { [actualSortField]: sortOrder },
       include: {
         category: {
           select: {

@@ -30,7 +30,7 @@ export function TemplatePreviewModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -74,7 +74,7 @@ export function TemplatePreviewModal({
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Perfect for</label>
                 <Link
-                  href={`/products/${template.product.slug || template.product.id}`}
+                  href={`/product/${template.product.slug || template.product.id}`}
                   className="flex items-center gap-1 text-primary hover:underline"
                 >
                   {template.product.name}
@@ -116,7 +116,7 @@ export function TemplatePreviewModal({
 
               {template.product && (
                 <Button variant="outline" className="w-full" asChild>
-                  <Link href={`/products/${template.product.slug || template.product.id}`}>
+                  <Link href={`/product/${template.product.slug || template.product.id}`}>
                     View Product Details
                   </Link>
                 </Button>

@@ -33,15 +33,30 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      imgSrc: ["'self'", 'data:', 'http://localhost:3000', 'http://localhost:4000'], // Allow images from both origins
+      imgSrc: ["'self'", 'data:', 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:4000'], // Allow images from both origins
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
       fontSrc: ["'self'", 'https:', 'data:'],
     },
   },
 }));
+
+// Allow multiple origins for development
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 // Skip JSON parsing for raw file upload endpoint

@@ -3,11 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, Home } from 'lucide-react';
 import { Product, ProductCategory, productsService, CATEGORY_LABELS } from '@/lib/api/products';
-import { CartIcon } from '@/components/cart/CartIcon';
 
 // Product detail components
 import { ProductImageGallery } from '@/components/product-detail/ProductImageGallery';
@@ -20,7 +18,6 @@ import { RelatedProducts } from '@/components/product-detail/RelatedProducts';
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, logout } = useAuth();
   const productId = params.id as string;
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -47,8 +44,11 @@ export default function ProductDetailPage() {
 
         // Fetch related products (same category)
         if (productData.category) {
+          const categorySlug = typeof productData.category === 'string'
+            ? productData.category
+            : productData.category.slug;
           const related = await productsService.list({
-            category: productData.category,
+            category: categorySlug as ProductCategory,
             limit: 4,
             status: 'ACTIVE',
           });
@@ -151,50 +151,7 @@ export default function ProductDetailPage() {
       ];
 
   return (
-    <main className="min-h-screen bg-background">
-      {/* Header Navigation */}
-      <header className="relative z-50 border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold">
-            <span className="text-neon-gradient">MakeBelieve</span>
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/products">
-              <Button variant="ghost">Products</Button>
-            </Link>
-            <Link href="/gifts">
-              <Button variant="ghost">Gifts</Button>
-            </Link>
-            <Link href="/about">
-              <Button variant="ghost">About</Button>
-            </Link>
-            <CartIcon />
-            {user ? (
-              <>
-                <Link href="/dashboard">
-                  <Button variant="ghost">Dashboard</Button>
-                </Link>
-                <span className="text-sm text-muted-foreground hidden md:inline">
-                  {user.name}
-                </span>
-                <Button variant="outline" onClick={logout}>
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/login">
-                  <Button variant="ghost">Login</Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button className="btn-gradient">Sign Up</Button>
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-background">
       {/* Breadcrumb */}
       <div className="border-b border-border/50 bg-card/20">
         <div className="container mx-auto px-4 py-4">
@@ -210,10 +167,12 @@ export default function ProductDetailPage() {
               <>
                 <ChevronRight className="h-4 w-4" />
                 <Link
-                  href={`/products?category=${product.category}`}
+                  href={`/products?category=${typeof product.category === 'string' ? product.category : product.category.slug}`}
                   className="hover:text-foreground transition-colors"
                 >
-                  {CATEGORY_LABELS[product.category]}
+                  {typeof product.category === 'string'
+                    ? CATEGORY_LABELS[product.category as ProductCategory]
+                    : product.category.name}
                 </Link>
               </>
             )}
@@ -292,6 +251,6 @@ export default function ProductDetailPage() {
 
       {/* Related Products */}
       <RelatedProducts products={relatedProducts} />
-    </main>
+    </div>
   );
 }

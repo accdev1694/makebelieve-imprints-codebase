@@ -1,0 +1,91 @@
+'use client';
+
+import { useState } from 'react';
+import { Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CartIcon } from '@/components/cart/CartIcon';
+import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
+import { Logo } from './header/Logo';
+import { DesktopNav } from './header/DesktopNav';
+import { HeaderSearch } from './header/HeaderSearch';
+import { UserDropdown } from './header/UserDropdown';
+import { MobileMenu } from './header/MobileMenu';
+
+interface HeaderProps {
+  variant?: 'default' | 'minimal' | 'transparent';
+  showSearch?: boolean;
+  showCart?: boolean;
+  className?: string;
+}
+
+export function Header({
+  variant = 'default',
+  showSearch = true,
+  showCart = true,
+  className,
+}: HeaderProps) {
+  const { user, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const headerClasses = cn(
+    'sticky top-0 z-50',
+    {
+      'border-b border-border/50 bg-card/30 backdrop-blur-sm': variant === 'default',
+      'bg-transparent': variant === 'transparent',
+      'border-b border-border bg-background': variant === 'minimal',
+    },
+    className
+  );
+
+  return (
+    <>
+      <header className={headerClasses}>
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between gap-4">
+            {/* Logo */}
+            <Logo />
+
+            {/* Desktop Navigation */}
+            <DesktopNav />
+
+            {/* Search (Desktop) */}
+            {showSearch && (
+              <div className="hidden lg:block flex-1 max-w-md mx-4">
+                <HeaderSearch />
+              </div>
+            )}
+
+            {/* Right Section */}
+            <div className="flex items-center gap-2">
+              {/* User Dropdown */}
+              <UserDropdown user={user} onLogout={logout} />
+
+              {/* Cart */}
+              {showCart && <CartIcon />}
+
+              {/* Mobile Menu Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden"
+                onClick={() => setMobileMenuOpen(true)}
+                aria-label="Open menu"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Menu */}
+      <MobileMenu
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        user={user}
+        onLogout={logout}
+      />
+    </>
+  );
+}

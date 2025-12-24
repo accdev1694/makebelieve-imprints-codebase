@@ -56,7 +56,7 @@ export function CartItem({ item, compact = false }: CartItemProps) {
         {/* Product Details */}
         <div className="flex-1 min-w-0">
           <Link
-            href={`/products/${item.productSlug || item.productId}`}
+            href={`/product/${item.productSlug || item.productId}`}
             className="font-medium text-sm text-gray-900 hover:text-primary line-clamp-1"
           >
             {item.productName}
@@ -130,7 +130,7 @@ export function CartItem({ item, compact = false }: CartItemProps) {
         <div className="flex justify-between">
           <div>
             <Link
-              href={`/products/${item.productSlug || item.productId}`}
+              href={`/product/${item.productSlug || item.productId}`}
               className="font-medium text-gray-900 hover:text-primary line-clamp-2"
             >
               {item.productName}

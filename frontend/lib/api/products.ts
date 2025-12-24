@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import apiClient from './client';
 import { Category, Subcategory } from './categories';
 

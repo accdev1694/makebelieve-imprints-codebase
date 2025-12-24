@@ -6,7 +6,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/a
 // Create axios instance with default config
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 10000, // Reduced from 30s to 10s for faster feedback
   headers: {
     'Content-Type': 'application/json',
   },
@@ -101,6 +101,7 @@ apiClient.interceptors.response.use(
     if (error.response) {
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const apiError = error.response.data as any; // Cast to any to check for message property
       const message =
         apiError?.message || 'An error occurred during the request. Please try again.';

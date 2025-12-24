@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
@@ -13,12 +12,10 @@ import { HeroSection } from '@/components/home/HeroSection';
 import { TrustBadges } from '@/components/home/TrustBadges';
 import { CategoryCard } from '@/components/home/CategoryCard';
 import { ProductGrid } from '@/components/home/ProductGrid';
-import { PromoBanner } from '@/components/home/PromoBanner';
 import { HowItWorksSection } from '@/components/home/HowItWorksSection';
 import { CustomerTestimonials } from '@/components/home/CustomerTestimonials';
 
 export default function Home() {
-  const { user, logout } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -148,49 +145,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-background">
-      {/* Header Navigation */}
-      <header className="relative z-50 border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold">
-            <span className="text-neon-gradient">MakeBelieve</span>
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/products">
-              <Button variant="ghost">Products</Button>
-            </Link>
-            <Link href="/gifts">
-              <Button variant="ghost">Gifts</Button>
-            </Link>
-            <Link href="/about">
-              <Button variant="ghost">About</Button>
-            </Link>
-            {user ? (
-              <>
-                <Link href="/dashboard">
-                  <Button variant="ghost">Dashboard</Button>
-                </Link>
-                <span className="text-sm text-muted-foreground hidden md:inline">
-                  {user.name}
-                </span>
-                <Button variant="outline" onClick={logout}>
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/login">
-                  <Button variant="ghost">Login</Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button className="btn-gradient">Sign Up</Button>
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <HeroSection />
 
@@ -251,16 +206,6 @@ export default function Home() {
                 </section>
               )}
 
-              {/* Promo Banner 1 */}
-              <PromoBanner
-                title="Design Your Own Business Cards"
-                description="Professional quality business cards with our easy-to-use design tool. Stand out from the crowd with custom designs."
-                ctaText="Start Designing"
-                ctaLink="/design/new"
-                image="https://images.unsplash.com/photo-1589330273594-faddc14a63e9?w=800&q=80"
-                imagePosition="right"
-              />
-
               {/* New Arrivals Section */}
               {newArrivals.length > 0 && (
                 <section className="py-16">
@@ -287,16 +232,6 @@ export default function Home() {
                   />
                 </section>
               )}
-
-              {/* Promo Banner 2 */}
-              <PromoBanner
-                title="Custom Mugs & Tumblers"
-                description="Perfect for gifts, events, or promotional items. High-quality custom printing that lasts."
-                ctaText="Browse Home & Lifestyle"
-                ctaLink="/products/home-lifestyle"
-                image="https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=800&q=80"
-                imagePosition="left"
-              />
 
               {/* Customer Testimonials */}
               <CustomerTestimonials />
@@ -367,6 +302,6 @@ export default function Home() {
           </section>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

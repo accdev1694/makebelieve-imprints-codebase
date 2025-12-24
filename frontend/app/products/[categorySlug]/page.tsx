@@ -1,20 +1,21 @@
 'use client';
 
-import { useState, useEffect, useCallback, use } from 'react';
+import { useState, useEffect, useCallback, use, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 
-import { ProductCard, ProductCardSkeleton } from '@/components/products/ProductCard';
+import { ProductCard } from '@/components/products/ProductCard';
+import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { Product, productsService, CustomizationType } from '@/lib/api/products';
-import { Category, Subcategory, categoriesService, getCategoryImage } from '@/lib/api/categories';
-import { CartIcon } from '@/components/cart/CartIcon';
+import { Category, Subcategory, getCategoryImage, categoriesService } from '@/lib/api/categories';
 import { CategoryHero } from '@/components/category/CategoryHero';
 import { CategoryFeatures } from '@/components/category/CategoryFeatures';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useCategory } from '@/hooks/useCategories';
+import { useProducts } from '@/hooks/useProducts';
 
 interface PageProps {
   params: Promise<{ categorySlug: string }>;
@@ -24,7 +25,6 @@ export default function CategoryPage({ params }: PageProps) {
   const { categorySlug } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, logout } = useAuth();
 
   // Category data
   const [category, setCategory] = useState<Category | null>(null);
@@ -40,7 +40,17 @@ export default function CategoryPage({ params }: PageProps) {
     searchParams.get('customization') || null
   );
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'featured');
   const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // Sort options
+  const sortOptions = [
+    { value: 'featured', label: 'Featured' },
+    { value: 'newest', label: 'Newest' },
+    { value: 'price-low', label: 'Price: Low to High' },
+    { value: 'price-high', label: 'Price: High to Low' },
+    { value: 'bestselling', label: 'Best Selling' },
+  ];
 
   // Product data
   const [products, setProducts] = useState<Product[]>([]);
@@ -73,6 +83,24 @@ export default function CategoryPage({ params }: PageProps) {
   const fetchProducts = useCallback(async () => {
     if (!category) return;
 
+    // Parse sort option
+    type SortByType = 'name' | 'price' | 'createdAt' | 'featured';
+    let apiSortBy: SortByType = 'featured';
+    let apiSortOrder: 'asc' | 'desc' = 'desc';
+    if (sortBy === 'newest') {
+      apiSortBy = 'createdAt';
+      apiSortOrder = 'desc';
+    } else if (sortBy === 'price-low') {
+      apiSortBy = 'price';
+      apiSortOrder = 'asc';
+    } else if (sortBy === 'price-high') {
+      apiSortBy = 'price';
+      apiSortOrder = 'desc';
+    } else if (sortBy === 'bestselling') {
+      apiSortBy = 'featured';
+      apiSortOrder = 'desc';
+    }
+
     try {
       setLoading(true);
       const response = await productsService.list({
@@ -83,8 +111,8 @@ export default function CategoryPage({ params }: PageProps) {
         customizationType: customizationType as CustomizationType | undefined,
         search: debouncedSearch || undefined,
         status: 'ACTIVE',
-        sortBy: 'featured',
-        sortOrder: 'desc',
+        sortBy: apiSortBy,
+        sortOrder: apiSortOrder,
       });
       setProducts(response.products);
       setTotalPages(response.pagination.totalPages);
@@ -94,7 +122,7 @@ export default function CategoryPage({ params }: PageProps) {
     } finally {
       setLoading(false);
     }
-  }, [category, page, selectedSubcategory, customizationType, debouncedSearch]);
+  }, [category, page, selectedSubcategory, customizationType, debouncedSearch, sortBy]);
 
   useEffect(() => {
     if (category) {
@@ -108,19 +136,21 @@ export default function CategoryPage({ params }: PageProps) {
     if (selectedSubcategory) params.set('subcategory', selectedSubcategory);
     if (customizationType) params.set('customization', customizationType);
     if (searchQuery) params.set('search', searchQuery);
+    if (sortBy && sortBy !== 'featured') params.set('sortBy', sortBy);
 
     const queryString = params.toString();
     router.push(
       queryString ? `/products/${categorySlug}?${queryString}` : `/products/${categorySlug}`,
       { scroll: false }
     );
-  }, [selectedSubcategory, customizationType, searchQuery, categorySlug, router]);
+  }, [selectedSubcategory, customizationType, searchQuery, sortBy, categorySlug, router]);
 
   // Clear all filters
   const handleClearFilters = () => {
     setSelectedSubcategory(null);
     setCustomizationType(null);
     setSearchQuery('');
+    setSortBy('featured');
     setPage(1);
   };
 
@@ -159,52 +189,12 @@ export default function CategoryPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Header Navigation */}
-      <header className="relative z-50 border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold">
-            <span className="text-neon-gradient">MakeBelieve</span>
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/products">
-              <Button variant="ghost">Products</Button>
-            </Link>
-            <Link href="/templates">
-              <Button variant="ghost">Templates</Button>
-            </Link>
-            <Link href="/about">
-              <Button variant="ghost">About</Button>
-            </Link>
-            <CartIcon />
-            {user ? (
-              <>
-                <Link href="/dashboard">
-                  <Button variant="ghost">Dashboard</Button>
-                </Link>
-                <Button variant="outline" onClick={logout}>
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/login">
-                  <Button variant="ghost">Login</Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button className="btn-gradient">Sign Up</Button>
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
-
       {/* Category Hero */}
       <CategoryHero
         title={category.name}
+        subtitle={`${total} product${total !== 1 ? 's' : ''} available`}
         description={category.description || `Explore our ${category.name.toLowerCase()} collection`}
-        image={getCategoryImage(category)}
-        productCount={total}
+        heroImage={getCategoryImage(category)}
       />
 
       {/* Subcategory Features */}
@@ -305,15 +295,28 @@ export default function CategoryPage({ params }: PageProps) {
           <p className="text-sm text-muted-foreground">
             {loading ? 'Loading...' : `${total} product${total !== 1 ? 's' : ''} found`}
           </p>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Sort by:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setPage(1);
+              }}
+              className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Products Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
-              <ProductCardSkeleton key={i} />
-            ))}
-          </div>
+          <ProductGridSkeleton count={8} />
         ) : products.length === 0 ? (
           <div className="text-center py-16">
             <h3 className="text-lg font-medium mb-2">No products found</h3>

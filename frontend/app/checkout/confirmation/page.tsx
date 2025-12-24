@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -235,7 +235,9 @@ function ConfirmationContent() {
 export default function ConfirmationPage() {
   return (
     <ProtectedRoute>
-      <ConfirmationContent />
+      <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+        <ConfirmationContent />
+      </Suspense>
     </ProtectedRoute>
   );
 }

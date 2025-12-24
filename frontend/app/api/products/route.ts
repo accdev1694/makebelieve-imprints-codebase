@@ -135,8 +135,8 @@ export async function POST(request: NextRequest) {
         name: body.name,
         slug: body.slug,
         description: body.description,
-        categoryId: body.categoryId,
-        subcategoryId: body.subcategoryId,
+        legacyCategory: body.legacyCategory || 'CUSTOM_ORDER',
+        legacyProductType: body.legacyProductType || 'TSHIRT',
         customizationType: body.customizationType,
         basePrice: body.basePrice,
         currency: body.currency || 'GBP',
@@ -146,6 +146,12 @@ export async function POST(request: NextRequest) {
         seoDescription: body.seoDescription,
         seoKeywords: body.seoKeywords,
         metadata: body.metadata,
+        category: {
+          connect: { id: body.categoryId },
+        },
+        subcategory: body.subcategoryId ? {
+          connect: { id: body.subcategoryId },
+        } : undefined,
       },
       include: {
         category: true,

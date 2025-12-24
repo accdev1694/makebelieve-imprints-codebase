@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, use, useMemo } from 'react';
+import { useState, useEffect, useCallback, use, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -14,15 +14,12 @@ import { Category, Subcategory, getCategoryImage, categoriesService } from '@/li
 import { CategoryHero } from '@/components/category/CategoryHero';
 import { CategoryFeatures } from '@/components/category/CategoryFeatures';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useCategory } from '@/hooks/useCategories';
-import { useProducts } from '@/hooks/useProducts';
 
 interface PageProps {
   params: Promise<{ categorySlug: string }>;
 }
 
-export default function CategoryPage({ params }: PageProps) {
-  const { categorySlug } = use(params);
+function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -359,5 +356,22 @@ export default function CategoryPage({ params }: PageProps) {
         )}
       </div>
     </main>
+  );
+}
+
+export default function CategoryPage({ params }: PageProps) {
+  const { categorySlug } = use(params);
+
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-16 text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading category...</p>
+        </div>
+      </main>
+    }>
+      <CategoryPageContent categorySlug={categorySlug} />
+    </Suspense>
   );
 }

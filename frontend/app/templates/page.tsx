@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,7 +14,7 @@ import { ProductTemplate, templatesService, TEMPLATE_CATEGORY_LABELS } from '@/l
 import { CartIcon } from '@/components/cart/CartIcon';
 import { useDebounce } from '@/hooks/useDebounce';
 
-export default function TemplatesPage() {
+function TemplatesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, logout } = useAuth();
@@ -328,5 +328,27 @@ export default function TemplatesPage() {
         onSelect={handleSelectTemplate}
       />
     </main>
+  );
+}
+
+function TemplatesPageFallback() {
+  return (
+    <main className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <TemplateCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export default function TemplatesPage() {
+  return (
+    <Suspense fallback={<TemplatesPageFallback />}>
+      <TemplatesPageContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -381,7 +381,9 @@ function DesignEditorContent() {
 export default function NewDesignPage() {
   return (
     <ProtectedRoute>
-      <DesignEditorContent />
+      <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+        <DesignEditorContent />
+      </Suspense>
     </ProtectedRoute>
   );
 }

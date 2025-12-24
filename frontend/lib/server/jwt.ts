@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 
 /**
  * JWT token utilities for authentication
@@ -28,8 +28,8 @@ export interface DecodedToken extends TokenPayload {
  */
 export function generateAccessToken(payload: TokenPayload): string {
   return jwt.sign(payload, ACCESS_TOKEN_SECRET, {
-    expiresIn: ACCESS_TOKEN_EXPIRY,
-  });
+    expiresIn: ACCESS_TOKEN_EXPIRY as string,
+  } as SignOptions);
 }
 
 /**
@@ -37,8 +37,8 @@ export function generateAccessToken(payload: TokenPayload): string {
  */
 export function generateRefreshToken(payload: TokenPayload): string {
   return jwt.sign(payload, REFRESH_TOKEN_SECRET, {
-    expiresIn: REFRESH_TOKEN_EXPIRY,
-  });
+    expiresIn: REFRESH_TOKEN_EXPIRY as string,
+  } as SignOptions);
 }
 
 /**

@@ -23,7 +23,7 @@ interface WishlistItem {
 
 export default function WishlistPage() {
   const router = useRouter();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { addItem } = useCart();
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,11 +82,12 @@ export default function WishlistPage() {
 
   const handleAddToCart = (item: WishlistItem) => {
     addItem({
-      id: item.productId,
-      name: item.name,
-      price: item.price,
-      image: item.image,
+      productId: item.productId,
+      productName: item.name,
+      productSlug: item.slug,
+      productImage: item.image,
       quantity: 1,
+      unitPrice: item.price,
     });
   };
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,8 +15,7 @@ import {
 } from '@/lib/api/shipping';
 import Link from 'next/link';
 
-export default function TrackingPage() {
-  const router = useRouter();
+function TrackingPageContent() {
   const searchParams = useSearchParams();
 
   const [trackingNumber, setTrackingNumber] = useState(searchParams.get('number') || '');
@@ -243,5 +242,13 @@ export default function TrackingPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function TrackingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+      <TrackingPageContent />
+    </Suspense>
   );
 }

@@ -21,7 +21,7 @@ interface PaymentMethod {
 
 export default function PaymentMethodsPage() {
   const router = useRouter();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
 

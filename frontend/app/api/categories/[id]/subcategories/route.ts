@@ -3,16 +3,16 @@ import prisma from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
 
 interface RouteParams {
-  params: Promise<{ categoryId: string }>;
+  params: Promise<{ id: string }>;
 }
 
 /**
- * GET /api/categories/[categoryId]/subcategories
+ * GET /api/categories/[id]/subcategories
  * List subcategories for a category
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { categoryId } = await params;
+    const { id: categoryId } = await params;
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get('includeInactive') === 'true';
 
@@ -53,14 +53,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 /**
- * POST /api/categories/[categoryId]/subcategories
+ * POST /api/categories/[id]/subcategories
  * Create a subcategory (admin only)
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     await requireAdmin(request);
 
-    const { categoryId } = await params;
+    const { id: categoryId } = await params;
     const body = await request.json();
     const { name, slug, description, image, displayOrder, isActive } = body;
 

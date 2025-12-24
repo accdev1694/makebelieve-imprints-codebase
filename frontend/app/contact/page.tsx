@@ -59,7 +59,7 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">Email Us</h3>
                     <p className="text-sm text-muted-foreground">
-                      hello@makebelieveimprints.com
+                      hello@makebelieveimprints.co.uk
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       We'll respond within 24 hours

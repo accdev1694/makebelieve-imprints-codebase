@@ -457,9 +457,9 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [ ] Framework: Next.js
   - [ ] Node.js version: 22.x
 - [ ] Configure environment variables in Vercel dashboard
-  - [ ] NEXT_PUBLIC_API_URL=https://api.makebelieveimprints.com
+  - [ ] NEXT_PUBLIC_API_URL=https://api.makebelieveimprints.co.uk
 - [ ] Configure custom domain
-  - [ ] Frontend: makebelieveimprints.com
+  - [ ] Frontend: makebelieveimprints.co.uk
   - [ ] Configure DNS records
 - [ ] Verify automatic deployments work on push to main
 
@@ -485,7 +485,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 ### 7.5 Monitoring & Maintenance
 
 - [ ] Set up uptime monitoring (UptimeRobot or similar)
-  - [ ] Monitor https://api.makebelieveimprints.com/health
+  - [ ] Monitor https://api.makebelieveimprints.co.uk/health
   - [ ] Alert on downtime > 2 minutes
 - [ ] Configure PM2 to restart on server reboot
   - [ ] pm2 startup systemd

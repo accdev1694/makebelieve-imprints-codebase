@@ -19,7 +19,7 @@
 
 2. **Configure Environment Variables:**
    ```bash
-   NEXT_PUBLIC_API_URL=https://api.makebelieveimprints.com
+   NEXT_PUBLIC_API_URL=https://api.makebelieveimprints.co.uk
    # Add other public env vars as needed
    ```
 
@@ -32,7 +32,7 @@
 4. **Deployment:**
    - Automatic deployment on every push to `main` branch
    - Preview deployments on pull requests
-   - Production URL: https://makebelieveimprints.com (configure custom domain in Vercel)
+   - Production URL: https://makebelieveimprints.co.uk (configure custom domain in Vercel)
 
 ### Capacitor Mobile App Builds
 
@@ -94,14 +94,14 @@ The frontend code is also used for native mobile apps via Capacitor:
    ```
 
 4. **Configure Nginx:**
-   - Copy `ops/nginx-site.conf` to `/etc/nginx/sites-available/api.makebelieveimprints.com`
-   - Create symlink: `sudo ln -s /etc/nginx/sites-available/api.makebelieveimprints.com /etc/nginx/sites-enabled/`
+   - Copy `ops/nginx-site.conf` to `/etc/nginx/sites-available/api.makebelieveimprints.co.uk`
+   - Create symlink: `sudo ln -s /etc/nginx/sites-available/api.makebelieveimprints.co.uk /etc/nginx/sites-enabled/`
    - Test config: `sudo nginx -t`
    - Reload: `sudo systemctl reload nginx`
 
 5. **Setup SSL Certificate:**
    ```bash
-   sudo certbot --nginx -d api.makebelieveimprints.com
+   sudo certbot --nginx -d api.makebelieveimprints.co.uk
    ```
 
 6. **Configure Environment Variables:**
@@ -248,7 +248,7 @@ pm2 save
    {
      "CORSRules": [
        {
-         "AllowedOrigins": ["https://makebelieveimprints.com"],
+         "AllowedOrigins": ["https://makebelieveimprints.co.uk"],
          "AllowedMethods": ["GET", "PUT", "POST"],
          "AllowedHeaders": ["*"],
          "MaxAgeSeconds": 3000
@@ -290,7 +290,7 @@ npx prisma migrate resolve --rolled-back <migration-name>
 
 **Backend Health Endpoint:**
 ```bash
-curl https://api.makebelieveimprints.com/health
+curl https://api.makebelieveimprints.co.uk/health
 # Expected: {"status":"ok","timestamp":"2025-01-15T12:00:00Z"}
 ```
 
@@ -303,7 +303,7 @@ npx prisma db execute --stdin <<< "SELECT 1"
 
 **Monitor Uptime:**
 - Use UptimeRobot or similar service
-- Monitor: https://api.makebelieveimprints.com/health
+- Monitor: https://api.makebelieveimprints.co.uk/health
 - Alert on downtime > 2 minutes
 
 ## Security Checklist

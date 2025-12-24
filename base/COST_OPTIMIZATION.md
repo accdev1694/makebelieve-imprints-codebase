@@ -65,7 +65,7 @@ Monitoring: UptimeRobot (Free - 50 monitors)
 ### Phase 2: Production Launch (Month 6+) - €40-50/month
 
 **Add:**
-- Custom domain: €15/year (makebelieveimprints.com)
+- Custom domain: €15/year (makebelieveimprints.co.uk)
 - Vercel Pro (optional): $20/month if need custom domain features
 - App Store accounts: $99 Apple + $25 Google (one-time)
 

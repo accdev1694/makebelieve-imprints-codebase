@@ -27,7 +27,7 @@ In the Vercel project settings, add the following environment variable:
 
 **For Production:**
 - Key: `NEXT_PUBLIC_API_URL`
-- Value: `https://api.makebelieveimprints.com` (once backend is deployed to IONOS)
+- Value: `https://api.makebelieveimprints.co.uk` (once backend is deployed to IONOS)
 
 ### How to Add Environment Variables:
 1. In your Vercel project dashboard, go to **Settings** → **Environment Variables**
@@ -47,7 +47,7 @@ Automatic deployments are enabled by default when you import from GitHub:
 
 Once ready for production:
 1. Go to **Settings** → **Domains**
-2. Add domain: `makebelieveimprints.com`
+2. Add domain: `makebelieveimprints.co.uk`
 3. Follow Vercel's DNS configuration instructions
 4. Wait for DNS propagation (can take up to 48 hours)
 

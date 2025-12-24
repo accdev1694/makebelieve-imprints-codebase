@@ -23,7 +23,7 @@ const faqs: FAQItem[] = [
   {
     category: 'Ordering',
     question: 'Can I modify my order after placing it?',
-    answer: 'If your order hasn\'t entered production yet, we may be able to make changes. Please contact us as soon as possible at hello@makebelieveimprints.com with your order number.',
+    answer: 'If your order hasn\'t entered production yet, we may be able to make changes. Please contact us as soon as possible at hello@makebelieveimprints.co.uk with your order number.',
   },
   {
     category: 'Ordering',

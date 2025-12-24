@@ -1,7 +1,8 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
-// API base URL - will be configured via environment variable
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+// API base URL - uses Next.js API routes (same origin)
+// No need for NEXT_PUBLIC_API_URL anymore since API is now in the same app
+const API_BASE_URL = '/api';
 
 // Create axios instance with default config
 const apiClient: AxiosInstance = axios.create({

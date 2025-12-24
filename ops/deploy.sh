@@ -63,6 +63,6 @@ rm /tmp/backend.tar.gz
 
 echo ""
 echo "=== Deployment completed successfully ==="
-echo "Backend API is now running at: https://api.makebelieveimprints.com"
-echo "Frontend (Vercel): https://makebelieveimprints.com"
+echo "Backend API is now running at: https://api.makebelieveimprints.co.uk"
+echo "Frontend (Vercel): https://makebelieveimprints.co.uk"
 echo ""

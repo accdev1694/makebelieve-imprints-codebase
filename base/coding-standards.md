@@ -255,7 +255,7 @@ NODE_ENV="production"
 
 ### Frontend (.env.local)
 ```bash
-NEXT_PUBLIC_API_URL="https://api.makebelieveimprints.com"
+NEXT_PUBLIC_API_URL="https://api.makebelieveimprints.co.uk"
 NEXT_PUBLIC_SENTRY_DSN="..." # Optional
 ```
 

@@ -153,14 +153,13 @@ export function MobileMenu({ isOpen, onClose, user, onLogout }: MobileMenuProps)
                     <p className="text-muted-foreground text-xs">{user.email}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="outline" asChild>
                       <Link href="/dashboard" onClick={onClose}>
                         Dashboard
                       </Link>
                     </Button>
                     <Button
                       variant="outline"
-                      size="sm"
                       onClick={() => {
                         onLogout();
                         onClose();

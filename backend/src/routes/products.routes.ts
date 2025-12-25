@@ -22,7 +22,7 @@ const getProductsSchema = z.object({
     subcategoryId: z.string().uuid().optional(),
     subcategorySlug: z.string().optional(),
     // Legacy enum filtering (kept for backward compatibility)
-    category: z.enum(['SUBLIMATION', 'STATIONERY', 'LARGE_FORMAT', 'PHOTO_PRINTS', 'DIGITAL', 'CUSTOM_ORDER']).optional(),
+    category: z.enum(['HOME_LIFESTYLE', 'STATIONERY', 'LARGE_FORMAT', 'PHOTO_PRINTS', 'DIGITAL', 'CUSTOM_ORDER']).optional(),
     productType: z.string().optional(),
     customizationType: z.enum(['TEMPLATE_BASED', 'UPLOAD_OWN', 'FULLY_CUSTOM', 'DIGITAL_DOWNLOAD']).optional(),
     status: z.enum(['ACTIVE', 'DRAFT', 'ARCHIVED', 'OUT_OF_STOCK']).optional(),

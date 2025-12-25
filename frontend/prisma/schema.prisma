@@ -490,7 +490,7 @@ enum Orientation {
 }
 
 enum ProductCategory {
-  SUBLIMATION
+  HOME_LIFESTYLE
   STATIONERY
   LARGE_FORMAT
   PHOTO_PRINTS

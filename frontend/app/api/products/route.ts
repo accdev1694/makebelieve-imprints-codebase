@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const categoryId = searchParams.get('categoryId');
     const categorySlug = searchParams.get('categorySlug');
-    const category = searchParams.get('category'); // Legacy enum (SUBLIMATION, STATIONERY, etc.)
+    const category = searchParams.get('category'); // Legacy enum (HOME_LIFESTYLE, STATIONERY, etc.)
     const subcategoryId = searchParams.get('subcategoryId');
     const subcategorySlug = searchParams.get('subcategorySlug');
     const customizationType = searchParams.get('customizationType');
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       if (cat) where.categoryId = cat.id;
     }
 
-    // Legacy category enum filtering (SUBLIMATION, STATIONERY, etc.)
+    // Legacy category enum filtering (HOME_LIFESTYLE, STATIONERY, etc.)
     if (category) {
       where.legacyCategory = category;
     }

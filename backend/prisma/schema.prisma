@@ -52,7 +52,7 @@ enum Orientation {
 
 // Product Catalog Enums
 enum ProductCategory {
-  SUBLIMATION
+  HOME_LIFESTYLE
   STATIONERY
   LARGE_FORMAT
   PHOTO_PRINTS

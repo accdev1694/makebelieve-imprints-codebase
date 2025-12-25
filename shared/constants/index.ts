@@ -113,7 +113,7 @@ export const ORDER_STATUS_COLORS: Record<string, string> = {
 // ============================================
 
 export const PRODUCT_CATEGORY_LABELS: Record<string, string> = {
-  SUBLIMATION: 'Sublimation Products',
+  HOME_LIFESTYLE: 'Home & Lifestyle',
   STATIONERY: 'Stationery',
   LARGE_FORMAT: 'Large Format Prints',
   PHOTO_PRINTS: 'Photo Prints',
@@ -122,7 +122,7 @@ export const PRODUCT_CATEGORY_LABELS: Record<string, string> = {
 };
 
 export const PRODUCT_CATEGORY_SLUGS: Record<string, string> = {
-  SUBLIMATION: 'sublimation',
+  HOME_LIFESTYLE: 'home-lifestyle',
   STATIONERY: 'stationery',
   LARGE_FORMAT: 'large-format',
   PHOTO_PRINTS: 'photo-prints',

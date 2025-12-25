@@ -18,7 +18,7 @@ async function main() {
       slug: 'custom-sublimation-tshirt',
       description:
         'High-quality polyester t-shirt perfect for vibrant, full-color sublimation printing. Soft, breathable fabric with excellent color reproduction.',
-      category: 'SUBLIMATION',
+      category: 'HOME_LIFESTYLE',
       productType: 'TSHIRT',
       customizationType: 'UPLOAD_OWN',
       basePrice: 12.99,
@@ -99,7 +99,7 @@ async function main() {
       slug: 'custom-sublimation-mug',
       description:
         'Premium ceramic mug with brilliant color reproduction. Dishwasher and microwave safe. Perfect for photos, designs, or logos.',
-      category: 'SUBLIMATION',
+      category: 'HOME_LIFESTYLE',
       productType: 'MUG',
       customizationType: 'UPLOAD_OWN',
       basePrice: 8.99,
@@ -164,7 +164,7 @@ async function main() {
       slug: 'custom-sublimation-water-bottle',
       description:
         'Stainless steel water bottle with sublimation coating. Keeps drinks cold for 24 hours or hot for 12 hours. BPA-free and eco-friendly.',
-      category: 'SUBLIMATION',
+      category: 'HOME_LIFESTYLE',
       productType: 'WATER_BOTTLE',
       customizationType: 'UPLOAD_OWN',
       basePrice: 14.99,
@@ -220,7 +220,7 @@ async function main() {
       slug: 'custom-sublimation-mousemat',
       description:
         'High-quality fabric surface with rubber base. Perfect for photos, artwork, or branding. Non-slip and smooth tracking.',
-      category: 'SUBLIMATION',
+      category: 'HOME_LIFESTYLE',
       productType: 'MOUSEMAT',
       customizationType: 'UPLOAD_OWN',
       basePrice: 6.99,
@@ -259,7 +259,7 @@ async function main() {
       slug: 'custom-sublimation-cushion',
       description:
         'Soft polyester cushion with removable, washable cover. Perfect for home décor, gifts, or personalized designs.',
-      category: 'SUBLIMATION',
+      category: 'HOME_LIFESTYLE',
       productType: 'CUSHION_PILLOW',
       customizationType: 'UPLOAD_OWN',
       basePrice: 11.99,
@@ -311,7 +311,7 @@ async function main() {
       slug: 'custom-sublimation-keychain',
       description:
         'Durable MDF keychain with high-quality sublimation coating. Perfect for photos, logos, or small gifts.',
-      category: 'SUBLIMATION',
+      category: 'HOME_LIFESTYLE',
       productType: 'KEYCHAIN',
       customizationType: 'UPLOAD_OWN',
       basePrice: 3.99,

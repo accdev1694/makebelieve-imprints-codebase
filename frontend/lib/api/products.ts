@@ -251,7 +251,7 @@ export const productsService = {
  * Category display labels (using shared constants with local overrides)
  */
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
-  SUBLIMATION: 'Home & Lifestyle',
+  HOME_LIFESTYLE: 'Home & Lifestyle',
   STATIONERY: 'Stationery',
   LARGE_FORMAT: 'Large Format Prints',
   PHOTO_PRINTS: 'Photo Prints',

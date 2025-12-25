@@ -12,7 +12,7 @@ interface CategoryFilterProps {
 export function CategoryFilter({ selected, onChange }: CategoryFilterProps) {
   const categories: (ProductCategory | 'all')[] = [
     'all',
-    'SUBLIMATION',
+    'HOME_LIFESTYLE',
     'STATIONERY',
     'LARGE_FORMAT',
     'PHOTO_PRINTS',

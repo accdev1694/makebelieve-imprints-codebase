@@ -97,7 +97,7 @@ export type UpdateDesignData = Partial<CreateDesignData>;
 // ============================================
 
 export type ProductCategory =
-  | 'SUBLIMATION'
+  | 'HOME_LIFESTYLE'
   | 'STATIONERY'
   | 'LARGE_FORMAT'
   | 'PHOTO_PRINTS'

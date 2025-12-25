@@ -1,8 +1,24 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
-// API base URL - uses Next.js API routes (same origin)
-// No need for NEXT_PUBLIC_API_URL anymore since API is now in the same app
-const API_BASE_URL = '/api';
+// API base URL configuration
+// - Web (SSR): Uses relative '/api' path (same origin)
+// - Mobile (Capacitor): Uses full URL from NEXT_PUBLIC_API_URL env var
+const getApiBaseUrl = (): string => {
+  // Check if running in Capacitor (mobile app)
+  const isCapacitor = typeof window !== 'undefined' &&
+    // @ts-expect-error - Capacitor adds this to window
+    (window.Capacitor?.isNativePlatform?.() || window.Capacitor?.isNative);
+
+  if (isCapacitor) {
+    // Mobile app must use full URL to reach the API server
+    return process.env.NEXT_PUBLIC_API_URL || 'https://mkbl.vercel.app/api';
+  }
+
+  // Web app uses relative path (same origin)
+  return process.env.NEXT_PUBLIC_API_URL || '/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Create axios instance with default config
 const apiClient: AxiosInstance = axios.create({

@@ -1,13 +1,18 @@
 import type { NextConfig } from 'next';
 
+// Check if building for mobile (Capacitor)
+const isMobileBuild = process.env.BUILD_TARGET === 'mobile';
+
 const nextConfig: NextConfig = {
   // For Capacitor mobile apps, use static export
-  // Uncomment when ready for mobile build:
-  // output: 'export',
+  ...(isMobileBuild && { output: 'export' }),
 
-  // Image optimization (disabled for static export)
+  // Trailing slashes required for static export compatibility
+  ...(isMobileBuild && { trailingSlash: true }),
+
+  // Image optimization (disabled for static export, enabled for web)
   images: {
-    // unoptimized: true, // Enable when using static export
+    ...(isMobileBuild && { unoptimized: true }),
     remotePatterns: [
       {
         protocol: 'http',
@@ -25,7 +30,17 @@ const nextConfig: NextConfig = {
         hostname: 'images.unsplash.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'mkbl.vercel.app',
+        pathname: '/**',
+      },
     ],
+  },
+
+  // Environment variables for mobile builds
+  env: {
+    NEXT_PUBLIC_IS_MOBILE: isMobileBuild ? 'true' : 'false',
   },
 };
 

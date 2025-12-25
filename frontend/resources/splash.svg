@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4F46E5"/>
+      <stop offset="100%" style="stop-color:#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <rect width="2732" height="2732" fill="url(#bgGradient)"/>
+
+  <!-- Centered logo -->
+  <g transform="translate(1366, 1200)">
+    <!-- Outer ring -->
+    <circle cx="0" cy="0" r="300" fill="none" stroke="#818CF8" stroke-width="20"/>
+
+    <!-- Stylized M -->
+    <path
+      d="M-160 140 L-160 -100 L-64 60 L0 -32 L64 60 L160 -100 L160 140"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-width="40"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    <!-- Sparkle -->
+    <g transform="translate(128, -128)">
+      <path d="M0 -32 L0 32 M-32 0 L32 0" stroke="#FCD34D" stroke-width="12" stroke-linecap="round"/>
+      <path d="M-22 -22 L22 22 M22 -22 L-22 22" stroke="#FCD34D" stroke-width="10" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- Brand name -->
+  <text x="1366" y="1650"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="120"
+        font-weight="600"
+        fill="#FFFFFF"
+        text-anchor="middle">
+    MakeBelieve Imprints
+  </text>
+
+  <!-- Tagline -->
+  <text x="1366" y="1750"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="48"
+        fill="#C7D2FE"
+        text-anchor="middle">
+    Print Your Imagination
+  </text>
+</svg>

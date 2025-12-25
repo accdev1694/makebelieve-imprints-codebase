@@ -6,6 +6,11 @@ interface PageProps {
   params: Promise<{ subcategory: string }>;
 }
 
+// Required for static export - returns empty array for client-side routing
+export function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { subcategory } = await params;
   const title = subcategory

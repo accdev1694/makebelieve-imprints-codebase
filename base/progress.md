@@ -14,7 +14,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 | 4. Product Catalog & E-Commerce | ✅ Complete | 100% | All 5 phases complete |
 | 5. Mobile App (Capacitor) | 🔄 In Progress | 70% | Platforms exist, not tested/submitted |
 | 6. Shared Code | ✅ Complete | 100% | Types migrated, backend uses shared constants |
-| 7. Infrastructure & DevOps | 🔄 In Progress | 90% | Vercel+CORS+domain done, storage pending |
+| 7. Infrastructure & DevOps | ✅ Complete | 100% | Vercel+CORS+domain+R2 storage done |
 | 8. Documentation | ✅ Complete | 100% | OpenAPI 3.0 spec created (docs/openapi.yaml) |
 | 9. QA & Launch | 🔄 In Progress | 30% | CORS audit complete, tests exist |
 
@@ -26,7 +26,7 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
 **Current Architecture:**
 - **Frontend + API**: Next.js 15 on Vercel (single deployment)
 - **Database**: Neon PostgreSQL (serverless, same as before)
-- **File Storage**: Local filesystem (dev) / S3-compatible (production)
+- **File Storage**: Local filesystem (dev) / Cloudflare R2 (production)
 
 ### Key Accomplishments (Verified from Source Code):
 - ✅ Full-stack e-commerce platform (Next.js 15.1.0 + Vercel API Routes + Neon PostgreSQL)
@@ -49,7 +49,7 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
 - ❌ Test mobile apps on physical iOS/Android devices
 - ❌ Submit to App Store and Google Play
 - ✅ Configure custom domain (makebelieveimprints.co.uk - live)
-- ❌ Set up production file storage (Cloudflare R2 or S3)
+- ✅ Set up production file storage (Cloudflare R2 - bucket: makebelieve-uploads)
 - ❌ Complete payment gateway integration (Stripe)
 - ❌ Set up uptime monitoring
 - ✅ Complete shared type migration in all components (frontend/lib/types, backend uses @mkbl/shared)
@@ -81,9 +81,9 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
   - [✅] Create project, get connection string
   - [✅] 512MB storage free (sufficient for development)
   - [✅] Connected to both local dev and Vercel production
-- [✅] **File Storage** - Local filesystem for development
+- [✅] **File Storage** - Cloudflare R2 for production
   - [✅] Using local filesystem during development
-  - [ ] Optional: Set up Cloudflare R2 for production
+  - [✅] Cloudflare R2 configured for production (bucket: makebelieve-uploads)
 - [✅] **Royal Mail Mock** - Implement mock service
   - [✅] Return fake tracking numbers for testing
   - [✅] No API costs during development
@@ -575,10 +575,10 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
 - [✅] Configure custom domain
   - [✅] Primary: makebelieveimprints.co.uk (live)
   - [✅] DNS records configured
-- [ ] Set up production file storage
-  - [ ] Option A: Cloudflare R2 (S3-compatible, free tier)
-  - [ ] Option B: AWS S3
-  - [ ] Configure S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY
+- [✅] Set up production file storage
+  - [✅] Cloudflare R2 configured (bucket: makebelieve-uploads, WEUR region)
+  - [✅] S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY set in Vercel
+  - [✅] CORS policy configured for production domains
 
 ### 7.3 CI/CD Pipeline
 
@@ -688,12 +688,3 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
 - [ ] Completed
 
 Update this file as you progress through each step.
-
- 
-    
-    
-    
-
-    
-   
-     ☐ Conduct CORS audit for production

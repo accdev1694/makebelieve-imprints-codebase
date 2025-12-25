@@ -18,7 +18,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 | 8. Documentation | ✅ Complete | 100% | OpenAPI 3.0 spec created (docs/openapi.yaml) |
 | 9. QA & Launch | 🔄 In Progress | 30% | CORS audit complete, tests exist |
 
-**Overall Progress: ~90%**
+**Overall Progress: ~95%**
 
 ### Architecture Change (December 2025):
 The backend has been migrated from a planned IONOS VPS deployment to **Vercel serverless functions**. The Express.js backend code in `/backend/` has been replaced by Next.js API routes in `/frontend/app/api/`. This simplifies deployment and reduces infrastructure costs.
@@ -41,16 +41,17 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
 - ✅ Capacitor 8.0.0 configured with iOS/Android platforms initialized
 - ✅ Native hooks: useCamera, useFilesystem, usePushNotifications
 - ✅ Shared types (413 lines) and constants (270 lines) in @mkbl/shared
-- ✅ 21 Next.js API routes in /frontend/app/api/
+- ✅ 23 Next.js API routes in /frontend/app/api/ (including Stripe checkout & webhooks)
 - ✅ 8 backend test files + 5 frontend test files + 3 Cypress E2E tests
 - ✅ **Backend migrated to Vercel serverless (Express code in /backend/ superseded)**
+- ✅ **Stripe payment integration** (checkout sessions, webhooks, payment records)
 
 ### Remaining Work:
 - ❌ Test mobile apps on physical iOS/Android devices
 - ❌ Submit to App Store and Google Play
 - ✅ Configure custom domain (makebelieveimprints.co.uk - live)
 - ✅ Set up production file storage (Cloudflare R2 - bucket: makebelieve-uploads)
-- ❌ Complete payment gateway integration (Stripe)
+- ✅ Complete payment gateway integration (Stripe - test mode configured)
 - ❌ Set up uptime monitoring
 - ✅ Complete shared type migration in all components (frontend/lib/types, backend uses @mkbl/shared)
 - ✅ API documentation (docs/openapi.yaml - 2,245 lines)

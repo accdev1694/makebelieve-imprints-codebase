@@ -36,14 +36,33 @@ export interface Order {
   };
 }
 
+export interface OrderItemData {
+  productId?: string;
+  variantId?: string;
+  designId?: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  customization?: {
+    size?: string;
+    color?: string;
+    material?: string;
+  };
+  metadata?: Record<string, unknown>;
+}
+
 export interface CreateOrderData {
-  designId: string;
-  printSize: PrintSize;
-  material: Material;
-  orientation: Orientation;
-  printWidth: number;
-  printHeight: number;
+  // Legacy design-based order
+  designId?: string;
+  printSize?: PrintSize;
+  material?: Material;
+  orientation?: Orientation;
+  printWidth?: number;
+  printHeight?: number;
   previewUrl?: string;
+  // Cart-based order with items
+  items?: OrderItemData[];
+  // Common fields
   shippingAddress: ShippingAddress;
   totalPrice: number;
 }

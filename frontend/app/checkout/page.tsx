@@ -19,7 +19,8 @@ import {
   ShippingAddress,
 } from '@/lib/api/orders';
 import { formatPrice } from '@/lib/api/products';
-import { ShoppingBag, CreditCard, Lock, Truck, Clock, Zap, CheckCircle } from 'lucide-react';
+import { ShoppingBag, CreditCard, Lock, Truck, Clock, Zap, CheckCircle, ExternalLink } from 'lucide-react';
+import { redirectToCheckout } from '@/lib/stripe';
 
 type CheckoutMode = 'cart' | 'design';
 
@@ -177,25 +178,23 @@ function CheckoutContent() {
       let order;
 
       if (mode === 'cart') {
-        // Create order from cart items (mock for now)
+        // Create order from cart items
         order = await ordersService.create({
-          // For cart orders, we create a placeholder order
-          // In production, this would create OrderItems for each cart item
-          designId: cartItems[0]?.productId || 'cart-order',
-          printSize: 'A4',
-          material: 'MATTE',
-          orientation: 'PORTRAIT',
-          printWidth: 21,
-          printHeight: 29.7,
-          previewUrl: cartItems[0]?.productImage || '',
+          items: cartItems.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.unitPrice * item.quantity,
+            customization: {
+              size: item.size,
+              color: item.color,
+              material: item.material,
+            },
+          })),
           shippingAddress,
           totalPrice: finalTotal,
-          // Include cart items as metadata (mock implementation)
-          // In production, backend would handle OrderItem creation
         });
-
-        // Clear the cart after successful order
-        clearCart();
       } else if (design) {
         // Legacy design-based order
         order = await ordersService.create({
@@ -211,11 +210,36 @@ function CheckoutContent() {
         });
       }
 
-      // Redirect to confirmation page
-      router.push(`/checkout/confirmation?orderId=${order?.id}`);
+      if (!order?.id) {
+        throw new Error('Failed to create order');
+      }
+
+      // Create Stripe checkout session and redirect
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create checkout session');
+      }
+
+      // Clear the cart before redirecting to Stripe
+      if (mode === 'cart') {
+        clearCart();
+      }
+
+      // Redirect to Stripe Checkout
+      if (result.data?.url) {
+        redirectToCheckout(result.data.url);
+      } else {
+        throw new Error('No checkout URL received');
+      }
     } catch (err: any) {
       setError(err?.error || err?.message || 'Failed to place order');
-    } finally {
       setSubmitting(false);
     }
   };
@@ -492,44 +516,33 @@ function CheckoutContent() {
                 </CardContent>
               </Card>
 
-              {/* Mock Payment Section */}
+              {/* Stripe Payment Section */}
               <Card className="card-glow">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CreditCard className="h-5 w-5" />
                     Payment
                   </CardTitle>
-                  <CardDescription>Secure payment processing</CardDescription>
+                  <CardDescription>Secure payment via Stripe</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <label htmlFor="cardNumber" className="block text-sm font-medium text-foreground mb-2">
-                      Card Number
-                    </label>
-                    <Input
-                      id="cardNumber"
-                      type="text"
-                      placeholder="4242 4242 4242 4242"
-                      className="bg-card/50"
-                      disabled
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="expiry" className="block text-sm font-medium text-foreground mb-2">
-                        Expiry Date
-                      </label>
-                      <Input id="expiry" type="text" placeholder="MM/YY" className="bg-card/50" disabled />
+                  <div className="flex items-center gap-3 p-4 bg-card/50 rounded-lg border border-border">
+                    <div className="flex-1">
+                      <p className="font-medium">Secure Checkout</p>
+                      <p className="text-sm text-muted-foreground">
+                        You'll be redirected to Stripe to complete your payment securely.
+                      </p>
                     </div>
-                    <div>
-                      <label htmlFor="cvc" className="block text-sm font-medium text-foreground mb-2">
-                        CVC
-                      </label>
-                      <Input id="cvc" type="text" placeholder="123" className="bg-card/50" disabled />
-                    </div>
+                    <ExternalLink className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <div className="bg-primary/10 text-primary p-3 rounded-lg text-sm">
-                    Payment integration coming soon. Orders are currently processed as test orders.
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Lock className="h-4 w-4" />
+                    <span>Your payment information is encrypted and secure</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <img src="https://cdn.brandfolder.io/KGT2DTA4/at/8vbr8k4mr5xjwk4hxq4t9vs/Visa-logo.svg" alt="Visa" className="h-8" />
+                    <img src="https://cdn.brandfolder.io/KGT2DTA4/at/rvgw3kcc58g4g4fm9n7bh3/Mastercard-logo.svg" alt="Mastercard" className="h-8" />
+                    <img src="https://cdn.brandfolder.io/KGT2DTA4/at/x5v5z6w7h8fh8qxt6b5ggn/Amex-logo.svg" alt="Amex" className="h-8" />
                   </div>
                 </CardContent>
               </Card>
@@ -648,9 +661,9 @@ function CheckoutContent() {
                 </CardContent>
               </Card>
 
-              {/* Place Order Button */}
+              {/* Proceed to Payment Button */}
               <Button type="submit" className="w-full btn-gradient text-lg py-6" disabled={submitting}>
-                {submitting ? 'Processing...' : `Place Order - ${formatPrice(finalTotal)}`}
+                {submitting ? 'Redirecting to payment...' : `Proceed to Payment - ${formatPrice(finalTotal)}`}
               </Button>
 
               <p className="text-xs text-muted-foreground text-center">

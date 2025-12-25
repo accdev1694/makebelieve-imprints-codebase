@@ -9,8 +9,9 @@ import jwt from 'jsonwebtoken';
 // Token configuration
 const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
 const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key-change-this-in-production';
-const ACCESS_TOKEN_EXPIRY = process.env.JWT_EXPIRES_IN || '15m';
-const REFRESH_TOKEN_EXPIRY = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+// Use seconds for token expiry (15 minutes = 900s, 7 days = 604800s)
+const ACCESS_TOKEN_EXPIRY = 900; // 15 minutes in seconds
+const REFRESH_TOKEN_EXPIRY = 604800; // 7 days in seconds
 
 export interface TokenPayload {
   userId: string;
@@ -90,29 +91,6 @@ export function verifyRefreshToken(token: string): DecodedToken {
  * @returns Date object representing when refresh token expires
  */
 export function getRefreshTokenExpiry(): Date {
-  // Parse expiry string (e.g., "7d") to milliseconds
-  const expiryMs = parseExpiry(REFRESH_TOKEN_EXPIRY);
-  return new Date(Date.now() + expiryMs);
-}
-
-/**
- * Parse expiry string to milliseconds
- * @param expiry - Expiry string (e.g., "15m", "7d")
- * @returns Milliseconds
- */
-function parseExpiry(expiry: string): number {
-  const units: Record<string, number> = {
-    s: 1000,
-    m: 60 * 1000,
-    h: 60 * 60 * 1000,
-    d: 24 * 60 * 60 * 1000,
-  };
-
-  const match = expiry.match(/^(\d+)([smhd])$/);
-  if (!match) {
-    throw new Error(`Invalid expiry format: ${expiry}`);
-  }
-
-  const [, value, unit] = match;
-  return parseInt(value, 10) * units[unit];
+  // REFRESH_TOKEN_EXPIRY is in seconds, convert to milliseconds
+  return new Date(Date.now() + REFRESH_TOKEN_EXPIRY * 1000);
 }

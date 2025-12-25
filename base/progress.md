@@ -397,7 +397,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 - [✅] 4.4.4 Create design preview generator
   - [✅] Template preview in modal
   - [✅] Product-specific previews via product images
-  - [NOTE] Real-time mockup generation deferred
+  - [✅] Real-time mockup generation (client-side canvas overlay)
 - [✅] 4.4.5 Add "Upload Your Own" flow
   - [✅] File upload with validation (existing /design/new page)
   - [✅] Design positioning tools (MaterialSelector, SizeSelector)

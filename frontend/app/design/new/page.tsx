@@ -12,11 +12,13 @@ import { FileUpload } from '@/components/design/FileUpload';
 import { MaterialSelector } from '@/components/design/MaterialSelector';
 import { SizeSelector } from '@/components/design/SizeSelector';
 import { TemplateSelector } from '@/components/design/TemplateSelector';
+import { ProductMockupPreview } from '@/components/mockup';
 import { designsService, Material, PrintSize, Orientation } from '@/lib/api/designs';
 import { storageService } from '@/lib/api/storage';
 import { Template, getTemplateById } from '@/lib/templates';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Eye, Layers } from 'lucide-react';
 
 function DesignEditorContent() {
   const router = useRouter();
@@ -38,6 +40,7 @@ function DesignEditorContent() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [previewMode, setPreviewMode] = useState<'simple' | 'mockup'>('simple');
 
   // Handle URL query parameters (template pre-selection from gifts page)
   useEffect(() => {
@@ -333,41 +336,74 @@ function DesignEditorContent() {
             {preview && (
               <Card className="card-glow">
                 <CardHeader>
-                  <CardTitle>Preview</CardTitle>
-                  <CardDescription>How your design will look</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="aspect-square w-full bg-card/30 rounded-lg overflow-hidden flex items-center justify-center">
-                      <img
-                        src={preview}
-                        alt="Design preview"
-                        className="max-w-full max-h-full object-contain"
-                      />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Preview</CardTitle>
+                      <CardDescription>How your design will look</CardDescription>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Material</p>
-                        <p className="font-medium text-primary">{material.replace('_', ' ')}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Size</p>
-                        <p className="font-medium text-secondary">{printSize}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Orientation</p>
-                        <p className="font-medium text-accent">{orientation}</p>
-                      </div>
-                      {printSize === 'CUSTOM' && (
-                        <div>
-                          <p className="text-muted-foreground">Dimensions</p>
-                          <p className="font-medium">
-                            {customWidth} × {customHeight} cm
-                          </p>
-                        </div>
-                      )}
+                    {/* Preview Mode Toggle */}
+                    <div className="flex gap-1 p-1 bg-muted/50 rounded-lg">
+                      <Button
+                        variant={previewMode === 'simple' ? 'default' : 'ghost'}
+                        size="sm"
+                        className={`gap-1 ${previewMode === 'simple' ? 'btn-gradient' : ''}`}
+                        onClick={() => setPreviewMode('simple')}
+                      >
+                        <Eye className="h-4 w-4" />
+                        Simple
+                      </Button>
+                      <Button
+                        variant={previewMode === 'mockup' ? 'default' : 'ghost'}
+                        size="sm"
+                        className={`gap-1 ${previewMode === 'mockup' ? 'btn-gradient' : ''}`}
+                        onClick={() => setPreviewMode('mockup')}
+                      >
+                        <Layers className="h-4 w-4" />
+                        Mockup
+                      </Button>
                     </div>
                   </div>
+                </CardHeader>
+                <CardContent>
+                  {previewMode === 'simple' ? (
+                    <div className="space-y-4">
+                      <div className="aspect-square w-full bg-card/30 rounded-lg overflow-hidden flex items-center justify-center">
+                        <img
+                          src={preview}
+                          alt="Design preview"
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Material</p>
+                          <p className="font-medium text-primary">{material.replace('_', ' ')}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Size</p>
+                          <p className="font-medium text-secondary">{printSize}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Orientation</p>
+                          <p className="font-medium text-accent">{orientation}</p>
+                        </div>
+                        {printSize === 'CUSTOM' && (
+                          <div>
+                            <p className="text-muted-foreground">Dimensions</p>
+                            <p className="font-medium">
+                              {customWidth} × {customHeight} cm
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <ProductMockupPreview
+                      designUrl={preview}
+                      showProductSelector={true}
+                      size={400}
+                    />
+                  )}
                 </CardContent>
               </Card>
             )}

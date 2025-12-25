@@ -12,7 +12,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 | 2. Backend Setup | ✅ Complete | 100% |
 | 3. Frontend Setup | ✅ Complete | 100% |
 | 4. Product Catalog & E-Commerce | ✅ Complete | 100% |
-| 5. Mobile App (Capacitor) | 🔄 In Progress | 70% |
+| 5. Mobile App (Capacitor) | 🔄 In Progress | 85% |
 | 6. Shared Code | ✅ Complete | 95% |
 | 7. Infrastructure & DevOps | ⏳ Pending | 15% |
 | 8. Documentation | ✅ Complete | 90% |
@@ -455,6 +455,18 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] @capacitor/push-notifications (usePushNotifications hook)
   - [✅] @capacitor/filesystem (useFilesystem hook)
   - [✅] Platform detection utilities (getPlatformInfo, isNativePlatform)
+- [✅] Generate app icons and splash screens
+  - [✅] Run generate-assets.js script
+  - [✅] iOS icons (15 sizes) generated to Assets.xcassets
+  - [✅] Android icons (mipmap folders) and splash screens generated
+  - [✅] Web icons and apple-touch-icon generated
+- [✅] Create NativeProvider for app initialization
+  - [✅] Initialize SplashScreen and StatusBar on app startup
+  - [✅] Auto-register for push notifications on native platforms
+  - [✅] Provide platform context to all components (useNative hook)
+- [✅] Integrate native features into components
+  - [✅] Camera and photo library in FileUpload component
+  - [✅] Platform-specific UI (camera buttons on native, file picker on web)
 - [ ] Build iOS app
   - [ ] Run `npx cap add ios` to create iOS project
   - [ ] Open project in Xcode

@@ -3,12 +3,29 @@
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useCamera } from '@/lib/native';
+import { Camera, ImageIcon } from 'lucide-react';
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
   acceptedTypes?: string[];
   maxSize?: number; // in MB
   preview?: string;
+}
+
+/**
+ * Convert a data URL to a File object
+ */
+function dataUrlToFile(dataUrl: string, filename: string): File {
+  const arr = dataUrl.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
 }
 
 export function FileUpload({
@@ -19,6 +36,9 @@ export function FileUpload({
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string>('');
+
+  // Native camera hook
+  const { takePhoto, pickFromGallery, isAvailable: isCameraAvailable, isLoading: isCameraLoading } = useCamera();
 
   const validateFile = (file: File): boolean => {
     setError('');
@@ -75,6 +95,30 @@ export function FileUpload({
     }
   };
 
+  // Handle taking photo with camera (native only)
+  const handleTakePhoto = async () => {
+    setError('');
+    const result = await takePhoto();
+    if (result) {
+      const file = dataUrlToFile(result.dataUrl, `camera-${Date.now()}.${result.format}`);
+      if (validateFile(file)) {
+        onFileSelect(file);
+      }
+    }
+  };
+
+  // Handle picking from gallery (native only)
+  const handlePickFromGallery = async () => {
+    setError('');
+    const result = await pickFromGallery();
+    if (result) {
+      const file = dataUrlToFile(result.dataUrl, `gallery-${Date.now()}.${result.format}`);
+      if (validateFile(file)) {
+        onFileSelect(file);
+      }
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card
@@ -90,12 +134,41 @@ export function FileUpload({
         {preview ? (
           <div className="relative group">
             <img src={preview} alt="Preview" className="w-full h-auto max-h-96 object-contain" />
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <Button type="button" variant="secondary" asChild>
-                  <span>Change Image</span>
-                </Button>
-              </label>
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
+              {isCameraAvailable ? (
+                /* Native platform - show camera and gallery buttons */
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="gap-1"
+                    onClick={handleTakePhoto}
+                    disabled={isCameraLoading}
+                  >
+                    <Camera className="h-4 w-4" />
+                    Camera
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="gap-1"
+                    onClick={handlePickFromGallery}
+                    disabled={isCameraLoading}
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Gallery
+                  </Button>
+                </>
+              ) : (
+                /* Web platform - show file chooser */
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <Button type="button" variant="secondary" asChild>
+                    <span>Change Image</span>
+                  </Button>
+                </label>
+              )}
             </div>
           </div>
         ) : (
@@ -128,11 +201,37 @@ export function FileUpload({
               </p>
             </div>
 
-            <label htmlFor="file-upload">
-              <Button type="button" className="btn-gradient" asChild>
-                <span>Choose File</span>
-              </Button>
-            </label>
+            {isCameraAvailable ? (
+              /* Native platform - show camera and gallery buttons */
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  type="button"
+                  className="btn-gradient gap-2"
+                  onClick={handleTakePhoto}
+                  disabled={isCameraLoading}
+                >
+                  <Camera className="h-4 w-4" />
+                  {isCameraLoading ? 'Opening...' : 'Take Photo'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={handlePickFromGallery}
+                  disabled={isCameraLoading}
+                >
+                  <ImageIcon className="h-4 w-4" />
+                  Photo Library
+                </Button>
+              </div>
+            ) : (
+              /* Web platform - show file chooser */
+              <label htmlFor="file-upload">
+                <Button type="button" className="btn-gradient" asChild>
+                  <span>Choose File</span>
+                </Button>
+              </label>
+            )}
           </div>
         )}
 

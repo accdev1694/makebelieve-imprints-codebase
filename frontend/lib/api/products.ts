@@ -6,7 +6,6 @@ import {
   ProductType,
   CustomizationType,
   ProductStatus,
-  PRODUCT_CATEGORY_LABELS,
 } from '@mkbl/shared';
 
 // Re-export shared types for convenience
@@ -252,8 +251,12 @@ export const productsService = {
  * Category display labels (using shared constants with local overrides)
  */
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
-  ...PRODUCT_CATEGORY_LABELS,
-  SUBLIMATION: 'Home & Lifestyle', // Override for display
+  SUBLIMATION: 'Home & Lifestyle',
+  STATIONERY: 'Stationery',
+  LARGE_FORMAT: 'Large Format Prints',
+  PHOTO_PRINTS: 'Photo Prints',
+  DIGITAL: 'Digital Downloads',
+  CUSTOM_ORDER: 'Custom Orders',
 };
 
 /**

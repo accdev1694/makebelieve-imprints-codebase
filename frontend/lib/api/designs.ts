@@ -76,6 +76,7 @@ export const MATERIAL_LABELS: Record<Material, string> = {
   ...SHARED_MATERIAL_LABELS,
   MATTE: 'Matte Paper',
   GLOSSY: 'Glossy Paper',
+  CANVAS: 'Canvas Print',
   FINE_ART: 'Fine Art Print',
 };
 

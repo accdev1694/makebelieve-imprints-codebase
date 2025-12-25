@@ -3,7 +3,6 @@ import { PrintSize, Material, Orientation } from './designs';
 import {
   OrderStatus as SharedOrderStatus,
   ShippingAddress as SharedShippingAddress,
-  ORDER_STATUS_LABELS as SHARED_ORDER_STATUS_LABELS,
 } from '@mkbl/shared';
 
 // Frontend uses slightly different order statuses (payment_confirmed vs confirmed)
@@ -161,7 +160,11 @@ export const getPrintDimensions = (
  * Order status labels for UI display (extended from shared)
  */
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  ...SHARED_ORDER_STATUS_LABELS,
-  pending: 'Pending Payment',
-  payment_confirmed: 'Payment Confirmed', // Frontend-specific status
+  pending: 'Pending',
+  confirmed: 'Confirmed',
+  payment_confirmed: 'Payment Confirmed',
+  printing: 'Printing',
+  shipped: 'Shipped',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
 };

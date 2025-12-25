@@ -5,15 +5,9 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { ChevronDown, Home, FileText, Maximize2, Image, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { NavCategory } from '@/lib/types';
 
-interface Category {
-  label: string;
-  href: string;
-  description: string;
-  icon: React.ElementType;
-}
-
-const CATEGORIES: Category[] = [
+const CATEGORIES: NavCategory[] = [
   {
     label: 'Home & Lifestyle',
     href: '/home-lifestyle',

@@ -8,15 +8,9 @@ import { Logo } from './Logo';
 import { HeaderSearch } from './HeaderSearch';
 import { cn } from '@/lib/utils';
 import type { User } from '@/lib/api/auth';
+import type { NavCategory, NavLink } from '@/lib/types';
 
-interface Category {
-  label: string;
-  href: string;
-  description: string;
-  icon: React.ElementType;
-}
-
-const CATEGORIES: Category[] = [
+const CATEGORIES: NavCategory[] = [
   {
     label: 'Home & Lifestyle',
     href: '/home-lifestyle',
@@ -49,7 +43,7 @@ const CATEGORIES: Category[] = [
   },
 ];
 
-const NAV_LINKS = [
+const NAV_LINKS: NavLink[] = [
   { label: 'All Products', href: '/products' },
   { label: 'Templates', href: '/templates' },
   { label: 'About Us', href: '/about' },

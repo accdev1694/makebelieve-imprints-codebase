@@ -7,15 +7,7 @@ import { Minus, Plus, ShoppingCart, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { useCart, AddToCartPayload } from '@/contexts/CartContext';
 import { formatPrice } from '@/lib/api/products';
-
-interface SelectedVariant {
-  id?: string;
-  name?: string;
-  size?: string;
-  color?: string;
-  material?: string;
-  finish?: string;
-}
+import type { SelectedVariant } from '@/lib/types';
 
 interface AddToCartSectionProps {
   productId: string;

@@ -3,13 +3,7 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Check } from 'lucide-react';
-
-interface VariantOption {
-  id: string;
-  name: string;
-  available: boolean;
-  price?: number;
-}
+import type { VariantOption } from '@/lib/types';
 
 interface VariantSelectorProps {
   label: string;

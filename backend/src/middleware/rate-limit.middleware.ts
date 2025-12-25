@@ -1,4 +1,5 @@
 import rateLimit from 'express-rate-limit';
+import { RATE_LIMITS } from '@mkbl/shared';
 
 /**
  * Rate Limiting Middleware Configuration
@@ -24,11 +25,10 @@ const rateLimitMessage = {
 /**
  * Global API rate limiter
  * Applies to all API endpoints
- * Limit: 100 requests per 15 minutes per IP
  */
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: RATE_LIMITS.GLOBAL.windowMinutes * 60 * 1000,
+  max: RATE_LIMITS.GLOBAL.requests,
   message: rateLimitMessage,
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
@@ -41,12 +41,11 @@ export const apiLimiter = rateLimit({
 /**
  * Auth rate limiter (stricter)
  * Applies to login, register, password reset endpoints
- * Limit: 5 requests per 15 minutes per IP
  * Prevents brute force attacks
  */
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
+  windowMs: RATE_LIMITS.AUTH.windowMinutes * 60 * 1000,
+  max: RATE_LIMITS.AUTH.requests,
   message: {
     ...rateLimitMessage,
     error: 'Too many authentication attempts, please try again later.',
@@ -59,12 +58,11 @@ export const authLimiter = rateLimit({
 /**
  * Payment rate limiter (very strict)
  * Applies to payment processing endpoints
- * Limit: 10 requests per hour per IP
  * Prevents payment fraud and abuse
  */
 export const paymentLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // Limit each IP to 10 requests per hour
+  windowMs: RATE_LIMITS.PAYMENT.windowMinutes * 60 * 1000,
+  max: RATE_LIMITS.PAYMENT.requests,
   message: {
     ...rateLimitMessage,
     error: 'Too many payment attempts, please try again later.',
@@ -77,12 +75,11 @@ export const paymentLimiter = rateLimit({
 /**
  * File upload rate limiter
  * Applies to file upload endpoints
- * Limit: 20 uploads per hour per IP
  * Prevents storage abuse
  */
 export const uploadLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // Limit each IP to 20 uploads per hour
+  windowMs: RATE_LIMITS.UPLOAD.windowMinutes * 60 * 1000,
+  max: RATE_LIMITS.UPLOAD.requests,
   message: {
     ...rateLimitMessage,
     error: 'Too many file uploads, please try again later.',
@@ -94,12 +91,11 @@ export const uploadLimiter = rateLimit({
 /**
  * Order creation rate limiter
  * Applies to order creation endpoint
- * Limit: 10 orders per hour per IP
  * Prevents order spam
  */
 export const orderLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // Limit each IP to 10 orders per hour
+  windowMs: RATE_LIMITS.ORDER.windowMinutes * 60 * 1000,
+  max: RATE_LIMITS.ORDER.requests,
   message: {
     ...rateLimitMessage,
     error: 'Too many orders created, please try again later.',
@@ -111,12 +107,11 @@ export const orderLimiter = rateLimit({
 /**
  * Public read-only rate limiter
  * Applies to public endpoints (reviews, health checks, etc.)
- * Limit: 200 requests per 15 minutes per IP
  * More lenient for read-only operations
  */
 export const publicLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Limit each IP to 200 requests per windowMs
+  windowMs: RATE_LIMITS.PUBLIC.windowMinutes * 60 * 1000,
+  max: RATE_LIMITS.PUBLIC.requests,
   message: rateLimitMessage,
   standardHeaders: true,
   legacyHeaders: false,

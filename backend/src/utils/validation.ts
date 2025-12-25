@@ -1,5 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, z } from 'zod';
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  NAME_MAX_LENGTH,
+  DEFAULT_PAGE_SIZE,
+  MAX_PAGE_SIZE,
+} from '@mkbl/shared';
 
 /**
  * Validate request body against Zod schema
@@ -91,7 +98,7 @@ export const commonSchemas = {
    */
   pagination: z.object({
     page: z.coerce.number().int().min(1).default(1),
-    limit: z.coerce.number().int().min(1).max(100).default(20),
+    limit: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
   }),
 
   /**
@@ -100,12 +107,12 @@ export const commonSchemas = {
   email: z.string().email('Invalid email format'),
 
   /**
-   * Password validation (min 8 characters)
+   * Password validation
    */
   password: z
     .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(100, 'Password must not exceed 100 characters'),
+    .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
+    .max(PASSWORD_MAX_LENGTH, `Password must not exceed ${PASSWORD_MAX_LENGTH} characters`),
 
   /**
    * Date range validation
@@ -123,7 +130,7 @@ export const authSchemas = {
   register: z.object({
     email: commonSchemas.email,
     password: commonSchemas.password,
-    name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
+    name: z.string().min(1, 'Name is required').max(NAME_MAX_LENGTH, 'Name is too long'),
   }),
 
   login: z.object({

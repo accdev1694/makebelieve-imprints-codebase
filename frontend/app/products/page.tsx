@@ -14,6 +14,7 @@ import { MobileFilterButton } from '@/components/products/MobileFilterButton';
 import { ActiveFilters } from '@/components/products/ActiveFilters';
 import { useProductFilters } from '@/hooks/useProductFilters';
 import { useProducts } from '@/hooks/useProducts';
+import { useProductFilterOptions } from '@/hooks/useProductFilterOptions';
 
 function ProductsPageContent() {
   // Pagination state
@@ -22,6 +23,12 @@ function ProductsPageContent() {
   // Filter state
   const { filters, updateFilters, clearFilters, activeFilterCount } = useProductFilters();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  // Fetch filter options (materials, sizes, price range)
+  const { filterOptions, isLoading: isLoadingFilters } = useProductFilterOptions({
+    category: filters.category,
+    productType: filters.productType,
+  });
 
   // Constants
   const ITEMS_PER_PAGE = 12;
@@ -42,6 +49,11 @@ function ProductsPageContent() {
     if (filters.search) params.search = filters.search;
     if (filters.sortBy) params.sortBy = filters.sortBy;
     if (filters.sortOrder) params.sortOrder = filters.sortOrder;
+    // New variant-based filters
+    if (filters.materials.length > 0) params.materials = filters.materials;
+    if (filters.sizes.length > 0) params.sizes = filters.sizes;
+    if (filters.minPrice !== null) params.minPrice = filters.minPrice;
+    if (filters.maxPrice !== null) params.maxPrice = filters.maxPrice;
 
     return params;
   }, [filters, currentPage]);
@@ -61,6 +73,10 @@ function ProductsPageContent() {
       search: '',
       sortBy: 'featured',
       sortOrder: 'desc',
+      materials: [],
+      sizes: [],
+      minPrice: null,
+      maxPrice: null,
     };
     updateFilters({ [key]: defaults[key] });
     setCurrentPage(1);
@@ -107,6 +123,10 @@ function ProductsPageContent() {
                 onFiltersChange={updateFilters}
                 onClearAll={handleClearAll}
                 totalResults={products.length}
+                materialOptions={filterOptions?.materials || []}
+                sizeOptions={filterOptions?.sizes || []}
+                priceRange={filterOptions?.priceRange || { min: 0, max: 100 }}
+                isLoadingFilters={isLoadingFilters}
               />
             </div>
           </aside>
@@ -200,6 +220,10 @@ function ProductsPageContent() {
               totalResults={products.length}
               isOpen={mobileFiltersOpen}
               onClose={() => setMobileFiltersOpen(false)}
+              materialOptions={filterOptions?.materials || []}
+              sizeOptions={filterOptions?.sizes || []}
+              priceRange={filterOptions?.priceRange || { min: 0, max: 100 }}
+              isLoadingFilters={isLoadingFilters}
             />
           </div>
         )}

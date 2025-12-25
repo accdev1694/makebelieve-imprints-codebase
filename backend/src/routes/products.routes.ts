@@ -30,6 +30,11 @@ const getProductsSchema = z.object({
     search: z.string().optional(),
     sortBy: z.enum(['name', 'price', 'createdAt', 'featured']).optional().default('createdAt'),
     sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+    // New filters for materials, sizes, and price range
+    materials: z.string().optional(), // Comma-separated list of materials
+    sizes: z.string().optional(), // Comma-separated list of sizes
+    minPrice: z.string().optional().transform((val) => (val ? parseFloat(val) : undefined)),
+    maxPrice: z.string().optional().transform((val) => (val ? parseFloat(val) : undefined)),
   }),
 });
 
@@ -101,6 +106,10 @@ router.get(
       search,
       sortBy,
       sortOrder,
+      materials,
+      sizes,
+      minPrice,
+      maxPrice,
     } = req.query as any;
 
     const skip = (page - 1) * limit;
@@ -138,6 +147,45 @@ router.get(
         { description: { contains: search, mode: 'insensitive' } },
         { seoKeywords: { contains: search, mode: 'insensitive' } },
       ];
+    }
+
+    // Material filter - products that have variants with specified materials
+    if (materials) {
+      const materialList = materials.split(',').map((m: string) => m.trim());
+      where.variants = {
+        some: {
+          material: { in: materialList },
+        },
+      };
+    }
+
+    // Size filter - products that have variants with specified sizes
+    if (sizes) {
+      const sizeList = sizes.split(',').map((s: string) => s.trim());
+      if (where.variants) {
+        // Combine with existing material filter
+        where.variants.some = {
+          ...where.variants.some,
+          size: { in: sizeList },
+        };
+      } else {
+        where.variants = {
+          some: {
+            size: { in: sizeList },
+          },
+        };
+      }
+    }
+
+    // Price range filter
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      where.basePrice = {};
+      if (minPrice !== undefined) {
+        where.basePrice.gte = minPrice;
+      }
+      if (maxPrice !== undefined) {
+        where.basePrice.lte = maxPrice;
+      }
     }
 
     // Get total count
@@ -201,6 +249,78 @@ router.get(
     });
   }
 );
+
+/**
+ * GET /api/products/filters
+ * Get available filter options (materials, sizes, price range)
+ * Returns distinct values for filter UI with counts
+ * Public route
+ */
+router.get('/filters', async (req, res) => {
+  const { category, productType } = req.query;
+
+  // Build base where clause for optional filtering by category
+  const productWhere: any = { status: 'ACTIVE' };
+  if (category) productWhere.legacyCategory = category;
+  if (productType) productWhere.legacyProductType = productType;
+
+  // Get product IDs matching the filter
+  const matchingProducts = await prisma.product.findMany({
+    where: productWhere,
+    select: { id: true, basePrice: true },
+  });
+
+  const productIds = matchingProducts.map((p) => p.id);
+
+  // Get distinct materials with counts
+  const materialsRaw = await prisma.productVariant.groupBy({
+    by: ['material'],
+    where: {
+      productId: { in: productIds },
+      material: { not: null },
+    },
+    _count: { material: true },
+    orderBy: { _count: { material: 'desc' } },
+  });
+
+  const materials = materialsRaw
+    .filter((m) => m.material)
+    .map((m) => ({
+      value: m.material!,
+      count: m._count.material,
+    }));
+
+  // Get distinct sizes with counts
+  const sizesRaw = await prisma.productVariant.groupBy({
+    by: ['size'],
+    where: {
+      productId: { in: productIds },
+      size: { not: null },
+    },
+    _count: { size: true },
+    orderBy: { _count: { size: 'desc' } },
+  });
+
+  const sizes = sizesRaw
+    .filter((s) => s.size)
+    .map((s) => ({
+      value: s.size!,
+      count: s._count.size,
+    }));
+
+  // Calculate price range from matching products
+  const prices = matchingProducts.map((p) => Number(p.basePrice));
+  const priceRange = {
+    min: prices.length > 0 ? Math.min(...prices) : 0,
+    max: prices.length > 0 ? Math.max(...prices) : 0,
+  };
+
+  res.json({
+    materials,
+    sizes,
+    priceRange,
+  });
+});
 
 /**
  * GET /api/products/:id

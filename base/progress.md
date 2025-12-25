@@ -290,9 +290,9 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Mobile filter button and drawer (MobileFilterButton component)
   - [✅] Responsive sidebar layout (FilterSidebar component)
   - [✅] URL parameter synchronization (useProductFilters hook)
-  - [DEFERRED] Material filters (requires backend aggregation)
-  - [DEFERRED] Size filters (requires backend aggregation)
-  - [DEFERRED] Price range filter (requires backend aggregation)
+  - [✅] Material filters (backend aggregation + frontend component)
+  - [✅] Size filters (backend aggregation + frontend component)
+  - [✅] Price range filter (backend aggregation + frontend component)
 - [✅] 4.2.3 Add search and sort functionality
   - [✅] Search bar with debounced input (completed in 4.2.2)
   - [✅] Sort by: newest, price, name, featured (completed in 4.2.2)

@@ -10,6 +10,14 @@ import {
 } from '@/lib/api/products';
 
 /**
+ * Parse comma-separated string to array
+ */
+function parseArrayParam(value: string | null): string[] {
+  if (!value) return [];
+  return value.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+/**
  * Custom hook for managing product filter state and URL synchronization
  * @returns Filter state and update functions
  */
@@ -26,6 +34,11 @@ export function useProductFilters() {
     search: searchParams.get('search') || '',
     sortBy: (searchParams.get('sortBy') as any) || 'featured',
     sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
+    // New filters
+    materials: parseArrayParam(searchParams.get('materials')),
+    sizes: parseArrayParam(searchParams.get('sizes')),
+    minPrice: searchParams.get('minPrice') ? parseFloat(searchParams.get('minPrice')!) : null,
+    maxPrice: searchParams.get('maxPrice') ? parseFloat(searchParams.get('maxPrice')!) : null,
   }));
 
   /**
@@ -39,7 +52,12 @@ export function useProductFilters() {
       // Update URL params
       const params = new URLSearchParams();
       Object.entries(updated).forEach(([key, value]) => {
-        if (value && value !== 'all' && value !== null && value !== '') {
+        if (value === null || value === '' || value === 'all') return;
+        if (Array.isArray(value)) {
+          if (value.length > 0) {
+            params.set(key, value.join(','));
+          }
+        } else if (value !== undefined) {
           params.set(key, String(value));
         }
       });
@@ -62,6 +80,10 @@ export function useProductFilters() {
       search: '',
       sortBy: 'featured',
       sortOrder: 'desc',
+      materials: [],
+      sizes: [],
+      minPrice: null,
+      maxPrice: null,
     };
     setFilters(cleared);
     router.push('/products');
@@ -78,6 +100,9 @@ export function useProductFilters() {
     if (filters.featured !== null) count++;
     if (filters.search) count++;
     if (filters.sortBy !== 'featured' || filters.sortOrder !== 'desc') count++;
+    if (filters.materials.length > 0) count++;
+    if (filters.sizes.length > 0) count++;
+    if (filters.minPrice !== null || filters.maxPrice !== null) count++;
     return count;
   }, [filters]);
 

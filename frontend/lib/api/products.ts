@@ -1,42 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import apiClient from './client';
 import { Category, Subcategory } from './categories';
+import {
+  ProductCategory,
+  ProductType,
+  CustomizationType,
+  ProductStatus,
+  PRODUCT_CATEGORY_LABELS,
+} from '@mkbl/shared';
 
-// Legacy enums - kept for backward compatibility
-export type ProductCategory =
-  | 'SUBLIMATION'
-  | 'STATIONERY'
-  | 'LARGE_FORMAT'
-  | 'PHOTO_PRINTS'
-  | 'DIGITAL'
-  | 'CUSTOM_ORDER';
-
-export type ProductType =
-  | 'TSHIRT'
-  | 'MUG'
-  | 'WATER_BOTTLE'
-  | 'MOUSEMAT'
-  | 'KEYCHAIN'
-  | 'CUSHION_PILLOW'
-  | 'BUSINESS_CARD'
-  | 'LEAFLET'
-  | 'GREETING_CARD'
-  | 'POSTCARD'
-  | 'BANNER'
-  | 'POSTER'
-  | 'CANVAS_PRINT'
-  | 'ALUMINUM_PRINT'
-  | 'PHOTO_PAPER_PRINT'
-  | 'ACRYLIC_LED_PRINT'
-  | 'DIGITAL_PDF';
-
-export type CustomizationType =
-  | 'TEMPLATE_BASED'
-  | 'UPLOAD_OWN'
-  | 'FULLY_CUSTOM'
-  | 'DIGITAL_DOWNLOAD';
-
-export type ProductStatus = 'ACTIVE' | 'DRAFT' | 'ARCHIVED' | 'OUT_OF_STOCK';
+// Re-export shared types for convenience
+export type { ProductCategory, ProductType, CustomizationType, ProductStatus };
 
 // Re-export category types for convenience
 export type { Category, Subcategory };
@@ -151,6 +125,11 @@ export interface ProductsListParams {
   search?: string;
   sortBy?: 'name' | 'price' | 'createdAt' | 'featured';
   sortOrder?: 'asc' | 'desc';
+  // New variant-based filters
+  materials?: string[];
+  sizes?: string[];
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 export interface ProductFilters {
@@ -161,6 +140,25 @@ export interface ProductFilters {
   search: string;
   sortBy: 'name' | 'price' | 'createdAt' | 'featured';
   sortOrder: 'asc' | 'desc';
+  // New filters
+  materials: string[];
+  sizes: string[];
+  minPrice: number | null;
+  maxPrice: number | null;
+}
+
+export interface FilterOption {
+  value: string;
+  count: number;
+}
+
+export interface FiltersResponse {
+  materials: FilterOption[];
+  sizes: FilterOption[];
+  priceRange: {
+    min: number;
+    max: number;
+  };
 }
 
 /**
@@ -190,9 +188,33 @@ export const productsService = {
     if (params.search) searchParams.set('search', params.search);
     if (params.sortBy) searchParams.set('sortBy', params.sortBy);
     if (params.sortOrder) searchParams.set('sortOrder', params.sortOrder);
+    // New variant-based filters
+    if (params.materials && params.materials.length > 0) {
+      searchParams.set('materials', params.materials.join(','));
+    }
+    if (params.sizes && params.sizes.length > 0) {
+      searchParams.set('sizes', params.sizes.join(','));
+    }
+    if (params.minPrice !== undefined) searchParams.set('minPrice', params.minPrice.toString());
+    if (params.maxPrice !== undefined) searchParams.set('maxPrice', params.maxPrice.toString());
 
     const response = await apiClient.get<ProductsListResponse>(
       `/products?${searchParams.toString()}`
+    );
+    return response.data;
+  },
+
+  /**
+   * Get available filter options (materials, sizes, price range)
+   */
+  async getFilters(category?: ProductCategory, productType?: ProductType): Promise<FiltersResponse> {
+    const searchParams = new URLSearchParams();
+    if (category) searchParams.set('category', category);
+    if (productType) searchParams.set('productType', productType);
+
+    const queryString = searchParams.toString();
+    const response = await apiClient.get<FiltersResponse>(
+      `/products/filters${queryString ? `?${queryString}` : ''}`
     );
     return response.data;
   },
@@ -227,15 +249,11 @@ export const productsService = {
 };
 
 /**
- * Category display labels
+ * Category display labels (using shared constants with local overrides)
  */
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
-  SUBLIMATION: 'Home & Lifestyle',
-  STATIONERY: 'Stationery',
-  LARGE_FORMAT: 'Large Format',
-  PHOTO_PRINTS: 'Photo Prints',
-  DIGITAL: 'Digital',
-  CUSTOM_ORDER: 'Custom Order',
+  ...PRODUCT_CATEGORY_LABELS,
+  SUBLIMATION: 'Home & Lifestyle', // Override for display
 };
 
 /**

@@ -1,6 +1,6 @@
 'use client';
 
-import { ProductFilters } from '@/lib/api/products';
+import { ProductFilters, FilterOption } from '@/lib/api/products';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { X } from 'lucide-react';
@@ -10,6 +10,9 @@ import { CategoryFilter } from './CategoryFilter';
 import { ProductTypeFilter } from './ProductTypeFilter';
 import { CustomizationTypeFilter } from './CustomizationTypeFilter';
 import { SortFilter } from './SortFilter';
+import { MaterialFilter } from './MaterialFilter';
+import { SizeFilter } from './SizeFilter';
+import { PriceRangeFilter } from './PriceRangeFilter';
 
 interface FilterSidebarProps {
   filters: ProductFilters;
@@ -18,6 +21,11 @@ interface FilterSidebarProps {
   totalResults?: number;
   isOpen?: boolean;
   onClose?: () => void;
+  // New filter options
+  materialOptions?: FilterOption[];
+  sizeOptions?: FilterOption[];
+  priceRange?: { min: number; max: number };
+  isLoadingFilters?: boolean;
 }
 
 export function FilterSidebar({
@@ -26,6 +34,10 @@ export function FilterSidebar({
   onClearAll,
   totalResults = 0,
   onClose,
+  materialOptions = [],
+  sizeOptions = [],
+  priceRange = { min: 0, max: 100 },
+  isLoadingFilters = false,
 }: FilterSidebarProps) {
   return (
     <Card className="h-full flex flex-col overflow-hidden">
@@ -85,6 +97,41 @@ export function FilterSidebar({
             sortOrder={filters.sortOrder}
             onSortByChange={(sortBy) => onFiltersChange({ sortBy })}
             onSortOrderChange={(sortOrder) => onFiltersChange({ sortOrder })}
+          />
+        </FilterSection>
+
+        {/* Materials Filter */}
+        {materialOptions.length > 0 && (
+          <FilterSection title="Materials" defaultOpen={false}>
+            <MaterialFilter
+              options={materialOptions}
+              selected={filters.materials}
+              onChange={(materials) => onFiltersChange({ materials })}
+              isLoading={isLoadingFilters}
+            />
+          </FilterSection>
+        )}
+
+        {/* Sizes Filter */}
+        {sizeOptions.length > 0 && (
+          <FilterSection title="Sizes" defaultOpen={false}>
+            <SizeFilter
+              options={sizeOptions}
+              selected={filters.sizes}
+              onChange={(sizes) => onFiltersChange({ sizes })}
+              isLoading={isLoadingFilters}
+            />
+          </FilterSection>
+        )}
+
+        {/* Price Range Filter */}
+        <FilterSection title="Price Range" defaultOpen={false}>
+          <PriceRangeFilter
+            priceRange={priceRange}
+            selectedMin={filters.minPrice}
+            selectedMax={filters.maxPrice}
+            onChange={(minPrice, maxPrice) => onFiltersChange({ minPrice, maxPrice })}
+            isLoading={isLoadingFilters}
           />
         </FilterSection>
 

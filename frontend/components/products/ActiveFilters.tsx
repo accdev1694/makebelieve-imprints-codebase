@@ -61,6 +61,32 @@ export function ActiveFilters({ filters, onRemoveFilter, onClearAll }: ActiveFil
     });
   }
 
+  if (filters.materials && filters.materials.length > 0) {
+    activeFilters.push({
+      key: 'materials',
+      label: `Materials: ${filters.materials.join(', ')}`,
+    });
+  }
+
+  if (filters.sizes && filters.sizes.length > 0) {
+    activeFilters.push({
+      key: 'sizes',
+      label: `Sizes: ${filters.sizes.join(', ')}`,
+    });
+  }
+
+  if (filters.minPrice !== null || filters.maxPrice !== null) {
+    const priceLabel = filters.minPrice !== null && filters.maxPrice !== null
+      ? `£${filters.minPrice} - £${filters.maxPrice}`
+      : filters.minPrice !== null
+        ? `From £${filters.minPrice}`
+        : `Up to £${filters.maxPrice}`;
+    activeFilters.push({
+      key: 'minPrice',
+      label: `Price: ${priceLabel}`,
+    });
+  }
+
   if (activeFilters.length === 0) {
     return null;
   }

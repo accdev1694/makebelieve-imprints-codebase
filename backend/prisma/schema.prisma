@@ -336,6 +336,8 @@ model ProductVariant {
 
   @@index([productId])
   @@index([sku])
+  @@index([material])
+  @@index([size])
   @@map("product_variants")
 }
 

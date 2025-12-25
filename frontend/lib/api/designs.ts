@@ -1,49 +1,28 @@
 import apiClient from './client';
+import {
+  PrintSize,
+  Material,
+  Orientation,
+  Design as SharedDesign,
+  CreateDesignData as SharedCreateDesignData,
+  UpdateDesignData as SharedUpdateDesignData,
+  MATERIAL_LABELS as SHARED_MATERIAL_LABELS,
+} from '@mkbl/shared';
 
-export type PrintSize = 'A4' | 'A3' | 'A5' | 'SQUARE_20CM' | 'SQUARE_30CM' | 'CUSTOM';
-export type Material = 'MATTE' | 'GLOSSY' | 'CANVAS' | 'FINE_ART';
-export type Orientation = 'PORTRAIT' | 'LANDSCAPE' | 'SQUARE';
+// Re-export shared types for convenience
+export type { PrintSize, Material, Orientation };
 
-export interface Design {
-  id: string;
-  name: string;
-  description?: string;
-  imageUrl: string;
-  thumbnailUrl?: string;
+// Extend shared Design type with frontend-specific fields
+export interface Design extends Omit<SharedDesign, 'printSize' | 'material' | 'orientation'> {
   printSize: PrintSize;
   material: Material;
   orientation: Orientation;
-  customWidth?: number;
-  customHeight?: number;
-  previewUrl?: string;
-  userId: string;
-  createdAt: string;
   updatedAt: string;
 }
 
-export interface CreateDesignData {
-  name: string;
-  description?: string;
-  imageUrl: string;
-  thumbnailUrl?: string;
-  printSize: PrintSize;
-  material: Material;
-  orientation: Orientation;
-  customWidth?: number;
-  customHeight?: number;
-}
-
-export interface UpdateDesignData {
-  name?: string;
-  description?: string;
-  imageUrl?: string;
-  thumbnailUrl?: string;
-  printSize?: PrintSize;
-  material?: Material;
-  orientation?: Orientation;
-  customWidth?: number;
-  customHeight?: number;
-}
+// Re-export shared types
+export type CreateDesignData = SharedCreateDesignData;
+export type UpdateDesignData = SharedUpdateDesignData;
 
 /**
  * Designs Service
@@ -91,12 +70,12 @@ export const designsService = {
 };
 
 /**
- * Material labels for UI display
+ * Material labels for UI display (extended from shared)
  */
 export const MATERIAL_LABELS: Record<Material, string> = {
+  ...SHARED_MATERIAL_LABELS,
   MATTE: 'Matte Paper',
   GLOSSY: 'Glossy Paper',
-  CANVAS: 'Canvas',
   FINE_ART: 'Fine Art Print',
 };
 

@@ -1,22 +1,17 @@
 import apiClient from './client';
 import { PrintSize, Material, Orientation } from './designs';
+import {
+  OrderStatus as SharedOrderStatus,
+  ShippingAddress as SharedShippingAddress,
+  ORDER_STATUS_LABELS as SHARED_ORDER_STATUS_LABELS,
+} from '@mkbl/shared';
 
-export type OrderStatus =
-  | 'pending'
-  | 'payment_confirmed'
-  | 'printing'
-  | 'shipped'
-  | 'delivered'
-  | 'cancelled';
+// Frontend uses slightly different order statuses (payment_confirmed vs confirmed)
+// We extend the shared type for backward compatibility
+export type OrderStatus = SharedOrderStatus | 'payment_confirmed';
 
-export interface ShippingAddress {
-  name: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  postcode: string;
-  country: string;
-}
+// Re-export shipping address from shared
+export type ShippingAddress = SharedShippingAddress;
 
 export interface Order {
   id: string;
@@ -163,13 +158,10 @@ export const getPrintDimensions = (
 };
 
 /**
- * Order status labels for UI display
+ * Order status labels for UI display (extended from shared)
  */
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  ...SHARED_ORDER_STATUS_LABELS,
   pending: 'Pending Payment',
-  payment_confirmed: 'Payment Confirmed',
-  printing: 'Printing',
-  shipped: 'Shipped',
-  delivered: 'Delivered',
-  cancelled: 'Cancelled',
+  payment_confirmed: 'Payment Confirmed', // Frontend-specific status
 };

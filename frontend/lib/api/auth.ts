@@ -1,23 +1,22 @@
 import apiClient from './client';
+import {
+  RegisterData as SharedRegisterData,
+  LoginData as SharedLoginData,
+  User as SharedUser,
+  AuthResponse as SharedAuthResponse,
+} from '@mkbl/shared';
 
-export interface RegisterData {
-  email: string;
-  password: string;
-  name: string;
+// Frontend uses userType with different values than shared (CUSTOMER vs customer)
+// Extend for backward compatibility
+export interface RegisterData extends SharedRegisterData {
   userType?: 'CUSTOMER' | 'PRINTER_ADMIN';
 }
 
-export interface LoginData {
-  email: string;
-  password: string;
-}
+export type LoginData = SharedLoginData;
 
-export interface User {
-  id: string;
-  email: string;
-  name: string;
+// User with frontend-specific userType naming
+export interface User extends Omit<SharedUser, 'type'> {
   userType: 'CUSTOMER' | 'PRINTER_ADMIN';
-  createdAt: string;
   updatedAt: string;
 }
 

@@ -47,6 +47,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   const getStatusColor = (status: OrderStatus): string => {
     const colors: Record<OrderStatus, string> = {
       pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50',
+      confirmed: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
       payment_confirmed: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
       printing: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
       shipped: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
@@ -59,6 +60,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   const getStatusIcon = (status: OrderStatus): string => {
     const icons: Record<OrderStatus, string> = {
       pending: '⏳',
+      confirmed: '✓',
       payment_confirmed: '✓',
       printing: '🖨️',
       shipped: '📦',

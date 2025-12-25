@@ -2,7 +2,31 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(grep:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(cat:*)",
+      "Bash(git commit:*)",
+      "Bash(git reset:*)",
+      "Bash(npx prisma db execute:*)",
+      "Bash(if [ -d \"app/_api_backup\" ])",
+      "Bash([ ! -d \"app/api\" ])",
+      "Bash(then mv app/_api_backup app/api)",
+      "Bash(else echo \"API routes already in place or no backup found\")",
+      "Bash(fi)",
+      "Bash(elif [ -d \"app/api\" ])",
+      "Bash(then echo \"API routes already in place\")",
+      "Bash(else echo \"No API routes found\")",
+      "Bash(then if [ ! -d \"app/api\" ])",
+      "Bash(npm run build:mobile:*)",
+      "Bash(while read f)",
+      "Bash(do if grep -q \"generateStaticParams\" \"$f\")",
+      "Bash(then echo \"$f\")",
+      "Bash(done)",
+      "Bash(for f in app/home-lifestyle/[subcategory]/page.tsx app/orders/[id]/page.tsx app/products/[categorySlug]/page.tsx app/large-format/[subcategory]/page.tsx app/stationery/[subcategory]/page.tsx app/gifts/occasions/[category]/page.tsx app/photo-prints/[subcategory]/page.tsx app/product/[id]/page.tsx app/design/[id]/page.tsx app/digital-downloads/[subcategory]/page.tsx app/admin/orders/[id]/page.tsx)",
+      "Bash(do if head -1 $f)"
     ]
   }
 }

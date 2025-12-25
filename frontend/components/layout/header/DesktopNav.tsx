@@ -10,31 +10,31 @@ import type { NavCategory } from '@/lib/types';
 const CATEGORIES: NavCategory[] = [
   {
     label: 'Home & Lifestyle',
-    href: '/home-lifestyle',
+    href: '/products/home-lifestyle',
     description: 'Mugs, t-shirts, cushions & more',
     icon: Home,
   },
   {
     label: 'Stationery',
-    href: '/stationery',
+    href: '/products/stationery',
     description: 'Business cards, brochures, letterheads',
     icon: FileText,
   },
   {
     label: 'Large Format',
-    href: '/large-format',
+    href: '/products/large-format',
     description: 'Banners, posters, signage',
     icon: Maximize2,
   },
   {
     label: 'Photo Prints',
-    href: '/photo-prints',
+    href: '/products/photo-prints',
     description: 'Canvas, framed prints, albums',
     icon: Image,
   },
   {
     label: 'Digital Downloads',
-    href: '/digital-downloads',
+    href: '/products/digital',
     description: 'Templates & digital products',
     icon: Download,
   },

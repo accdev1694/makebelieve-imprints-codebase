@@ -447,7 +447,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] capacitor.config.ts with full iOS/Android configuration
   - [✅] SplashScreen, StatusBar, Camera, PushNotifications, Filesystem plugins configured
   - [✅] App ID: uk.co.makebelieveimprints.app
-  - [ ] Run `npx cap add ios` and `npx cap add android` to initialize platforms
+  - [✅] Run `npx cap add ios` and `npx cap add android` to initialize platforms
   - [✅] Configure app icons and splash screens (resources/icon.svg, splash.svg)
 - [✅] Integrate Capacitor plugins
   - [✅] @capacitor/camera (useCamera hook in lib/native/)

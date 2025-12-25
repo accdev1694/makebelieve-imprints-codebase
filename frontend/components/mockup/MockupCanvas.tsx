@@ -2,12 +2,15 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { MockupTemplate, PrintArea } from '@/lib/mockup-templates';
+import { getShapeRenderer, PRODUCT_COLORS, PrintAreaResult } from '@/lib/product-shapes';
 
 interface MockupCanvasProps {
   /** User's design image URL or data URL */
   designUrl: string;
   /** Template configuration */
   template?: MockupTemplate;
+  /** Product type for programmatic rendering */
+  productType?: string;
   /** Custom print area (overrides template) */
   printArea?: PrintArea;
   /** Background color when no template image */
@@ -29,6 +32,7 @@ interface MockupCanvasProps {
 export function MockupCanvas({
   designUrl,
   template,
+  productType,
   printArea: customPrintArea,
   backgroundColor = '#FFFFFF',
   width = 500,
@@ -40,12 +44,8 @@ export function MockupCanvas({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const printArea = customPrintArea || template?.printArea || {
-    x: 10,
-    y: 10,
-    width: 80,
-    height: 80,
-  };
+  // Determine product type from template or prop
+  const effectiveProductType = productType || template?.productType || 'GENERIC';
 
   const renderMockup = useCallback(async () => {
     const canvas = canvasRef.current;
@@ -61,7 +61,7 @@ export function MockupCanvas({
       // Clear canvas
       ctx.clearRect(0, 0, width, height);
 
-      // Load images
+      // Load image helper
       const loadImage = (src: string): Promise<HTMLImageElement> => {
         return new Promise((resolve, reject) => {
           const img = new Image();
@@ -72,42 +72,77 @@ export function MockupCanvas({
         });
       };
 
-      // Try to load template image, fall back to solid color
-      let hasTemplateImage = false;
-      if (template?.templateUrl) {
-        try {
-          const templateImg = await loadImage(template.templateUrl);
-          ctx.drawImage(templateImg, 0, 0, width, height);
-          hasTemplateImage = true;
-        } catch {
-          // Template image failed to load, use background color
-          console.warn('Template image not found, using placeholder');
-        }
-      }
+      // Variables to track print area
+      let printX: number;
+      let printY: number;
+      let printWidth: number;
+      let printHeight: number;
+      let clipPath: Path2D | undefined;
 
-      // If no template image, draw background
-      if (!hasTemplateImage) {
+      // Try programmatic shape renderer first
+      const shapeRenderer = getShapeRenderer(effectiveProductType);
+
+      if (shapeRenderer) {
+        // Use programmatic product shape
+        const colors = PRODUCT_COLORS[effectiveProductType] || { primary: '#FFFFFF', secondary: '#F0F0F0' };
+
         // Draw background
-        ctx.fillStyle = backgroundColor;
+        ctx.fillStyle = '#F5F5F5';
         ctx.fillRect(0, 0, width, height);
 
-        // Draw a subtle product outline for context
+        // Draw the product shape and get print area
+        const result: PrintAreaResult = shapeRenderer({
+          ctx,
+          width,
+          height,
+          primaryColor: colors.primary,
+          secondaryColor: colors.secondary,
+        });
+
+        printX = result.x;
+        printY = result.y;
+        printWidth = result.width;
+        printHeight = result.height;
+        clipPath = result.clipPath;
+      } else if (customPrintArea) {
+        // Use custom print area with simple background
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, width, height);
         ctx.strokeStyle = '#E0E0E0';
         ctx.lineWidth = 2;
         ctx.strokeRect(10, 10, width - 20, height - 20);
-      }
 
-      // Calculate print area in pixels
-      const printX = (printArea.x / 100) * width;
-      const printY = (printArea.y / 100) * height;
-      const printWidth = (printArea.width / 100) * width;
-      const printHeight = (printArea.height / 100) * height;
+        printX = (customPrintArea.x / 100) * width;
+        printY = (customPrintArea.y / 100) * height;
+        printWidth = (customPrintArea.width / 100) * width;
+        printHeight = (customPrintArea.height / 100) * height;
+      } else if (template?.printArea) {
+        // Use template print area with background
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, width, height);
+
+        printX = (template.printArea.x / 100) * width;
+        printY = (template.printArea.y / 100) * height;
+        printWidth = (template.printArea.width / 100) * width;
+        printHeight = (template.printArea.height / 100) * height;
+      } else {
+        // Fallback to centered print area
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, width, height);
+
+        printX = width * 0.1;
+        printY = height * 0.1;
+        printWidth = width * 0.8;
+        printHeight = height * 0.8;
+      }
 
       // Save context for clipping
       ctx.save();
 
-      // Apply clipping based on shape
-      if (template?.clipShape === 'circle') {
+      // Apply clipping
+      if (clipPath) {
+        ctx.clip(clipPath);
+      } else if (template?.clipShape === 'circle') {
         const centerX = printX + printWidth / 2;
         const centerY = printY + printHeight / 2;
         const radius = Math.min(printWidth, printHeight) / 2;
@@ -145,11 +180,12 @@ export function MockupCanvas({
         }
 
         // Apply rotation if specified
-        if (printArea.rotation) {
+        const rotation = customPrintArea?.rotation || template?.printArea?.rotation;
+        if (rotation) {
           const centerX = printX + printWidth / 2;
           const centerY = printY + printHeight / 2;
           ctx.translate(centerX, centerY);
-          ctx.rotate((printArea.rotation * Math.PI) / 180);
+          ctx.rotate((rotation * Math.PI) / 180);
           ctx.translate(-centerX, -centerY);
         }
 
@@ -165,22 +201,6 @@ export function MockupCanvas({
       // Restore context
       ctx.restore();
 
-      // Add subtle shadow/depth effect for print area (only if we have a template)
-      if (hasTemplateImage) {
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
-        ctx.lineWidth = 1;
-        if (template?.clipShape === 'circle') {
-          const centerX = printX + printWidth / 2;
-          const centerY = printY + printHeight / 2;
-          const radius = Math.min(printWidth, printHeight) / 2;
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-          ctx.stroke();
-        } else {
-          ctx.strokeRect(printX, printY, printWidth, printHeight);
-        }
-      }
-
       // Callback with rendered data URL
       if (onRender) {
         onRender(canvas.toDataURL('image/png'));
@@ -192,7 +212,7 @@ export function MockupCanvas({
       setError('Failed to generate mockup');
       setIsLoading(false);
     }
-  }, [designUrl, template, printArea, backgroundColor, width, height, onRender]);
+  }, [designUrl, template, effectiveProductType, customPrintArea, backgroundColor, width, height, onRender]);
 
   useEffect(() => {
     renderMockup();

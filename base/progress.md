@@ -398,6 +398,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Template preview in modal
   - [✅] Product-specific previews via product images
   - [✅] Real-time mockup generation (client-side canvas overlay)
+  - [✅] Programmatic product shape renderers (10 product types with shadows/highlights)
 - [✅] 4.4.5 Add "Upload Your Own" flow
   - [✅] File upload with validation (existing /design/new page)
   - [✅] Design positioning tools (MaterialSelector, SizeSelector)

@@ -130,6 +130,7 @@ export function ProductMockupPreview({
           <MockupCanvas
             designUrl={designUrl}
             template={currentTemplate}
+            productType={selectedProductType}
             backgroundColor={backgroundColor}
             width={size}
             height={size}

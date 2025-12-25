@@ -98,7 +98,7 @@ export async function createTestOrder(
       customerId,
       designId,
       printSize: 'A4',
-      material: 'PAPER',
+      material: 'MATTE',
       orientation: 'PORTRAIT',
       printWidth: 210,
       printHeight: 297,

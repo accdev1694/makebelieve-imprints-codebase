@@ -9,7 +9,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 | Section | Status | Completion |
 |---------|--------|------------|
 | 1. Project Setup | ✅ Complete | 100% |
-| 2. Backend Setup | ✅ Complete | 95% |
+| 2. Backend Setup | ✅ Complete | 100% |
 | 3. Frontend Setup | ✅ Complete | 100% |
 | 4. Product Catalog & E-Commerce | ✅ Complete | 100% |
 | 5. Mobile App (Capacitor) | 🔄 In Progress | 70% |
@@ -143,7 +143,12 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Auth flow tests (register, login, refresh, logout, me)
   - [✅] Order flow tests (create, list, get, update status)
   - [✅] Test scripts (test, test:watch, test:coverage)
-  - [ ] Additional endpoint coverage (designs, reviews, payments, invoices)
+  - [✅] Additional endpoint coverage (designs, reviews, payments, invoices)
+    - [✅] Designs tests (CRUD, ownership checks, admin access)
+    - [✅] Reviews tests (create, list, get, duplicate prevention)
+    - [✅] Invoices tests (list, get, PDF URL, ownership checks)
+    - [✅] Payments tests (list, get, status filter)
+    - [NOTE] Full payment flow tests pending gateway integration
 - [✅] Write unit tests for complex business logic (Jest)
   - [✅] Password hashing unit tests (hash, verify, security, concurrency)
   - [✅] JWT token generation/verification unit tests (access, refresh, expiration, security)

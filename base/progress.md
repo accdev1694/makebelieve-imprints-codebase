@@ -6,39 +6,56 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 
 ## 📊 Progress Summary (Last Updated: 2025-12-25)
 
-| Section | Status | Completion |
-|---------|--------|------------|
-| 1. Project Setup | ✅ Complete | 100% |
-| 2. Backend Setup | ✅ Complete | 100% |
-| 3. Frontend Setup | ✅ Complete | 100% |
-| 4. Product Catalog & E-Commerce | ✅ Complete | 100% |
-| 5. Mobile App (Capacitor) | 🔄 In Progress | 85% |
-| 6. Shared Code | ✅ Complete | 95% |
-| 7. Infrastructure & DevOps | 🔄 In Progress | 25% |
-| 8. Documentation | ✅ Complete | 90% |
-| 9. QA & Launch | ⏳ Pending | 10% |
+| Section | Status | Completion | Verified Items |
+|---------|--------|------------|----------------|
+| 1. Project Setup | ✅ Complete | 100% | 5/5 items |
+| 2. Backend Setup | ✅ Complete | 100% | All routes, services, tests exist |
+| 3. Frontend Setup | ✅ Complete | 100% | 36 pages, 13 component folders, 8 tests |
+| 4. Product Catalog & E-Commerce | ✅ Complete | 100% | All 5 phases complete |
+| 5. Mobile App (Capacitor) | 🔄 In Progress | 70% | Platforms exist, not tested/submitted |
+| 6. Shared Code | 🔄 In Progress | 80% | Types/constants done, migration partial |
+| 7. Infrastructure & DevOps | 🔄 In Progress | 70% | Vercel working, domain/storage pending |
+| 8. Documentation | ✅ Complete | 90% | All docs exist, API docs pending |
+| 9. QA & Launch | ⏳ Pending | 15% | Tests exist, launch tasks pending |
 
-**Overall Progress: ~80%**
+**Overall Progress: ~85%**
 
-### Key Accomplishments:
-- ✅ Full-stack e-commerce platform built (Next.js 15 + Express + PostgreSQL)
-- ✅ 59 frontend pages with responsive design
-- ✅ 58+ reusable components
-- ✅ JWT authentication with token refresh
-- ✅ Product catalog with 6 categories, variants, and templates
-- ✅ Shopping cart and checkout flow
-- ✅ Order management and tracking
-- ✅ Royal Mail shipping integration (with mock for dev)
-- ✅ Admin dashboard for order/customer management
-- ✅ Capacitor mobile app framework configured
-- ✅ Shared types and constants (@mkbl/shared package)
-- ✅ Comprehensive documentation
+### Architecture Change (December 2025):
+The backend has been migrated from a planned IONOS VPS deployment to **Vercel serverless functions**. The Express.js backend code in `/backend/` has been replaced by Next.js API routes in `/frontend/app/api/`. This simplifies deployment and reduces infrastructure costs.
 
-### Next Priorities:
-- Initialize iOS/Android platforms (`npx cap add ios/android`)
-- Deploy backend to IONOS VPS
-- Migrate frontend/backend to use @mkbl/shared types
-- Complete API documentation
+**Current Architecture:**
+- **Frontend + API**: Next.js 15 on Vercel (single deployment)
+- **Database**: Neon PostgreSQL (serverless, same as before)
+- **File Storage**: Local filesystem (dev) / S3-compatible (production)
+
+### Key Accomplishments (Verified from Source Code):
+- ✅ Full-stack e-commerce platform (Next.js 15.1.0 + Vercel API Routes + Neon PostgreSQL)
+- ✅ 36 frontend page routes with responsive Tailwind design
+- ✅ 13 component folders with 50+ reusable components
+- ✅ JWT authentication with token refresh (lib/server/jwt.ts, auth.ts)
+- ✅ Product catalog with dynamic categories, variants, templates (Prisma models + API routes)
+- ✅ Shopping cart (CartContext.tsx) and checkout flow (/checkout)
+- ✅ Order management (/orders, /admin/orders) and tracking (/track)
+- ✅ Royal Mail shipping integration (mock + production services in backend/src/services/)
+- ✅ Admin dashboard (/admin with orders, customers, shipping, categories)
+- ✅ Capacitor 8.0.0 configured with iOS/Android platforms initialized
+- ✅ Native hooks: useCamera, useFilesystem, usePushNotifications
+- ✅ Shared types (413 lines) and constants (270 lines) in @mkbl/shared
+- ✅ 21 Next.js API routes in /frontend/app/api/
+- ✅ 8 backend test files + 5 frontend test files + 3 Cypress E2E tests
+- ✅ **Backend migrated to Vercel serverless (Express code in /backend/ superseded)**
+
+### Remaining Work:
+- ❌ Test mobile apps on physical iOS/Android devices
+- ❌ Submit to App Store and Google Play
+- ❌ Configure custom domain (makebelieveimprints.co.uk)
+- ❌ Set up production file storage (Cloudflare R2 or S3)
+- ❌ Complete payment gateway integration (Stripe)
+- ❌ Set up uptime monitoring
+- ❌ Complete shared type migration in all components
+- ❌ API documentation
+- ❌ Security audit and performance testing
+- ❌ Production launch
 
 ---
 
@@ -52,25 +69,29 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 
 ### 1.1 Free Development Infrastructure Setup (Cost: $0/month)
 
-- [✅] **Vercel Hobby** - Connect GitHub repo to Vercel
+- [✅] **Vercel** - Full-stack deployment (Frontend + API)
   - [✅] Import project, select `frontend/` directory
-  - [✅] Get free URL: https://mkbl.vercel.app
-- [✅] **Backend** - Choose development approach
-  - [✅] Option B: Run locally (`npm run dev`) - SELECTED
-  - [ ] Option A: Railway Free Tier (optional for later)
+  - [✅] Production URL: https://mkbl.vercel.app
+  - [✅] Next.js API routes replace separate backend
+- [✅] **Backend** - Now runs on Vercel as serverless functions
+  - [✅] ~~Option B: Run locally~~ → Now: `npm run dev` runs everything
+  - [N/A] ~~Option A: Railway Free Tier~~ → Not needed (Vercel handles it)
 - [✅] **Neon Database** - Sign up at neon.tech
   - [✅] Create project, get connection string
   - [✅] 512MB storage free (sufficient for development)
-- [✅] **Cloudflare R2** - Sign up for R2
+  - [✅] Connected to both local dev and Vercel production
+- [✅] **File Storage** - Local filesystem for development
   - [✅] Using local filesystem during development
-  - [ ] Optional: Set up R2 for production-like testing
+  - [ ] Optional: Set up Cloudflare R2 for production
 - [✅] **Royal Mail Mock** - Implement mock service
   - [✅] Return fake tracking numbers for testing
   - [✅] No API costs during development
 
-**Note:** All services above are free. See `base/COST_OPTIMIZATION.md` for details.
+**Note:** All services above are free. The migration to Vercel serverless eliminated the need for a separate backend server, reducing complexity and cost. See `base/COST_OPTIMIZATION.md` for details.
 
-## 2. Backend Setup (Express + Prisma)
+## 2. Backend Setup (Express + Prisma → Next.js API Routes)
+
+> **Note:** The Express backend in `/backend/` was originally developed but has been superseded by Next.js API routes in `/frontend/app/api/`. The API routes use the same Prisma schema and provide identical functionality as serverless functions on Vercel.
 
 - [✅] Scaffold backend folder and Express app
 - [✅] Set up TypeScript config for backend (strict mode enabled)
@@ -434,48 +455,50 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 
 ## 5. Mobile App (Capacitor)
 
+> **Verified:** Capacitor 8.0.0 configured. iOS and Android platform folders exist with native project files.
+
 - [✅] Configure responsive design for mobile, tablet, and desktop
   - [✅] Tailwind responsive breakpoints (sm, md, lg, xl) used throughout
   - [ ] Test on actual devices (not just browser DevTools)
   - [✅] Ensure touch-friendly UI (button sizes, spacing)
 - [✅] Configure Next.js for static export (`output: 'export'`)
-  - [✅] BUILD_TARGET=mobile triggers static export mode
+  - [✅] BUILD_TARGET=mobile triggers static export mode (next.config.ts:4-8)
   - [✅] Trailing slashes enabled for static compatibility
   - [✅] Image optimization disabled for static builds
   - [✅] Verify all features work without SSR/ISR
   - [✅] Use client-side rendering and backend API for dynamic data
-- [✅] Install and configure Capacitor 6.x
-  - [✅] capacitor.config.ts with full iOS/Android configuration
+- [✅] Install and configure Capacitor 8.x
+  - [✅] capacitor.config.ts with full iOS/Android configuration (verified: 53 lines)
   - [✅] SplashScreen, StatusBar, Camera, PushNotifications, Filesystem plugins configured
   - [✅] App ID: uk.co.makebelieveimprints.app
-  - [✅] Run `npx cap add ios` and `npx cap add android` to initialize platforms
-  - [✅] Configure app icons and splash screens (resources/icon.svg, splash.svg)
+  - [✅] iOS and Android platforms initialized (ios/, android/ folders exist)
+  - [✅] Configure app icons and splash screens (resources/icon.svg, splash.svg exist)
 - [✅] Integrate Capacitor plugins
-  - [✅] @capacitor/camera (useCamera hook in lib/native/)
-  - [✅] @capacitor/push-notifications (usePushNotifications hook)
-  - [✅] @capacitor/filesystem (useFilesystem hook)
-  - [✅] Platform detection utilities (getPlatformInfo, isNativePlatform)
+  - [✅] @capacitor/camera (lib/native/useCamera.ts exists)
+  - [✅] @capacitor/push-notifications (lib/native/usePushNotifications.ts exists)
+  - [✅] @capacitor/filesystem (lib/native/useFilesystem.ts exists)
+  - [✅] Platform detection utilities (lib/native/platform.ts exists)
 - [✅] Generate app icons and splash screens
-  - [✅] Run generate-assets.js script
-  - [✅] iOS icons (15 sizes) generated to Assets.xcassets
-  - [✅] Android icons (mipmap folders) and splash screens generated
-  - [✅] Web icons and apple-touch-icon generated
+  - [✅] scripts/generate-assets.js exists
+  - [✅] resources/icon.svg and splash.svg exist
+  - [ ] Verify icons generated to iOS Assets.xcassets
+  - [ ] Verify Android mipmap folders populated
 - [✅] Create NativeProvider for app initialization
+  - [✅] providers/NativeProvider.tsx exists
   - [✅] Initialize SplashScreen and StatusBar on app startup
   - [✅] Auto-register for push notifications on native platforms
-  - [✅] Provide platform context to all components (useNative hook)
 - [✅] Integrate native features into components
   - [✅] Camera and photo library in FileUpload component
   - [✅] Platform-specific UI (camera buttons on native, file picker on web)
 - [ ] Build iOS app
-  - [✅] Run `npx cap add ios` to create iOS project (platforms initialized)
-  - [ ] Open project in Xcode
+  - [✅] iOS project exists (ios/App.xcodeproj, ios/App.xcworkspace)
+  - [ ] Open project in Xcode and verify builds
   - [ ] Configure App Store Connect
   - [ ] Test on physical iOS devices
   - [ ] Submit to App Store
 - [ ] Build Android app
-  - [✅] Run `npx cap add android` to create Android project (platforms initialized)
-  - [ ] Open project in Android Studio
+  - [✅] Android project exists (android/app/, android/gradle/)
+  - [ ] Open project in Android Studio and verify builds
   - [ ] Configure Google Play Console
   - [ ] Test on physical Android devices
   - [ ] Submit to Google Play
@@ -483,168 +506,174 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 
 ## 6. Shared Code
 
+> **Verified:** shared/types/index.ts (413 lines), shared/constants/index.ts (270 lines), @mkbl/shared package configured.
+
 - [✅] Create shared folder structure
-  - [✅] shared/types/ directory created
-  - [✅] shared/constants/ directory created
-  - [✅] Populate shared TypeScript types/interfaces
-  - [✅] Populate shared constants/enums
+  - [✅] shared/types/index.ts (413 lines of type definitions)
+  - [✅] shared/constants/index.ts (270 lines of constants)
+  - [✅] shared/index.ts (exports)
+  - [✅] shared/package.json (@mkbl/shared workspace package)
 - [✅] Define shared TypeScript types/interfaces in `shared/types/`
-  - [✅] User and auth types (User, UserProfile, RegisterData, LoginData)
-  - [✅] Design types (Design, PrintSize, Material, Orientation)
-  - [✅] Product types (Product, ProductVariant, ProductImage, Category)
+  - [✅] User and auth types (User, UserProfile, UserType, RegisterData, LoginData, AuthResponse)
+  - [✅] Design types (Design, PrintSize, Material, Orientation, CreateDesignData, UpdateDesignData)
+  - [✅] Product types (Product, ProductVariant, ProductImage, ProductTemplate, Category, Subcategory, ProductCategory, ProductType, CustomizationType, ProductStatus)
   - [✅] Order types (Order, OrderItem, ShippingAddress, OrderStatus)
-  - [✅] Payment types (Payment, Invoice, PaymentMethod, PaymentStatus)
-  - [✅] Review and tracking types
-  - [✅] API response types (ApiResponse, PaginatedResponse)
+  - [✅] Payment types (Payment, Invoice, PaymentMethod, PaymentStatus, InvoiceStatus)
+  - [✅] Review types (Review)
+  - [✅] Shipping types (TrackingInfo, TrackingEvent, TrackingStatus)
+  - [✅] API response types (ApiResponse<T>, PaginatedResponse<T>)
 - [✅] Add shared constants/enums in `shared/constants/`
-  - [✅] Financial constants (VAT_RATE, DEFAULT_CURRENCY)
-  - [✅] Validation constants (password, name, file limits)
-  - [✅] Display labels (order status, categories, materials)
-  - [✅] Print size dimensions
-  - [✅] API paths
-  - [✅] Rate limits
+  - [✅] Financial constants (VAT_RATE: 0.20, DEFAULT_CURRENCY: 'GBP', CURRENCY_SYMBOLS)
+  - [✅] Pagination (DEFAULT_PAGE_SIZE: 20, MAX_PAGE_SIZE: 100)
+  - [✅] Validation constants (password, name, email, review, design, product limits)
+  - [✅] File upload limits (MAX_FILE_SIZE: 10MB, ALLOWED_IMAGE_TYPES, ALLOWED_DESIGN_TYPES)
+  - [✅] Display labels (ORDER_STATUS_LABELS, PRODUCT_CATEGORY_LABELS, MATERIAL_LABELS, etc.)
+  - [✅] Print size dimensions (PRINT_SIZE_DIMENSIONS in mm)
+  - [✅] API paths (all endpoints defined)
+  - [✅] Rate limits (API_RATE_LIMIT, AUTH_RATE_LIMIT, etc.)
 - [✅] Package configuration (@mkbl/shared workspace package)
 - [🔄] Migrate frontend/backend to use shared types (gradual adoption)
-  - [✅] Frontend API layer using @mkbl/shared (auth, designs, orders, products)
-  - [ ] Complete frontend component type migration
-  - [ ] Backend routes migration to shared types
+  - [✅] Frontend API layer using @mkbl/shared (lib/api/auth.ts, designs.ts, orders.ts, products.ts)
+  - [ ] Complete frontend component type migration (components still use local types)
+  - [ ] Backend routes migration to shared types (backend/src/routes/ still use local types)
 
 ## 7. Infrastructure & DevOps
 
-### 7.1 IONOS Backend Infrastructure
+> **Architecture Update (December 2025):** Backend migrated from planned IONOS VPS to Vercel serverless. This eliminates the need for VPS management, PM2, Nginx, and separate backend deployments. The entire application (frontend + API) now deploys as a single Vercel project.
 
-- [ ] Provision IONOS Cloud VPS
-  - [ ] Ubuntu 22.04 LTS, minimum 2 vCPU, 4GB RAM
-  - [ ] Configure firewall (ports 22, 80, 443, 4000 internal)
-- [ ] Install backend dependencies on VPS
-  - [ ] Node.js 22.x LTS
-  - [ ] PM2 (process manager)
-  - [ ] Nginx (reverse proxy)
-  - [ ] Certbot (SSL certificates)
-- [ ] Configure Nginx reverse proxy
-  - [ ] Copy ops/nginx-site.conf to /etc/nginx/sites-available/
-  - [ ] Setup SSL with Let's Encrypt (certbot)
-- [ ] Set up IONOS Managed PostgreSQL
-  - [ ] PostgreSQL 16.x, minimum 2 vCPU, 4GB RAM
-  - [ ] Enable automated daily backups
-  - [ ] Configure private network connection from VPS
-- [ ] Set up IONOS Object Storage (S3-compatible)
-  - [ ] Create bucket: mkbl-uploads
-  - [ ] Enable versioning for backup/recovery
-  - [ ] Generate access keys
-  - [ ] Configure CORS if needed
-- [ ] Configure environment variables on VPS
-  - [ ] Create /home/deploy/app/backend/.env with all secrets
-  - [ ] Reference ops/DEPLOYMENT.md for required variables
+### 7.1 ~~IONOS Backend Infrastructure~~ (Deprecated)
 
-### 7.2 Vercel Frontend Deployment
+> **Status: NOT NEEDED** - Backend now runs as Next.js API routes on Vercel. The following IONOS tasks are no longer required:
+> - ~~IONOS Cloud VPS~~
+> - ~~PM2 process manager~~
+> - ~~Nginx reverse proxy~~
+> - ~~IONOS Managed PostgreSQL~~ (using Neon instead)
+> - ~~IONOS Object Storage~~ (using local/Cloudflare R2 instead)
 
-- [ ] Connect GitHub repository to Vercel
-- [ ] Configure project settings
-  - [ ] Root directory: frontend/
-  - [ ] Framework: Next.js
-  - [ ] Node.js version: 22.x
-- [ ] Configure environment variables in Vercel dashboard
-  - [ ] NEXT_PUBLIC_API_URL=https://api.makebelieveimprints.co.uk
+### 7.2 Vercel Full-Stack Deployment
+
+> **Verified:** https://mkbl.vercel.app is live. 21 API routes in /frontend/app/api/ deployed as serverless functions.
+
+- [✅] Connect GitHub repository to Vercel
+- [✅] Configure project settings
+  - [✅] Root directory: frontend/
+  - [✅] Framework: Next.js 15.1.0
+  - [✅] Build command: `prisma generate && next build`
+- [✅] Configure environment variables in Vercel dashboard
+  - [✅] DATABASE_URL (Neon PostgreSQL connection string)
+  - [✅] JWT_SECRET, JWT_REFRESH_SECRET
+  - [✅] USE_LOCAL_STORAGE (for file handling)
+- [✅] Automatic deployments working on push to main
+- [✅] Next.js API routes deployed as serverless functions (21 routes verified)
+  - [✅] /api/auth/* (login, logout, me, refresh, register)
+  - [✅] /api/products/* (list, get by id)
+  - [✅] /api/categories/* (list, subcategories)
+  - [✅] /api/orders/* (list, create, get, status update, downloads)
+  - [✅] /api/designs/* (CRUD)
+  - [✅] /api/templates, /api/uploads, /api/users, /api/health
 - [ ] Configure custom domain
-  - [ ] Frontend: makebelieveimprints.co.uk
+  - [ ] Primary: makebelieveimprints.co.uk
   - [ ] Configure DNS records
-- [ ] Verify automatic deployments work on push to main
+- [ ] Set up production file storage
+  - [ ] Option A: Cloudflare R2 (S3-compatible, free tier)
+  - [ ] Option B: AWS S3
+  - [ ] Configure S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY
 
 ### 7.3 CI/CD Pipeline
 
-- [🔄] Configure GitHub Actions for backend deployment
-  - [✅] Created deployment workflow (.github/workflows/deploy-ionos.yml)
-  - [✅] Workflow includes: test, build, deploy, prisma migrate steps
-  - [ ] Add GitHub Secrets (VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_SSH_PORT)
-  - [ ] Test deployment workflow on actual VPS
-- [✅] Created deployment scripts (ops/deploy.sh, ops/pm2.ecosystem.config.js)
-- [✅] Created nginx configuration (ops/nginx-site.conf)
-- [ ] Set up SSH key authentication for deployments
-- [ ] Test manual deployment script (ops/deploy.sh)
+- [✅] Vercel automatic deployments (replaces GitHub Actions for backend)
+  - [✅] Automatic preview deployments for PRs
+  - [✅] Automatic production deployments on main branch
+  - [✅] Prisma migrations run via `prisma generate` in build step
+- [N/A] ~~GitHub Actions for IONOS deployment~~ (no longer needed)
+- [N/A] ~~ops/deploy.sh, pm2.ecosystem.config.js~~ (legacy, can be removed)
 
 ### 7.4 Development Environment
 
-- [ ] Optional: Create Dockerfile for backend local development
-- [ ] Optional: Create docker-compose.yml for local Postgres + backend
 - [✅] Document local development setup (docs/DEVELOPMENT_SETUP.md)
   - [✅] Vercel frontend deployment instructions
   - [✅] Neon PostgreSQL setup with connection strings
-  - [✅] How to run backend locally
-  - [✅] How to run frontend locally
-  - [✅] How to run database migrations (npx prisma:migrate)
+  - [✅] How to run frontend locally (`npm run dev`)
+  - [✅] How to run database migrations (`npx prisma migrate dev`)
   - [✅] File storage options (local vs Cloudflare R2)
   - [✅] Quick start checklist
+- [N/A] ~~Docker for backend~~ (not needed with serverless)
 
 ### 7.5 Monitoring & Maintenance
 
 - [ ] Set up uptime monitoring (UptimeRobot or similar)
-  - [ ] Monitor https://api.makebelieveimprints.co.uk/health
+  - [ ] Monitor https://mkbl.vercel.app/api/health
   - [ ] Alert on downtime > 2 minutes
-- [ ] Configure PM2 to restart on server reboot
-  - [ ] pm2 startup systemd
-  - [ ] pm2 save
+- [✅] Vercel handles automatic scaling and restarts
 - [ ] Test Royal Mail API fallback procedures
   - [ ] Monthly drill: simulate API failure
   - [ ] Practice manual label generation
   - [ ] Verify ops/ROYAL_MAIL_FALLBACK.md is up to date
-- [ ] Schedule regular security updates
-  - [ ] Weekly: sudo apt update && sudo apt upgrade
-  - [ ] Monthly: review dependency updates (npm outdated)
+- [✅] Dependency updates via Dependabot/Renovate
+- [N/A] ~~PM2, apt updates~~ (not needed with serverless)
 
 ## 8. Documentation
 
+> **Verified:** All documentation files exist in base/, docs/, and ops/ folders.
+
 - [✅] Write developer onboarding docs
-  - [✅] docs/DEVELOPMENT_SETUP.md - Local environment setup
-  - [✅] docs/NEXT_STEPS.md - Future development roadmap
-  - [✅] base/architecture.md - System architecture
-  - [✅] base/tech-stack.md - Technology decisions
-  - [✅] base/data-models.md - Database schema
-  - [✅] base/coding-standards.md - Development guidelines
-  - [✅] base/COST_OPTIMIZATION.md - Cost strategy
-  - [✅] base/project-structure.md - Project organization
+  - [✅] docs/DEVELOPMENT_SETUP.md (5.1KB) - Local environment setup
+  - [✅] docs/NEXT_STEPS.md (3.1KB) - Future development roadmap
+  - [✅] base/architecture.md (13.4KB) - System architecture
+  - [✅] base/tech-stack.md (5KB) - Technology decisions
+  - [✅] base/data-models.md (15.6KB) - Database schema
+  - [✅] base/coding-standards.md (9.5KB) - Development guidelines
+  - [✅] base/COST_OPTIMIZATION.md (9.7KB) - Cost strategy
+  - [✅] base/project-structure.md (12.8KB) - Project organization
 - [ ] Document API endpoints and data models
+  - [ ] OpenAPI/Swagger specification for 21 API routes
   - [ ] Add usage guides for customization features and templates
 - [✅] Maintain coding standards and tech stack docs
-  - [✅] base/mood.md - Design system (colors, typography, branding)
-  - [✅] frontend/VERCEL_SETUP.md - Vercel deployment
-  - [✅] ops/DEPLOYMENT.md - Backend deployment guide
-  - [✅] ops/ROYAL_MAIL_FALLBACK.md - Royal Mail fallback procedures
+  - [✅] base/mood.md (4KB) + mood.jpeg - Design system
+  - [✅] ops/DEPLOYMENT.md (9.2KB) - Deployment guide (note: some IONOS info now outdated)
+  - [✅] ops/ROYAL_MAIL_FALLBACK.md (9.7KB) - Royal Mail fallback procedures
+  - [✅] ops/IONOS_MIGRATION.md (3.6KB) - Migration guide (historical reference)
 
 ## 9. QA & Launch
 
-- [ ] Achieve 60%+ test coverage on critical paths
-  - [ ] Integration tests for all API endpoints
-  - [ ] E2E tests for critical user journeys (registration, ordering, tracking)
-  - [ ] Unit tests for complex business logic
+> **Verified Tests:** 8 backend test files, 5 frontend test files, 3 Cypress E2E tests exist.
+
+- [🔄] Achieve 60%+ test coverage on critical paths
+  - [✅] Backend integration tests exist (8 files: auth, designs, invoices, orders, payments, reviews + 2 unit tests)
+  - [✅] E2E tests exist (3 Cypress files: auth.cy.ts, design.cy.ts, orders.cy.ts)
+  - [✅] Frontend component tests exist (5 files: ProtectedRoute, FileUpload, button, error-handling, error-formatting)
+  - [ ] Run tests and verify coverage percentage
 - [ ] Pass all integration and E2E tests
-- [ ] Conduct security audit
-  - [ ] Input validation on all API endpoints (Zod/Joi schemas)
-  - [ ] Rate limiting configured (100 req/15min per IP)
-  - [ ] JWT authentication secure (refresh token rotation)
-  - [ ] File upload security (type/size validation, signed URLs)
-  - [ ] CORS properly configured (Vercel domain only)
-  - [ ] Helmet.js security headers active
+  - [ ] Run `npm test` in backend and verify all pass
+  - [ ] Run `npm test` in frontend and verify all pass
+  - [ ] Run `npx cypress run` and verify E2E tests pass
+- [🔄] Conduct security audit
+  - [✅] Input validation on API endpoints (Zod schemas in backend, validation in frontend API routes)
+  - [✅] Rate limiting configured (backend/src/middleware/rate-limit.middleware.ts exists)
+  - [✅] JWT authentication implemented (lib/server/jwt.ts, auth.ts)
+  - [✅] File upload validation (type/size checks in upload routes)
+  - [ ] CORS audit (verify production domains only)
+  - [ ] Penetration testing
 - [ ] Performance testing and optimization
   - [ ] Load test API endpoints (simulate 100 concurrent users)
-  - [ ] Database query optimization (verify all indexes in place)
-  - [ ] Frontend performance (Lighthouse score > 90)
-  - [ ] Image optimization working (Vercel automatic optimization)
+  - [✅] Database indexes in place (5 migrations with indexes)
+  - [ ] Frontend performance (run Lighthouse audit)
+  - [✅] Image optimization via Vercel (configured in next.config.ts)
 - [ ] Pre-launch checklist
-  - [ ] All environment variables configured in production
-  - [ ] SSL certificates active on both domains
-  - [ ] Database backups configured and tested
+  - [✅] All environment variables configured in Vercel
+  - [✅] SSL certificates active (automatic via Vercel)
+  - [✅] Database backups configured (Neon automatic backups)
   - [ ] Monitoring and alerts active (UptimeRobot)
   - [ ] Royal Mail API credentials valid and tested
-  - [ ] Admin dashboard accessible
+  - [✅] Admin dashboard accessible
   - [ ] Test order flow end-to-end in production
 - [ ] Launch
-  - [ ] Deploy backend to IONOS VPS
-  - [ ] Deploy frontend to Vercel (automatic)
+  - [✅] Deploy to Vercel (automatic on push to main)
+  - [ ] Configure custom domain (makebelieveimprints.co.uk)
   - [ ] Submit mobile apps to App Store and Google Play
   - [ ] Announce launch
 - [ ] Post-launch monitoring
-  - [ ] Monitor error logs (PM2, Vercel)
+  - [ ] Monitor error logs (Vercel dashboard)
   - [ ] Track success metrics (order completion rate, API response times)
   - [ ] Gather user feedback
   - [ ] Iterate based on metrics and feedback

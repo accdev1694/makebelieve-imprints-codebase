@@ -14,7 +14,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 | 4. Product Catalog & E-Commerce | ✅ Complete | 100% |
 | 5. Mobile App (Capacitor) | 🔄 In Progress | 85% |
 | 6. Shared Code | ✅ Complete | 95% |
-| 7. Infrastructure & DevOps | ⏳ Pending | 15% |
+| 7. Infrastructure & DevOps | 🔄 In Progress | 25% |
 | 8. Documentation | ✅ Complete | 90% |
 | 9. QA & Launch | ⏳ Pending | 10% |
 
@@ -468,13 +468,13 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] Camera and photo library in FileUpload component
   - [✅] Platform-specific UI (camera buttons on native, file picker on web)
 - [ ] Build iOS app
-  - [ ] Run `npx cap add ios` to create iOS project
+  - [✅] Run `npx cap add ios` to create iOS project (platforms initialized)
   - [ ] Open project in Xcode
   - [ ] Configure App Store Connect
   - [ ] Test on physical iOS devices
   - [ ] Submit to App Store
 - [ ] Build Android app
-  - [ ] Run `npx cap add android` to create Android project
+  - [✅] Run `npx cap add android` to create Android project (platforms initialized)
   - [ ] Open project in Android Studio
   - [ ] Configure Google Play Console
   - [ ] Test on physical Android devices
@@ -504,7 +504,10 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
   - [✅] API paths
   - [✅] Rate limits
 - [✅] Package configuration (@mkbl/shared workspace package)
-- [ ] Migrate frontend/backend to use shared types (gradual adoption)
+- [🔄] Migrate frontend/backend to use shared types (gradual adoption)
+  - [✅] Frontend API layer using @mkbl/shared (auth, designs, orders, products)
+  - [ ] Complete frontend component type migration
+  - [ ] Backend routes migration to shared types
 
 ## 7. Infrastructure & DevOps
 
@@ -550,11 +553,13 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 
 ### 7.3 CI/CD Pipeline
 
-- [ ] Configure GitHub Actions for backend deployment
+- [🔄] Configure GitHub Actions for backend deployment
+  - [✅] Created deployment workflow (.github/workflows/deploy-ionos.yml)
+  - [✅] Workflow includes: test, build, deploy, prisma migrate steps
   - [ ] Add GitHub Secrets (VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_SSH_PORT)
-  - [ ] Test deployment workflow (.github/workflows/deploy-ionos.yml)
-  - [ ] Verify tests run before deployment
-  - [ ] Verify Prisma migrations run automatically
+  - [ ] Test deployment workflow on actual VPS
+- [✅] Created deployment scripts (ops/deploy.sh, ops/pm2.ecosystem.config.js)
+- [✅] Created nginx configuration (ops/nginx-site.conf)
 - [ ] Set up SSH key authentication for deployments
 - [ ] Test manual deployment script (ops/deploy.sh)
 

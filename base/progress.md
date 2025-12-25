@@ -14,7 +14,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 | 4. Product Catalog & E-Commerce | ✅ Complete | 100% | All 5 phases complete |
 | 5. Mobile App (Capacitor) | 🔄 In Progress | 70% | Platforms exist, not tested/submitted |
 | 6. Shared Code | ✅ Complete | 100% | Types migrated, backend uses shared constants |
-| 7. Infrastructure & DevOps | 🔄 In Progress | 80% | Vercel+CORS done, domain/storage pending |
+| 7. Infrastructure & DevOps | 🔄 In Progress | 90% | Vercel+CORS+domain done, storage pending |
 | 8. Documentation | ✅ Complete | 100% | OpenAPI 3.0 spec created (docs/openapi.yaml) |
 | 9. QA & Launch | 🔄 In Progress | 30% | CORS audit complete, tests exist |
 
@@ -48,7 +48,7 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
 ### Remaining Work:
 - ❌ Test mobile apps on physical iOS/Android devices
 - ❌ Submit to App Store and Google Play
-- ❌ Configure custom domain (makebelieveimprints.co.uk)
+- ✅ Configure custom domain (makebelieveimprints.co.uk - live)
 - ❌ Set up production file storage (Cloudflare R2 or S3)
 - ❌ Complete payment gateway integration (Stripe)
 - ❌ Set up uptime monitoring
@@ -572,9 +572,9 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
   - [✅] /api/orders/* (list, create, get, status update, downloads)
   - [✅] /api/designs/* (CRUD)
   - [✅] /api/templates, /api/uploads, /api/users, /api/health
-- [ ] Configure custom domain
-  - [ ] Primary: makebelieveimprints.co.uk
-  - [ ] Configure DNS records
+- [✅] Configure custom domain
+  - [✅] Primary: makebelieveimprints.co.uk (live)
+  - [✅] DNS records configured
 - [ ] Set up production file storage
   - [ ] Option A: Cloudflare R2 (S3-compatible, free tier)
   - [ ] Option B: AWS S3
@@ -668,9 +668,9 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
   - [ ] Royal Mail API credentials valid and tested
   - [✅] Admin dashboard accessible
   - [ ] Test order flow end-to-end in production
-- [ ] Launch
+- [🔄] Launch
   - [✅] Deploy to Vercel (automatic on push to main)
-  - [ ] Configure custom domain (makebelieveimprints.co.uk)
+  - [✅] Configure custom domain (makebelieveimprints.co.uk - live)
   - [ ] Submit mobile apps to App Store and Google Play
   - [ ] Announce launch
 - [ ] Post-launch monitoring

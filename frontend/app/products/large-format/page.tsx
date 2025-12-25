@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Maximize, Eye, Shield, Zap } from 'lucide-react';
 import { CategoryHero } from '@/components/category/CategoryHero';
 import { CategoryFeatures } from '@/components/category/CategoryFeatures';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/ProductCard';
 import { Product, productsService } from '@/lib/api/products';
-import { CartIcon } from '@/components/cart/CartIcon';
 
 const CATEGORY = 'LARGE_FORMAT';
 
@@ -37,7 +35,6 @@ const features = [
 ];
 
 export default function LargeFormatPage() {
-  const { user, logout } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,46 +73,6 @@ export default function LargeFormatPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Header Navigation */}
-      <header className="relative z-50 border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold">
-            <span className="text-neon-gradient">MakeBelieve</span>
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/products">
-              <Button variant="ghost">Products</Button>
-            </Link>
-            <Link href="/gifts">
-              <Button variant="ghost">Gifts</Button>
-            </Link>
-            <Link href="/about">
-              <Button variant="ghost">About</Button>
-            </Link>
-            <CartIcon />
-            {user ? (
-              <>
-                <Link href="/dashboard">
-                  <Button variant="ghost">Dashboard</Button>
-                </Link>
-                <Button variant="outline" onClick={logout}>
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/login">
-                  <Button variant="ghost">Login</Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button className="btn-gradient">Sign Up</Button>
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <CategoryHero
         title="Large Format Printing"

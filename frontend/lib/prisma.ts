@@ -2,6 +2,11 @@ import { PrismaClient } from '@prisma/client';
 
 // PrismaClient singleton for serverless environments
 // Prevents multiple instances during hot reloads in development
+//
+// IMPORTANT: For Neon serverless, ensure your DATABASE_URL includes:
+// - ?pgbouncer=true (connection pooling)
+// - ?sslmode=require (SSL)
+// Example: postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/db?sslmode=require&pgbouncer=true
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

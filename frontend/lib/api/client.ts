@@ -20,21 +20,47 @@ const getApiBaseUrl = (): string => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+// Retry configuration
+const MAX_RETRIES = 2;
+const RETRY_DELAY_BASE = 1000; // 1 second base delay
+
+// Check if error is retryable (transient errors)
+const isRetryableError = (error: AxiosError): boolean => {
+  // Retry on network errors (no response)
+  if (!error.response) {
+    return true;
+  }
+
+  // Retry on timeout
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+    return true;
+  }
+
+  // Retry on server errors that might be transient
+  const status = error.response.status;
+  return status === 503 || status === 504 || status === 502 || status === 429;
+};
+
+// Delay helper with exponential backoff
+const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+
 // Create axios instance with default config
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000, // Reduced from 30s to 10s for faster feedback
+  timeout: 15000, // Increased to 15s for Neon cold starts
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Important: Send cookies with requests (for httpOnly cookies)
 });
 
-// Request interceptor - Add any auth headers if needed
+// Request interceptor - Add retry count tracking
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // You can add custom headers here if needed
-    // For now, we rely on httpOnly cookies for auth
+    // Initialize retry count if not set
+    if (config.headers && config.headers['x-retry-count'] === undefined) {
+      config.headers['x-retry-count'] = '0';
+    }
     return config;
   },
   (error: AxiosError) => {
@@ -60,7 +86,7 @@ const processQueue = (error: Error | null = null) => {
   failedQueue = [];
 };
 
-// Response interceptor - Handle common errors
+// Response interceptor - Handle common errors with retry logic
 apiClient.interceptors.response.use(
   (response) => {
     return response;
@@ -69,6 +95,26 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
+
+    // Get current retry count
+    const retryCount = parseInt(originalRequest?.headers?.['x-retry-count'] as string || '0', 10);
+
+    // Check if we should retry (for transient errors)
+    if (originalRequest && isRetryableError(error) && retryCount < MAX_RETRIES) {
+      // Exponential backoff: 1s, 2s
+      const delayMs = RETRY_DELAY_BASE * Math.pow(2, retryCount);
+
+      // Increment retry count
+      if (originalRequest.headers) {
+        originalRequest.headers['x-retry-count'] = String(retryCount + 1);
+      }
+
+      // Wait before retrying
+      await delay(delayMs);
+
+      // Retry the request
+      return apiClient(originalRequest);
+    }
 
     // Handle 401 Unauthorized - try to refresh token
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {

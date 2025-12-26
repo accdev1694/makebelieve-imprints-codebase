@@ -1,5 +1,4 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { FileUpload } from '../FileUpload';
 
 describe('FileUpload', () => {
@@ -29,41 +28,38 @@ describe('FileUpload', () => {
     expect(screen.getByText('Upload your design')).toBeInTheDocument();
   });
 
-  it('should handle file selection via input', async () => {
-    const user = userEvent.setup();
-    render(<FileUpload onFileSelect={mockOnFileSelect} />);
+  it('should handle file selection via input', () => {
+    const { container } = render(<FileUpload onFileSelect={mockOnFileSelect} />);
 
     const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
-    const input = screen.getByLabelText(/choose file/i).previousElementSibling as HTMLInputElement;
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
 
-    await user.upload(input, file);
+    fireEvent.change(input, { target: { files: [file] } });
 
     expect(mockOnFileSelect).toHaveBeenCalledWith(file);
   });
 
-  it('should validate file type and show error for invalid type', async () => {
-    const user = userEvent.setup();
-    render(<FileUpload onFileSelect={mockOnFileSelect} />);
+  it('should validate file type and show error for invalid type', () => {
+    const { container } = render(<FileUpload onFileSelect={mockOnFileSelect} />);
 
     const file = new File(['test'], 'test.pdf', { type: 'application/pdf' });
-    const input = screen.getByLabelText(/choose file/i).previousElementSibling as HTMLInputElement;
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
 
-    await user.upload(input, file);
+    fireEvent.change(input, { target: { files: [file] } });
 
     expect(mockOnFileSelect).not.toHaveBeenCalled();
     expect(screen.getByText(/file type not supported/i)).toBeInTheDocument();
   });
 
-  it('should validate file size and show error for large files', async () => {
-    const user = userEvent.setup();
-    render(<FileUpload onFileSelect={mockOnFileSelect} maxSize={1} />);
+  it('should validate file size and show error for large files', () => {
+    const { container } = render(<FileUpload onFileSelect={mockOnFileSelect} maxSize={1} />);
 
     // Create a 2MB file (larger than 1MB limit)
     const largeContent = new Array(2 * 1024 * 1024).fill('a').join('');
     const file = new File([largeContent], 'large.jpg', { type: 'image/jpeg' });
-    const input = screen.getByLabelText(/choose file/i).previousElementSibling as HTMLInputElement;
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
 
-    await user.upload(input, file);
+    fireEvent.change(input, { target: { files: [file] } });
 
     expect(mockOnFileSelect).not.toHaveBeenCalled();
     expect(screen.getByText(/file too large/i)).toBeInTheDocument();
@@ -109,33 +105,32 @@ describe('FileUpload', () => {
 
   it('should accept custom file types', () => {
     const customTypes = ['image/svg+xml', 'image/tiff'];
-    render(
+    const { container } = render(
       <FileUpload
         onFileSelect={mockOnFileSelect}
         acceptedTypes={customTypes}
       />
     );
 
-    const input = screen.getByLabelText(/choose file/i).previousElementSibling as HTMLInputElement;
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
     expect(input.accept).toBe(customTypes.join(','));
   });
 
-  it('should clear error when valid file is uploaded after error', async () => {
-    const user = userEvent.setup();
-    render(<FileUpload onFileSelect={mockOnFileSelect} maxSize={1} />);
+  it('should clear error when valid file is uploaded after error', () => {
+    const { container } = render(<FileUpload onFileSelect={mockOnFileSelect} maxSize={1} />);
 
     // First upload invalid file
     const largeFile = new File([new Array(2 * 1024 * 1024).fill('a').join('')], 'large.jpg', {
       type: 'image/jpeg',
     });
-    const input = screen.getByLabelText(/choose file/i).previousElementSibling as HTMLInputElement;
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
 
-    await user.upload(input, largeFile);
+    fireEvent.change(input, { target: { files: [largeFile] } });
     expect(screen.getByText(/file too large/i)).toBeInTheDocument();
 
     // Then upload valid file
     const validFile = new File(['test'], 'small.jpg', { type: 'image/jpeg' });
-    await user.upload(input, validFile);
+    fireEvent.change(input, { target: { files: [validFile] } });
 
     expect(screen.queryByText(/file too large/i)).not.toBeInTheDocument();
     expect(mockOnFileSelect).toHaveBeenCalledWith(validFile);

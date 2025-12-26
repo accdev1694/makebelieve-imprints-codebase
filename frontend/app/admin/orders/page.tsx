@@ -247,18 +247,22 @@ function AdminOrdersContent() {
                           </div>
 
                           <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Material</p>
-                              <p className="font-medium">{MATERIAL_LABELS[order.material]}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Size</p>
-                              <p className="font-medium">{PRINT_SIZE_LABELS[order.printSize]}</p>
-                            </div>
+                            {order.material && (
+                              <div>
+                                <p className="text-muted-foreground">Material</p>
+                                <p className="font-medium">{MATERIAL_LABELS[order.material] || order.material}</p>
+                              </div>
+                            )}
+                            {order.printSize && (
+                              <div>
+                                <p className="text-muted-foreground">Size</p>
+                                <p className="font-medium">{PRINT_SIZE_LABELS[order.printSize] || order.printSize}</p>
+                              </div>
+                            )}
                             <div>
                               <p className="text-muted-foreground">Price</p>
                               <p className="font-medium text-primary">
-                                £{order.totalPrice.toFixed(2)}
+                                £{Number(order.totalPrice).toFixed(2)}
                               </p>
                             </div>
                             <div>

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ordersService, Order, ORDER_STATUS_LABELS, OrderStatus } from '@/lib/api/orders';
+import { ordersService, Order, OrderItem, ORDER_STATUS_LABELS, OrderStatus } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
@@ -179,26 +179,65 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
                     <div className="flex-1 space-y-2">
                       <h3 className="font-semibold text-lg">{order.design.name}</h3>
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Material:</p>
-                          <p className="font-medium">{MATERIAL_LABELS[order.material]}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Size:</p>
-                          <p className="font-medium">{PRINT_SIZE_LABELS[order.printSize]}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Dimensions:</p>
-                          <p className="font-medium">
-                            {order.printWidth} × {order.printHeight} cm
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Orientation:</p>
-                          <p className="font-medium capitalize">{order.orientation}</p>
-                        </div>
+                        {order.material && (
+                          <div>
+                            <p className="text-muted-foreground">Material:</p>
+                            <p className="font-medium">{MATERIAL_LABELS[order.material] || order.material}</p>
+                          </div>
+                        )}
+                        {order.printSize && (
+                          <div>
+                            <p className="text-muted-foreground">Size:</p>
+                            <p className="font-medium">{PRINT_SIZE_LABELS[order.printSize] || order.printSize}</p>
+                          </div>
+                        )}
+                        {order.printWidth && order.printHeight && (
+                          <div>
+                            <p className="text-muted-foreground">Dimensions:</p>
+                            <p className="font-medium">
+                              {order.printWidth} × {order.printHeight} cm
+                            </p>
+                          </div>
+                        )}
+                        {order.orientation && (
+                          <div>
+                            <p className="text-muted-foreground">Orientation:</p>
+                            <p className="font-medium capitalize">{order.orientation}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Cart-based order items */}
+                {order.items && order.items.length > 0 && (
+                  <div className="space-y-4">
+                    {order.items.map((item: OrderItem) => (
+                      <div key={item.id} className="flex gap-4 items-start">
+                        <div className="w-20 h-20 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+                          {item.product?.images?.[0]?.imageUrl ? (
+                            <img
+                              src={item.product.images[0].imageUrl}
+                              alt={item.product?.name || 'Product'}
+                              className="max-w-full max-h-full object-cover"
+                            />
+                          ) : (
+                            <div className="text-muted-foreground text-xs">No image</div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium">{item.product?.name || 'Product'}</h4>
+                          {item.variant?.name && (
+                            <p className="text-sm text-muted-foreground">{item.variant.name}</p>
+                          )}
+                          <div className="flex justify-between mt-1">
+                            <span className="text-sm text-muted-foreground">Qty: {item.quantity}</span>
+                            <span className="font-medium">£{Number(item.totalPrice).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 
@@ -207,7 +246,7 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal:</span>
-                    <span>£{order.totalPrice.toFixed(2)}</span>
+                    <span>£{Number(order.totalPrice).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Shipping:</span>
@@ -216,7 +255,7 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
                   <Separator />
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total:</span>
-                    <span className="text-primary">£{order.totalPrice.toFixed(2)}</span>
+                    <span className="text-primary">£{Number(order.totalPrice).toFixed(2)}</span>
                   </div>
                 </div>
               </CardContent>

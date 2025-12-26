@@ -109,12 +109,16 @@ function ConfirmationContent() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-lg">{order.design.name}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {MATERIAL_LABELS[order.material]} • {PRINT_SIZE_LABELS[order.printSize]}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {order.printWidth} × {order.printHeight} cm
-                  </p>
+                  {(order.material || order.printSize) && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {order.material && MATERIAL_LABELS[order.material]}{order.material && order.printSize && ' • '}{order.printSize && PRINT_SIZE_LABELS[order.printSize]}
+                    </p>
+                  )}
+                  {order.printWidth && order.printHeight && (
+                    <p className="text-sm text-muted-foreground">
+                      {order.printWidth} × {order.printHeight} cm
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -171,7 +175,7 @@ function ConfirmationContent() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal:</span>
-                <span>£{order.totalPrice.toFixed(2)}</span>
+                <span>£{Number(order.totalPrice).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Shipping:</span>
@@ -180,7 +184,7 @@ function ConfirmationContent() {
               <Separator />
               <div className="flex justify-between text-lg font-bold">
                 <span>Total:</span>
-                <span className="text-primary">£{order.totalPrice.toFixed(2)}</span>
+                <span className="text-primary">£{Number(order.totalPrice).toFixed(2)}</span>
               </div>
             </div>
           </CardContent>

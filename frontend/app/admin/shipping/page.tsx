@@ -265,8 +265,9 @@ function AdminShippingContent() {
                           Order #{order.id.slice(0, 8).toUpperCase()}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          {order.design?.name || 'Design'} • {MATERIAL_LABELS[order.material]} •{' '}
-                          {PRINT_SIZE_LABELS[order.printSize]}
+                          {order.design?.name || 'Product Order'}
+                          {order.material && ` • ${MATERIAL_LABELS[order.material] || order.material}`}
+                          {order.printSize && ` • ${PRINT_SIZE_LABELS[order.printSize] || order.printSize}`}
                         </p>
                       </div>
                       <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/50 border">

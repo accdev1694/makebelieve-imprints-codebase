@@ -252,7 +252,7 @@ function AdminDashboardContent() {
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold truncate">{order.design?.name || 'Design'}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {order.shippingAddress.name} • £{order.totalPrice.toFixed(2)}
+                        {order.shippingAddress.name} • £{Number(order.totalPrice).toFixed(2)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(order.createdAt).toLocaleDateString('en-GB')}

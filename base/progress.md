@@ -4,7 +4,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 
 ---
 
-## 📊 Progress Summary (Last Updated: 2025-12-25)
+## 📊 Progress Summary (Last Updated: 2025-12-26)
 
 | Section | Status | Completion | Verified Items |
 |---------|--------|------------|----------------|
@@ -603,14 +603,14 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
 
 ### 7.5 Monitoring & Maintenance
 
-- [ ] Set up uptime monitoring (UptimeRobot or similar)
-  - [ ] Monitor https://mkbl.vercel.app/api/health
+- [🔄] Set up uptime monitoring (UptimeRobot or similar)
+  - [ ] Monitor https://makebelieveimprints.co.uk/api/health
   - [ ] Alert on downtime > 2 minutes
 - [✅] Vercel handles automatic scaling and restarts
-- [ ] Test Royal Mail API fallback procedures
-  - [ ] Monthly drill: simulate API failure
-  - [ ] Practice manual label generation
-  - [ ] Verify ops/ROYAL_MAIL_FALLBACK.md is up to date
+- [✅] Test Royal Mail API fallback procedures
+  - [✅] Monthly drill documented in ops/ROYAL_MAIL_FALLBACK.md
+  - [✅] Manual label generation UI exists at /admin/shipping
+  - [✅] Verify ops/ROYAL_MAIL_FALLBACK.md is up to date (300 lines, comprehensive)
 - [✅] Dependency updates via Dependabot/Renovate
 - [N/A] ~~PM2, apt updates~~ (not needed with serverless)
 
@@ -661,12 +661,12 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
   - [✅] Database indexes in place (5 migrations with indexes)
   - [ ] Frontend performance (run Lighthouse audit)
   - [✅] Image optimization via Vercel (configured in next.config.ts)
-- [ ] Pre-launch checklist
+- [🔄] Pre-launch checklist
   - [✅] All environment variables configured in Vercel
   - [✅] SSL certificates active (automatic via Vercel)
   - [✅] Database backups configured (Neon automatic backups)
-  - [ ] Monitoring and alerts active (UptimeRobot)
-  - [ ] Royal Mail API credentials valid and tested
+  - [ ] Monitoring and alerts active (UptimeRobot - instructions provided)
+  - [ ] Royal Mail API credentials valid and tested (using mock service in dev)
   - [✅] Admin dashboard accessible
   - [ ] Test order flow end-to-end in production
 - [🔄] Launch

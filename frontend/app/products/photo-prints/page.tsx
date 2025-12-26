@@ -38,13 +38,18 @@ export default function PhotoPrintsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const retry = () => setRetryCount((c) => c + 1);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
+        setError(null);
         const featured = await productsService.list({
           category: CATEGORY,
           featured: true,
@@ -61,15 +66,15 @@ export default function PhotoPrintsPage() {
         });
         setProducts(all.products);
         setTotalPages(all.pagination.totalPages);
-      } catch (error) {
-        console.error('Failed to fetch products:', error);
+      } catch {
+        setError('Failed to load products. Please try again.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [page]);
+  }, [page, retryCount]);
 
   return (
     <main className="min-h-screen bg-background">
@@ -126,6 +131,13 @@ export default function PhotoPrintsPage() {
               {[...Array(8)].map((_, i) => (
                 <ProductCardSkeleton key={i} />
               ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-destructive mb-4">{error}</p>
+              <Button onClick={retry} variant="outline">
+                Try Again
+              </Button>
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-12">

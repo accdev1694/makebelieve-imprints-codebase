@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ordersService, Order, ORDER_STATUS_LABELS, OrderStatus } from '@/lib/api/orders';
+import { ordersService, Order, OrderItem, ORDER_STATUS_LABELS, OrderStatus } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -268,7 +268,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
             {/* Cart-based order items */}
             {order.items && order.items.length > 0 && (
               <div className="space-y-4">
-                {order.items.map((item: any) => (
+                {order.items.map((item: OrderItem) => (
                   <div key={item.id} className="flex gap-4 items-start">
                     <div className="w-20 h-20 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
                       {item.product?.images?.[0]?.imageUrl ? (
@@ -278,6 +278,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                           fill
                           sizes="80px"
                           className="object-cover"
+                          unoptimized
                         />
                       ) : (
                         <div className="text-muted-foreground text-xs">No image</div>

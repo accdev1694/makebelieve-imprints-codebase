@@ -12,20 +12,37 @@ export type OrderStatus = SharedOrderStatus | 'payment_confirmed';
 // Re-export shipping address from shared
 export type ShippingAddress = SharedShippingAddress;
 
+export interface OrderItem {
+  id: string;
+  quantity: number;
+  unitPrice: number | string;
+  totalPrice: number | string;
+  customization?: Record<string, unknown>;
+  product?: {
+    id: string;
+    name: string;
+    images?: { imageUrl: string }[];
+  };
+  variant?: {
+    id: string;
+    name: string;
+  };
+}
+
 export interface Order {
   id: string;
   customerId: string;
-  designId: string;
-  printSize: PrintSize;
-  material: Material;
-  orientation: Orientation;
-  printWidth: number;
-  printHeight: number;
-  previewUrl?: string;
+  designId?: string | null;
+  printSize?: PrintSize | null;
+  material?: Material | null;
+  orientation?: Orientation | null;
+  printWidth?: number | null;
+  printHeight?: number | null;
+  previewUrl?: string | null;
   shippingAddress: ShippingAddress;
-  totalPrice: number;
+  totalPrice: number | string;
   status: OrderStatus;
-  trackingNumber?: string;
+  trackingNumber?: string | null;
   createdAt: string;
   updatedAt: string;
   design?: {
@@ -33,7 +50,8 @@ export interface Order {
     name: string;
     imageUrl: string;
     previewUrl?: string;
-  };
+  } | null;
+  items?: OrderItem[];
 }
 
 export interface OrderItemData {

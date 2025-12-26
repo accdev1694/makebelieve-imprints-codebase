@@ -28,7 +28,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
         items: {
           include: {
-            product: true,
+            product: {
+              include: {
+                images: true,
+              },
+            },
             variant: true,
             design: true,
           },

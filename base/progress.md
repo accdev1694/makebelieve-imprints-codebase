@@ -16,7 +16,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 | 6. Shared Code | ✅ Complete | 100% | Types migrated, backend uses shared constants |
 | 7. Infrastructure & DevOps | ✅ Complete | 100% | Vercel+CORS+domain+R2 storage done |
 | 8. Documentation | ✅ Complete | 100% | OpenAPI 3.0 spec created (docs/openapi.yaml) |
-| 9. QA & Launch | 🔄 In Progress | 80% | Load tests + Lighthouse complete, ready for launch |
+| 9. QA & Launch | 🔄 In Progress | 90% | Security audit + Load tests + Lighthouse complete |
 
 **Overall Progress: ~95%**
 
@@ -654,14 +654,24 @@ Instead of static export, the mobile app uses a **WebView** that loads the produ
 - [🔄] Pass all integration and E2E tests
   - [N/A] Run `npm test` in backend (superseded by Next.js API routes)
   - [✅] Run `npm test` in frontend and verify all pass (44 passed)
-  - [ ] Run `npx cypress run` and verify E2E tests pass (requires CI or display environment)
-- [🔄] Conduct security audit
+  - [ ] Run `npx cypress run` and verify E2E tests pass
+    - Cypress requires browser libraries not available in WSL
+    - Run locally: `npm run cypress:headless` or in browser: `npm run cypress`
+    - Or configure GitHub Actions CI with Cypress
+- [✅] Conduct security audit
   - [✅] Input validation on API endpoints (Zod schemas in backend, validation in frontend API routes)
   - [✅] Rate limiting configured (backend/src/middleware/rate-limit.middleware.ts exists)
   - [✅] JWT authentication implemented (lib/server/jwt.ts, auth.ts)
   - [✅] File upload validation (type/size checks in upload routes)
   - [✅] CORS audit (frontend/middleware.ts - production domains, mobile origins, security headers)
-  - [ ] Penetration testing
+  - [✅] Penetration testing completed:
+    - SQL Injection: PROTECTED (parameterized queries via Prisma)
+    - XSS in search: PROTECTED (no script execution)
+    - Path traversal: BLOCKED by Vercel
+    - Auth bypass: PROTECTED (returns 401 for unauthenticated requests)
+    - NoSQL injection: N/A (PostgreSQL) - returns error, no data leak
+    - .env exposure: PROTECTED (returns 404)
+    - Security headers: All present (HSTS, X-Frame-Options, X-XSS-Protection, X-Content-Type-Options)
 - [✅] Performance testing and optimization
   - [✅] Load test API endpoints completed:
     - Health endpoint: 337 req/sec @ 100 concurrent (286ms avg latency)

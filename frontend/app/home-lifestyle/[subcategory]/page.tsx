@@ -7,8 +7,9 @@ interface PageProps {
 }
 
 // Required for static export - returns empty array for client-side routing
+
 export function generateStaticParams() {
-  return [];
+  return [{ subcategory: "__placeholder__" }];
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

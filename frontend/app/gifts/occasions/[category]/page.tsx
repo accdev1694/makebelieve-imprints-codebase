@@ -1,8 +1,9 @@
 import OccasionPageClient from './OccasionPageClient';
 
 // Required for static export - returns empty array for client-side routing
+
 export function generateStaticParams() {
-  return [];
+  return [{ category: "__placeholder__" }];
 }
 
 export default function OccasionPage() {

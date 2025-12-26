@@ -6,8 +6,9 @@ interface PageProps {
 }
 
 // Required for static export - returns empty array for client-side routing
+
 export function generateStaticParams() {
-  return [];
+  return [{ id: "__placeholder__" }];
 }
 
 export default function ProductDetailPage({ params }: PageProps) {

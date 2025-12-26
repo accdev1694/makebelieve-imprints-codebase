@@ -12,7 +12,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 | 2. Backend Setup | ✅ Complete | 100% | All routes, services, tests exist |
 | 3. Frontend Setup | ✅ Complete | 100% | 36 pages, 13 component folders, 8 tests |
 | 4. Product Catalog & E-Commerce | ✅ Complete | 100% | All 5 phases complete |
-| 5. Mobile App (Capacitor) | 🔄 In Progress | 70% | Platforms exist, not tested/submitted |
+| 5. Mobile App (Capacitor) | 🔄 In Progress | 85% | WebView approach configured, ready for device testing |
 | 6. Shared Code | ✅ Complete | 100% | Types migrated, backend uses shared constants |
 | 7. Infrastructure & DevOps | ✅ Complete | 100% | Vercel+CORS+domain+R2 storage done |
 | 8. Documentation | ✅ Complete | 100% | OpenAPI 3.0 spec created (docs/openapi.yaml) |
@@ -457,18 +457,23 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
 
 ## 5. Mobile App (Capacitor)
 
-> **Verified:** Capacitor 8.0.0 configured. iOS and Android platform folders exist with native project files.
+> **Verified:** Capacitor 8.0.0 configured with WebView approach. iOS and Android platform folders exist with native project files.
+
+### Architecture Decision: WebView Approach (December 2025)
+Instead of static export, the mobile app uses a **WebView** that loads the production website directly (`https://makebelieveimprints.co.uk`). This approach:
+- Eliminates Next.js 15 static export complexity with dynamic routes
+- Ensures the mobile app always matches the web version
+- Simplifies maintenance (one codebase, one deployment)
+- Native features (camera, push notifications) still available via Capacitor plugins
 
 - [✅] Configure responsive design for mobile, tablet, and desktop
   - [✅] Tailwind responsive breakpoints (sm, md, lg, xl) used throughout
   - [ ] Test on actual devices (not just browser DevTools)
   - [✅] Ensure touch-friendly UI (button sizes, spacing)
-- [✅] Configure Next.js for static export (`output: 'export'`)
-  - [✅] BUILD_TARGET=mobile triggers static export mode (next.config.ts:4-8)
-  - [✅] Trailing slashes enabled for static compatibility
-  - [✅] Image optimization disabled for static builds
-  - [✅] Verify all features work without SSR/ISR
-  - [✅] Use client-side rendering and backend API for dynamic data
+- [✅] Configure mobile app approach
+  - [✅] WebView loads production site directly (capacitor.config.ts)
+  - [✅] `npm run build:mobile` syncs Capacitor config to native projects
+  - [✅] No static export needed - simpler architecture
 - [✅] Install and configure Capacitor 8.x
   - [✅] capacitor.config.ts with full iOS/Android configuration (verified: 53 lines)
   - [✅] SplashScreen, StatusBar, Camera, PushNotifications, Filesystem plugins configured

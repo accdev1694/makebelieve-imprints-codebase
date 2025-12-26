@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     // Parse query parameters
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const limit = parseInt(searchParams.get('limit') || '12', 10);
     const categoryId = searchParams.get('categoryId');
     const categorySlug = searchParams.get('categorySlug');
     const category = searchParams.get('category'); // Legacy enum (HOME_LIFESTYLE, STATIONERY, etc.)

@@ -76,8 +76,7 @@ export function SubcategoryPage({ categorySlug, subcategorySlug }: SubcategoryPa
         } else {
           setSubcategory(foundSubcategory);
         }
-      } catch (err) {
-        console.error('Failed to fetch category data:', err);
+      } catch {
         setError('Category not found');
       } finally {
         setDataLoading(false);
@@ -125,8 +124,8 @@ export function SubcategoryPage({ categorySlug, subcategorySlug }: SubcategoryPa
       setProducts(response.products);
       setTotalPages(response.pagination.totalPages);
       setTotal(response.pagination.total);
-    } catch (err) {
-      console.error('Failed to fetch products:', err);
+    } catch {
+      setError('Failed to load products. Please try again.');
     } finally {
       setProductsLoading(false);
     }

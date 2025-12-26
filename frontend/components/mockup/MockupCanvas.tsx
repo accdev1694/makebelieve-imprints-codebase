@@ -207,8 +207,7 @@ export function MockupCanvas({
       }
 
       setIsLoading(false);
-    } catch (err) {
-      console.error('Mockup render error:', err);
+    } catch {
       setError('Failed to generate mockup');
       setIsLoading(false);
     }

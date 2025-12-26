@@ -41,7 +41,6 @@ export default function RegisterPage() {
         userType: 'CUSTOMER', // Default to customer
       });
     } catch (err: any) {
-      console.error('Registration error:', err);
       // Handle different error formats from the API
       let errorMessage = 'Registration failed. Please try again.';
 

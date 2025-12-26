@@ -92,8 +92,7 @@ export default function Home() {
         try {
           const categoriesData = await categoriesService.list({ includeSubcategories: true });
           setCategories(categoriesData.length > 0 ? categoriesData : fallbackCategories);
-        } catch (catError) {
-          console.error('Failed to fetch categories, using fallback:', catError);
+        } catch {
           setCategories(fallbackCategories);
         }
 
@@ -107,8 +106,8 @@ export default function Home() {
             sortOrder: 'desc',
           });
           setBestsellers(featuredData.products);
-        } catch (err) {
-          console.error('Failed to fetch bestsellers:', err);
+        } catch {
+          // Silently fail - section will just be empty
         }
 
         // Fetch new arrivals (sorted by creation date)
@@ -120,12 +119,11 @@ export default function Home() {
             sortOrder: 'desc',
           });
           setNewArrivals(newData.products);
-        } catch (err) {
-          console.error('Failed to fetch new arrivals:', err);
+        } catch {
+          // Silently fail - section will just be empty
         }
 
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
+      } catch {
         // Ensure fallback categories are set even on complete failure
         if (categories.length === 0) {
           setCategories(fallbackCategories);

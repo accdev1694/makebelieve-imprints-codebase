@@ -35,6 +35,7 @@ function TemplatesPageContent() {
   // Data state
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -47,6 +48,7 @@ function TemplatesPageContent() {
   const fetchTemplates = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await templatesService.list({
         page,
         limit: 12,
@@ -59,8 +61,8 @@ function TemplatesPageContent() {
       setTemplates(response.templates);
       setTotalPages(response.pagination.totalPages);
       setTotal(response.pagination.total);
-    } catch (error) {
-      console.error('Failed to fetch templates:', error);
+    } catch {
+      setError('Failed to load templates. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -269,6 +271,13 @@ function TemplatesPageContent() {
                 {[...Array(6)].map((_, i) => (
                   <TemplateCardSkeleton key={i} />
                 ))}
+              </div>
+            ) : error ? (
+              <div className="text-center py-16">
+                <Palette className="h-12 w-12 mx-auto text-destructive mb-4" />
+                <h3 className="text-lg font-medium mb-2">Something went wrong</h3>
+                <p className="text-muted-foreground mb-4">{error}</p>
+                <Button onClick={fetchTemplates}>Try Again</Button>
               </div>
             ) : templates.length === 0 ? (
               <div className="text-center py-16">

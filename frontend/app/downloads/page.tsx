@@ -62,8 +62,7 @@ function DownloadsContent() {
       setLoading(true);
       const response = await apiClient.get('/orders/user/downloads');
       setDownloads(response.data.data.downloads);
-    } catch (err: any) {
-      console.error('Failed to fetch downloads:', err);
+    } catch {
       setError('Failed to load downloads. Please try again.');
     } finally {
       setLoading(false);
@@ -78,8 +77,7 @@ function DownloadsContent() {
 
       // Open download in new tab
       window.open(linkData.downloadUrl, '_blank');
-    } catch (err: any) {
-      console.error('Failed to generate download link:', err);
+    } catch {
       alert('Failed to generate download link. Please try again.');
     } finally {
       setDownloadingItemId(null);

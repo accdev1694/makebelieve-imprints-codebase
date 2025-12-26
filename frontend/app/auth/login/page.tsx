@@ -22,7 +22,6 @@ export default function LoginPage() {
     try {
       await login({ email, password });
     } catch (err: any) {
-      console.error('Login error:', err);
       // Handle different error formats from the API
       let errorMessage = 'Login failed. Please check your credentials.';
 

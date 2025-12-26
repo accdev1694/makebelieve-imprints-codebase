@@ -140,15 +140,6 @@ function DesignEditorContent() {
       // Redirect to designs gallery
       router.push('/design/my-designs');
     } catch (err: any) {
-      console.error('Save design error:', {
-        message: err?.message,
-        statusCode: err?.statusCode,
-        error: err?.error,
-        data: err?.data,
-        validationErrors: err?.data?.error?.errors || err?.error?.errors,
-        fullError: err,
-      });
-
       // Extract error message from various possible formats
       let errorMessage = 'Failed to save design. Please try again.';
 

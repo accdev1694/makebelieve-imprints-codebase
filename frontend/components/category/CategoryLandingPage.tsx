@@ -39,8 +39,7 @@ export function CategoryLandingPage({
         const categoryData = await categoriesService.get(categorySlug);
         setCategory(categoryData);
         setSubcategories(categoryData.subcategories || []);
-      } catch (err) {
-        console.error('Failed to fetch category:', err);
+      } catch {
         setError('Category not found');
       } finally {
         setLoading(false);
@@ -66,8 +65,8 @@ export function CategoryLandingPage({
           sortOrder: 'desc',
         });
         setFeaturedProducts(response.products);
-      } catch (err) {
-        console.error('Failed to fetch products:', err);
+      } catch {
+        // Silently fail - featured products section will just be empty
       } finally {
         setProductsLoading(false);
       }

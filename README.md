@@ -5,9 +5,10 @@ Single-printer custom print service platform with mobile apps.
 ## Architecture
 
 - **Frontend:** Next.js 15 + React + Tailwind CSS (Vercel)
-- **Backend:** Node.js 22 + Express + Prisma (IONOS VPS)
-- **Database:** PostgreSQL 16 (Neon free tier → IONOS Managed)
-- **Storage:** S3-compatible Object Storage (Cloudflare R2 → IONOS)
+- **Backend:** Next.js API Routes (Vercel Serverless)
+- **Database:** PostgreSQL 16 (Neon)
+- **Storage:** S3-compatible Object Storage (Cloudflare R2)
+- **Domain:** IONOS (DNS only)
 - **Mobile:** Capacitor 6 for iOS/Android app stores
 
 ## Development Cost
@@ -20,9 +21,9 @@ See `base/COST_OPTIMIZATION.md` for detailed strategy.
 ## Tech Stack
 
 - **Frontend:** Next.js 15, React 18, TypeScript 5, Tailwind CSS 3
-- **Backend:** Express 4, Prisma 6, JWT authentication
+- **Backend:** Next.js API Routes, Prisma 6, JWT authentication
 - **Mobile:** Capacitor 6 (iOS/Android native apps)
-- **Deployment:** Vercel (frontend) + IONOS VPS (backend)
+- **Deployment:** Vercel (frontend + API)
 
 ## Project Structure
 
@@ -37,16 +38,11 @@ mkbl/
 │   ├── COST_OPTIMIZATION.md
 │   ├── epic-1.md through epic-5.md
 │   └── mood.md
-├── ops/                    # Deployment & operations
-│   ├── deploy.sh
-│   ├── DEPLOYMENT.md
-│   ├── ROYAL_MAIL_FALLBACK.md
-│   ├── nginx-site.conf
-│   └── pm2.ecosystem.config.js
-├── .github/workflows/      # CI/CD pipelines
-│   └── deploy-ionos.yml
-├── frontend/               # Next.js app (TBD)
-└── backend/                # Express API (TBD)
+├── ops/                    # Operations docs
+│   └── ROYAL_MAIL_FALLBACK.md
+├── frontend/               # Next.js app + API routes
+│   └── app/api/            # Serverless API endpoints
+└── shared/                 # Shared types between frontend/backend
 ```
 
 ## Documentation
@@ -62,11 +58,8 @@ mkbl/
 - `base/mood.md` - Design system (colors, typography, brand)
 
 ### Operations
-- `ops/DEPLOYMENT.md` - Complete deployment guide (Vercel + IONOS)
 - `ops/ROYAL_MAIL_FALLBACK.md` - Royal Mail API fallback procedures
-- `ops/deploy.sh` - Backend deployment script
-- `ops/nginx-site.conf` - Nginx reverse proxy configuration
-- `ops/pm2.ecosystem.config.js` - PM2 process management
+- `frontend/VERCEL_SETUP.md` - Vercel deployment guide
 
 ## Development Setup (Coming Soon)
 
@@ -82,10 +75,10 @@ See `base/COST_OPTIMIZATION.md` for free tier service setup (Vercel, Railway, Ne
 
 ## Key Decisions
 
-✅ **Vercel + IONOS split architecture** (55-70% cheaper at scale)
+✅ **Vercel-only deployment** (frontend + API on free tier)
 ✅ **Capacitor-only mobile strategy** (no PWA)
 ✅ **JWT authentication** (stateless, no sessions)
-✅ **Free tier development** ($0/month for months 1-4)
+✅ **Free tier development** ($0/month)
 ✅ **Pragmatic testing** (60%+ coverage on critical paths)
 
 ## Success Metrics

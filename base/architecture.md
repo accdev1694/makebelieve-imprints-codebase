@@ -23,19 +23,18 @@ This document outlines the software architecture for MakeBelieve Imprints, a sin
 
 ## 4. Backend Architecture
 
-- **Framework:** Express.js running on Node.js provides a robust and scalable foundation for the RESTful API.
+- **Framework:** Next.js API Routes provide serverless functions for the RESTful API, deployed on Vercel.
 - **Language:** TypeScript is used for type safety and consistency with the frontend.
 - **Database Interaction:** Prisma is used as the Object-Relational Mapper (ORM) to interact with the PostgreSQL database, simplifying database operations and ensuring data integrity.
 - **Key Components:**
-  - **`src/routes/`:** Defines the API endpoints for handling user authentication, orders, designs, financial operations, and other resources.
-  - **`src/services/`:** Contains the core business logic, including:
-    - Payment processing (Stripe, PayPal integration)
+  - **`app/api/`:** Defines the API endpoints for handling user authentication, orders, designs, financial operations, and other resources.
+  - **`lib/services/`:** Contains the core business logic, including:
+    - Payment processing (Stripe integration)
     - Royal Mail service for shipping and tracking
     - Invoice generation with VAT calculations
     - Financial reporting and analytics
     - Inventory management
-    - Google search integration for procurement
-  - **`src/middleware/`:** Includes middleware for authentication, input validation, and error handling.
+  - **`lib/middleware/`:** Includes middleware for authentication, input validation, and error handling.
   - **`prisma/`:** Holds the database schema and migration files.
 
 ## 5. Personalization and Templates
@@ -97,8 +96,7 @@ This document outlines the software architecture for MakeBelieve Imprints, a sin
 **File Storage:**
 - **Platform:** Cloudflare R2 (Free) OR Local filesystem
   - R2: 10GB/month free, S3-compatible API
-  - Local: Store uploads in `backend/uploads/` directory during development
-- **Migration:** Easy switch to IONOS S3 when ready (same S3 API)
+  - Local: Store uploads in `frontend/uploads/` directory during development
 
 **Royal Mail API:**
 - **Mock service** during development (return fake tracking numbers)
@@ -112,56 +110,39 @@ This document outlines the software architecture for MakeBelieve Imprints, a sin
 
 ---
 
-### 7.2 Production Environment (Cost: €25-50/month)
+### 7.2 Production Environment (Cost: $0-20/month)
 
-**Frontend Hosting:**
+**Full-Stack Hosting (Vercel):**
 - **Platform:** Vercel Hobby (Free) or Pro ($20/month)
-- **Deployment:** Automatic deployment from GitHub on push to main branch
+- **Frontend:** Next.js with SSR/SSG, automatic deployment from GitHub
+- **Backend:** Next.js API Routes (serverless functions in `app/api/`)
 - **Features:** Global CDN, automatic image optimization, edge functions, zero-config SSL
-- **Environment:** Configure backend API URL via environment variables
-- **Custom Domain:** Requires Vercel Pro or use DNS configuration
-
-**Backend Hosting:**
-- **Platform:** IONOS Cloud VPS
-- **Specs:** Start with 2 vCPU, 4GB RAM (€10/month), scale as needed
-- **Process Management:** PM2 for Node.js process management
-- **Reverse Proxy:** Nginx for SSL termination and request routing
-- **Deployment:** GitHub Actions SSH deployment (build → archive → SCP → restart)
+- **Custom Domain:** IONOS DNS pointing to Vercel (domain from IONOS)
 
 **Database:**
-- **Platform:** IONOS Managed PostgreSQL
-- **Specs:** Start with Starter plan (€10/month), scale vertically as database grows
-- **Backups:** Automated daily backups (managed service)
-- **Access:** Direct connection from backend VPS (private network preferred)
+- **Platform:** Neon Serverless Postgres (Free tier or paid)
+- **Storage:** 512MB free, scales as needed
+- **Features:** Serverless with autosuspend, database branching
+- **Backups:** Automated by Neon
 
 **File Storage:**
-- **Platform:** IONOS Object Storage (S3-compatible)
+- **Platform:** Cloudflare R2 (S3-compatible)
 - **Usage:** User-uploaded designs, generated previews, order assets
-- **Access:** Direct uploads/downloads via signed URLs from backend API
-- **Cost:** €5/month base + usage
-- **No syncing:** Use IONOS Object Storage as single source of truth
+- **Access:** Direct uploads/downloads via signed URLs from API routes
+- **Cost:** 10GB/month free, then usage-based
 
 **CI/CD:**
-- **Frontend:** Vercel auto-deployment (no GitHub Actions needed)
-- **Backend:** GitHub Actions workflow for building and deploying to IONOS VPS
+- **Deployment:** Vercel auto-deployment from GitHub (no GitHub Actions needed)
+- **Preview Deployments:** Automatic for each PR
 
 **Operational Notes:**
-- **Simplicity first**: Single VPS with PM2 (no Kubernetes) is sufficient for single-printer scale
-- **Monitoring**: Basic uptime monitoring (UptimeRobot or similar), application logs via PM2
-- **Backups**: Database backups managed by IONOS, object storage versioning enabled
-- **Scaling**: Frontend scales automatically via Vercel. Backend can scale vertically (larger VPS) or horizontally (multiple VPS + load balancer) when needed
+- **Simplicity first**: Single Vercel project handles frontend + API
+- **Monitoring**: Vercel Analytics, application logs via Vercel dashboard
+- **Scaling**: Vercel handles scaling automatically (serverless)
 
 **Cost Comparison:**
-- Development (Months 1-4): $0/month (all free tiers)
-- Pre-launch Testing (Month 5): €25/month (IONOS services)
-- Production Launch (Month 6+): €40-50/month (add domain + optional Vercel Pro)
-
-**Why Split Architecture (Vercel + IONOS):**
-- 55-70% cheaper than all-Vercel serverless at scale
-- Better for Capacitor mobile apps (static export required)
-- No timeout limits for Royal Mail API integration
-- Predictable monthly costs (no surprise bills from traffic spikes)
-- See `base/COST_OPTIMIZATION.md` for detailed analysis
+- Development: $0/month (all free tiers)
+- Production: $0-20/month (Vercel free or Pro + domain)
 
 ## 8. Security
 
@@ -223,7 +204,7 @@ To provide native iOS and Android apps available on the App Store and Google Pla
 
 **Limitations:**
 - Next.js static export means no server-side rendering or incremental static regeneration
-- API calls must go to backend API (deployed on IONOS) for dynamic data
+- API calls must go to Vercel API routes for dynamic data
 - Larger app bundle size compared to pure native apps
 
 **Benefits:**

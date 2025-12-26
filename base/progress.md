@@ -37,7 +37,7 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
 - ✅ Shopping cart (CartContext.tsx) and checkout flow (/checkout)
 - ✅ Order management (/orders, /admin/orders) and tracking (/track)
 - ✅ Royal Mail shipping integration (mock + production services in backend/src/services/)
-- ✅ Admin dashboard (/admin with orders, customers, shipping, categories)
+- ✅ Admin dashboard (/admin with orders, customers, shipping, categories, products)
 - ✅ Capacitor 8.0.0 configured with iOS/Android platforms initialized
 - ✅ Native hooks: useCamera, useFilesystem, usePushNotifications
 - ✅ Shared types (413 lines) and constants (270 lines) in @mkbl/shared
@@ -687,5 +687,7 @@ The backend has been migrated from a planned IONOS VPS deployment to **Vercel se
 - [ ] Not started
 - [ ] In progress
 - [ ] Completed
+
+always start executing from the top of the file, only the steps or tasks that are not yet completed, until we complete the entire list.
 
 Update this file as you progress through each step.

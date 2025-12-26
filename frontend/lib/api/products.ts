@@ -17,11 +17,16 @@ export type { Category, Subcategory };
 export interface ProductImage {
   id: string;
   productId: string;
+  variantId?: string | null;
   imageUrl: string;
   altText?: string;
   displayOrder: number;
   isPrimary: boolean;
   createdAt: string;
+  variant?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface ProductVariant {
@@ -160,6 +165,92 @@ export interface FiltersResponse {
   };
 }
 
+// ============================================
+// Admin Data Types
+// ============================================
+
+export interface CreateProductData {
+  name: string;
+  slug: string;
+  description: string;
+  categoryId: string;
+  subcategoryId?: string;
+  legacyCategory: ProductCategory;
+  legacyProductType: ProductType;
+  customizationType: CustomizationType;
+  basePrice: number;
+  currency?: string;
+  status?: ProductStatus;
+  featured?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface UpdateProductData {
+  name?: string;
+  slug?: string;
+  description?: string;
+  categoryId?: string;
+  subcategoryId?: string | null;
+  legacyCategory?: ProductCategory;
+  legacyProductType?: ProductType;
+  customizationType?: CustomizationType;
+  basePrice?: number;
+  currency?: string;
+  status?: ProductStatus;
+  featured?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface CreateVariantData {
+  name: string;
+  sku?: string;
+  size?: string;
+  material?: string;
+  color?: string;
+  finish?: string;
+  dimensions?: Record<string, any>;
+  price: number;
+  stock?: number;
+  isDefault?: boolean;
+  metadata?: Record<string, any>;
+}
+
+export interface UpdateVariantData {
+  name?: string;
+  sku?: string;
+  size?: string;
+  material?: string;
+  color?: string;
+  finish?: string;
+  dimensions?: Record<string, any>;
+  price?: number;
+  stock?: number;
+  isDefault?: boolean;
+  metadata?: Record<string, any>;
+}
+
+export interface CreateImageData {
+  imageUrl: string;
+  altText?: string;
+  variantId?: string;
+  displayOrder?: number;
+  isPrimary?: boolean;
+}
+
+export interface UpdateImageData {
+  imageUrl?: string;
+  altText?: string;
+  variantId?: string | null;
+  displayOrder?: number;
+  isPrimary?: boolean;
+}
+
 /**
  * Products Service
  * Handles all product-related API calls
@@ -242,6 +333,138 @@ export const productsService = {
   async getTemplates(productId: string): Promise<ProductTemplate[]> {
     const response = await apiClient.get<ProductTemplate[]>(
       `/products/${productId}/templates`
+    );
+    return response.data;
+  },
+
+  // ============================================
+  // Admin Methods
+  // ============================================
+
+  /**
+   * Create a new product (Admin only)
+   */
+  async create(data: CreateProductData): Promise<Product> {
+    const response = await apiClient.post<Product>('/products', data);
+    return response.data;
+  },
+
+  /**
+   * Update a product (Admin only)
+   */
+  async update(id: string, data: UpdateProductData): Promise<Product> {
+    const response = await apiClient.put<Product>(`/products/${id}`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete a product (Admin only)
+   */
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(`/products/${id}`);
+  },
+
+  // ============================================
+  // Variant Methods
+  // ============================================
+
+  /**
+   * List all variants for a product
+   */
+  async listVariants(productId: string): Promise<ProductVariant[]> {
+    const response = await apiClient.get<ProductVariant[]>(
+      `/products/${productId}/variants`
+    );
+    return response.data;
+  },
+
+  /**
+   * Create a variant (Admin only)
+   */
+  async createVariant(productId: string, data: CreateVariantData): Promise<ProductVariant> {
+    const response = await apiClient.post<ProductVariant>(
+      `/products/${productId}/variants`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Update a variant (Admin only)
+   */
+  async updateVariant(
+    productId: string,
+    variantId: string,
+    data: UpdateVariantData
+  ): Promise<ProductVariant> {
+    const response = await apiClient.put<ProductVariant>(
+      `/products/${productId}/variants/${variantId}`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Delete a variant (Admin only)
+   */
+  async deleteVariant(productId: string, variantId: string): Promise<void> {
+    await apiClient.delete(`/products/${productId}/variants/${variantId}`);
+  },
+
+  // ============================================
+  // Image Methods
+  // ============================================
+
+  /**
+   * List all images for a product
+   */
+  async listImages(productId: string): Promise<ProductImage[]> {
+    const response = await apiClient.get<ProductImage[]>(
+      `/products/${productId}/images`
+    );
+    return response.data;
+  },
+
+  /**
+   * Add an image to a product (Admin only)
+   */
+  async addImage(productId: string, data: CreateImageData): Promise<ProductImage> {
+    const response = await apiClient.post<ProductImage>(
+      `/products/${productId}/images`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Update an image (Admin only)
+   */
+  async updateImage(
+    productId: string,
+    imageId: string,
+    data: UpdateImageData
+  ): Promise<ProductImage> {
+    const response = await apiClient.put<ProductImage>(
+      `/products/${productId}/images/${imageId}`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Delete an image (Admin only)
+   */
+  async deleteImage(productId: string, imageId: string): Promise<void> {
+    await apiClient.delete(`/products/${productId}/images/${imageId}`);
+  },
+
+  /**
+   * Reorder images (Admin only)
+   */
+  async reorderImages(productId: string, imageIds: string[]): Promise<ProductImage[]> {
+    const response = await apiClient.patch<ProductImage[]>(
+      `/products/${productId}/images`,
+      { imageIds }
     );
     return response.data;
   },

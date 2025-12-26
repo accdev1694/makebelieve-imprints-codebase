@@ -41,7 +41,7 @@ export default function ProductDetailClient({ productId }: ProductDetailClientPr
             ? productData.category
             : productData.category.slug;
           const related = await productsService.list({
-            category: categorySlug as ProductCategory,
+            categorySlug: categorySlug,
             limit: 4,
             status: 'ACTIVE',
           });

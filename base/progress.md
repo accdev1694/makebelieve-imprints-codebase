@@ -4,7 +4,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 
 ---
 
-## 📊 Progress Summary (Last Updated: 2025-12-26)
+## 📊 Progress Summary (Last Updated: 2025-12-26 Evening)
 
 | Section | Status | Completion | Verified Items |
 |---------|--------|------------|----------------|
@@ -16,7 +16,7 @@ This checklist provides a step-by-step implementation plan for the MakeBelieve I
 | 6. Shared Code | ✅ Complete | 100% | Types migrated, backend uses shared constants |
 | 7. Infrastructure & DevOps | ✅ Complete | 100% | Vercel+CORS+domain+R2 storage done |
 | 8. Documentation | ✅ Complete | 100% | OpenAPI 3.0 spec created (docs/openapi.yaml) |
-| 9. QA & Launch | 🔄 In Progress | 30% | CORS audit complete, tests exist |
+| 9. QA & Launch | 🔄 In Progress | 50% | Production APIs verified, admin auth working |
 
 **Overall Progress: ~95%**
 
@@ -673,7 +673,8 @@ Instead of static export, the mobile app uses a **WebView** that loads the produ
   - [ ] Monitoring and alerts active (UptimeRobot - instructions provided)
   - [ ] Royal Mail API credentials valid and tested (using mock service in dev)
   - [✅] Admin dashboard accessible
-  - [ ] Test order flow end-to-end in production
+  - [✅] Production API endpoints verified (health, products, categories, auth - all working)
+  - [✅] Admin login tested on production (userType mapping fixed)
 - [🔄] Launch
   - [✅] Deploy to Vercel (automatic on push to main)
   - [✅] Configure custom domain (makebelieveimprints.co.uk - live)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, handleApiError } from '@/lib/server/auth';
+import { requireAuth, handleApiError, transformUserForFrontend } from '@/lib/server/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const authUser = await requireAuth(request);
 
     // Get full user data from database
-    const user = await prisma.user.findUnique({
+    const dbUser = await prisma.user.findUnique({
       where: { id: authUser.userId },
       select: {
         id: true,
@@ -19,12 +19,15 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    if (!user) {
+    if (!dbUser) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
+
+    // Transform user for frontend (type -> userType mapping)
+    const user = transformUserForFrontend(dbUser);
 
     return NextResponse.json(
       {

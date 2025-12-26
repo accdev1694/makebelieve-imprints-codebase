@@ -159,3 +159,42 @@ export function clearAuthCookies(response: NextResponse): NextResponse {
 
   return response;
 }
+
+/**
+ * Frontend user type (what the React app expects)
+ */
+export type FrontendUserType = 'CUSTOMER' | 'PRINTER_ADMIN';
+
+/**
+ * User object formatted for frontend consumption
+ */
+export interface FrontendUser {
+  id: string;
+  email: string;
+  name: string;
+  userType: FrontendUserType;
+  createdAt?: Date;
+}
+
+/**
+ * Transform database user type to frontend user type
+ * Database uses lowercase (admin, customer)
+ * Frontend uses uppercase (PRINTER_ADMIN, CUSTOMER)
+ */
+export function transformUserType(dbType: 'admin' | 'customer'): FrontendUserType {
+  return dbType === 'admin' ? 'PRINTER_ADMIN' : 'CUSTOMER';
+}
+
+/**
+ * Transform a database user object to frontend format
+ * Converts 'type' field to 'userType' with correct casing
+ */
+export function transformUserForFrontend<T extends { type: 'admin' | 'customer' }>(
+  user: T
+): Omit<T, 'type'> & { userType: FrontendUserType } {
+  const { type, ...rest } = user;
+  return {
+    ...rest,
+    userType: transformUserType(type),
+  };
+}

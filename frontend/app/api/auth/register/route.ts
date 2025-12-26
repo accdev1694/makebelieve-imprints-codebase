@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { register } from '@/lib/server/auth-service';
-import { setAuthCookies, handleApiError } from '@/lib/server/auth';
+import { setAuthCookies, handleApiError, transformUserForFrontend } from '@/lib/server/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,11 +25,14 @@ export async function POST(request: NextRequest) {
     // Register user
     const result = await register({ email, password, name });
 
+    // Transform user for frontend (type -> userType mapping)
+    const user = transformUserForFrontend(result.user);
+
     // Create response with user data
     const response = NextResponse.json(
       {
         success: true,
-        data: { user: result.user },
+        data: { user },
       },
       { status: 201 }
     );

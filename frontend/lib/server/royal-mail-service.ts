@@ -287,7 +287,7 @@ export async function getOrders(
   orderIdentifiers: string[] | number[]
 ): Promise<{ data?: RoyalMailOrder[]; error?: RoyalMailError }> {
   const identifiers = orderIdentifiers
-    .map((id) => (typeof id === 'string' ? `"${encodeURIComponent(id)}"` : id))
+    .map((id) => (typeof id === 'string' ? encodeURIComponent(`"${id}"`) : id))
     .join(';');
 
   return royalMailRequest<RoyalMailOrder[]>(`/orders/${identifiers}`);
@@ -328,7 +328,7 @@ export async function getLabel(
   } = {}
 ): Promise<{ data?: Buffer; error?: RoyalMailError }> {
   const identifiers = orderIdentifiers
-    .map((id) => (typeof id === 'string' ? `"${encodeURIComponent(id)}"` : id))
+    .map((id) => (typeof id === 'string' ? encodeURIComponent(`"${id}"`) : id))
     .join(';');
 
   const params = new URLSearchParams({
@@ -347,7 +347,7 @@ export async function deleteOrders(
   orderIdentifiers: string[] | number[]
 ): Promise<{ data?: { deletedOrders: { orderReference: string }[]; errors: { orderReference: string; message: string }[] }; error?: RoyalMailError }> {
   const identifiers = orderIdentifiers
-    .map((id) => (typeof id === 'string' ? `"${encodeURIComponent(id)}"` : id))
+    .map((id) => (typeof id === 'string' ? encodeURIComponent(`"${id}"`) : id))
     .join(';');
 
   return royalMailRequest(`/orders/${identifiers}`, {

@@ -18,8 +18,8 @@ import {
   getPrintDimensions,
   ShippingAddress,
 } from '@/lib/api/orders';
-import { formatPrice } from '@/lib/api/products';
-import { ShoppingBag, CreditCard, Lock, Truck, Clock, Zap, CheckCircle, ExternalLink, Tag, X, Loader2 } from 'lucide-react';
+import { formatPrice, Product, productsService } from '@/lib/api/products';
+import { ShoppingBag, CreditCard, Lock, Truck, Clock, Zap, CheckCircle, ExternalLink, Tag, X, Loader2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { redirectToCheckout } from '@/lib/stripe';
 
 type CheckoutMode = 'cart' | 'design';
@@ -66,7 +66,7 @@ function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { items: cartItems, subtotal, tax, total, clearCart, itemCount } = useCart();
+  const { items: cartItems, subtotal, tax, total, clearCart, itemCount, addItem } = useCart();
 
   const designId = searchParams.get('designId');
 
@@ -107,6 +107,37 @@ function CheckoutContent() {
     discountAmount: number;
   } | null>(null);
   const [promoError, setPromoError] = useState('');
+
+  // Suggested products state
+  const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+
+  // Load suggested products
+  useEffect(() => {
+    const loadSuggestions = async () => {
+      try {
+        const cartProductIds = cartItems.map(item => item.productId);
+        const { products } = await productsService.list({
+          featured: true,
+          limit: 8,
+          status: 'ACTIVE',
+        });
+        // Filter out products already in cart
+        const filtered = products.filter(p => !cartProductIds.includes(p.id));
+        setSuggestedProducts(filtered.slice(0, 4));
+      } catch {
+        // Silently fail - suggestions are not critical
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+
+    if (mode === 'cart') {
+      loadSuggestions();
+    } else {
+      setLoadingSuggestions(false);
+    }
+  }, [cartItems, mode]);
 
   // Load design for legacy mode
   useEffect(() => {
@@ -198,6 +229,24 @@ function CheckoutContent() {
   const handleRemovePromo = () => {
     setAppliedPromo(null);
     setPromoError('');
+  };
+
+  const handleAddSuggestedProduct = (product: Product) => {
+    const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
+    const primaryImage = product.images?.find(img => img.isPrimary) || product.images?.[0];
+
+    addItem({
+      productId: product.id,
+      variantId: defaultVariant?.id,
+      productName: product.name,
+      productSlug: product.slug,
+      productImage: primaryImage?.imageUrl || '/placeholder-product.png',
+      unitPrice: defaultVariant?.price || product.basePrice,
+      quantity: 1,
+      size: defaultVariant?.size,
+      color: defaultVariant?.color,
+      material: defaultVariant?.material,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -795,6 +844,62 @@ function CheckoutContent() {
             </div>
           </div>
         </form>
+
+        {/* Suggested Products Section */}
+        {mode === 'cart' && suggestedProducts.length > 0 && (
+          <div className="mt-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold">You might also like</h2>
+                <p className="text-sm text-muted-foreground">Add more items before you checkout</p>
+              </div>
+              <Link href="/products">
+                <Button variant="ghost" size="sm">
+                  View All <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {suggestedProducts.map((product) => {
+                const primaryImage = product.images?.find(img => img.isPrimary) || product.images?.[0];
+                const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
+                const price = defaultVariant?.price || product.basePrice;
+
+                return (
+                  <Card key={product.id} className="group overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="relative aspect-square bg-gray-100">
+                      {primaryImage?.imageUrl ? (
+                        <Image
+                          src={primaryImage.imageUrl}
+                          alt={product.name}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform"
+                          sizes="(max-width: 768px) 50vw, 25vw"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                          <ShoppingBag className="h-8 w-8" />
+                        </div>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleAddSuggestedProduct(product)}
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Add
+                      </Button>
+                    </div>
+                    <CardContent className="p-3">
+                      <h3 className="font-medium text-sm line-clamp-1">{product.name}</h3>
+                      <p className="text-primary font-semibold text-sm mt-1">{formatPrice(price)}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

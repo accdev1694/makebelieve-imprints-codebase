@@ -343,6 +343,9 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
               <Button variant="outline" className="w-full sm:w-auto">Track Shipment</Button>
             </Link>
           )}
+          <Link href="/products">
+            <Button variant="outline" className="w-full sm:w-auto">Continue Shopping</Button>
+          </Link>
           <Link href="/design/new">
             <Button className="btn-gradient w-full sm:w-auto">Create Another Design</Button>
           </Link>

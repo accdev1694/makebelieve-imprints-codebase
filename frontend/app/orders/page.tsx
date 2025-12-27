@@ -73,9 +73,14 @@ function OrderHistoryContent() {
               <span className="text-neon-gradient">Order History</span>
             </h1>
           </div>
-          <Link href="/design/new">
-            <Button className="btn-gradient">Create New Design</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/products">
+              <Button variant="outline">Continue Shopping</Button>
+            </Link>
+            <Link href="/design/new">
+              <Button className="btn-gradient">Create New Design</Button>
+            </Link>
+          </div>
         </div>
         {error && (
           <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm mb-6">

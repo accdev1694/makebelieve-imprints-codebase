@@ -1,14 +1,56 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { ordersService } from '@/lib/api/orders';
+import { designsService } from '@/lib/api/designs';
 
 function DashboardContent() {
   const { user } = useAuth();
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [pendingOrders, setPendingOrders] = useState(0);
+  const [activeDesigns, setActiveDesigns] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch orders
+        const ordersResponse = await ordersService.list(1, 1);
+        setTotalOrders(ordersResponse.pagination.total);
+
+        // Fetch pending orders (pending + confirmed + printing statuses)
+        const pendingStatuses = ['pending', 'confirmed', 'payment_confirmed', 'printing'];
+        let pendingCount = 0;
+        for (const status of pendingStatuses) {
+          try {
+            const pendingResponse = await ordersService.list(1, 1, status as 'pending' | 'confirmed' | 'printing');
+            pendingCount += pendingResponse.pagination.total;
+          } catch {
+            // Status might not exist or no orders with that status
+          }
+        }
+        setPendingOrders(pendingCount);
+
+        // Fetch designs
+        const designs = await designsService.list();
+        setActiveDesigns(designs.length);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -36,7 +78,9 @@ function DashboardContent() {
               <CardDescription>All time</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-primary">0</p>
+              <p className="text-4xl font-bold text-primary">
+                {loading ? '...' : totalOrders}
+              </p>
             </CardContent>
           </Card>
 
@@ -46,7 +90,9 @@ function DashboardContent() {
               <CardDescription>Ready to print</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-secondary">0</p>
+              <p className="text-4xl font-bold text-secondary">
+                {loading ? '...' : activeDesigns}
+              </p>
             </CardContent>
           </Card>
 
@@ -56,7 +102,9 @@ function DashboardContent() {
               <CardDescription>In progress</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-accent">0</p>
+              <p className="text-4xl font-bold text-accent">
+                {loading ? '...' : pendingOrders}
+              </p>
             </CardContent>
           </Card>
         </div>

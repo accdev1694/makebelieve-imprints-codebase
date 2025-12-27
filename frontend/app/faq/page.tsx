@@ -50,12 +50,12 @@ const faqs: FAQItem[] = [
   {
     category: 'Shipping',
     question: 'How long does shipping take?',
-    answer: 'Standard shipping takes 3-5 business days within the UK. Express shipping (1-2 business days) is available for an additional fee. Production time is typically 1-2 business days.',
+    answer: 'UK standard shipping takes 3-5 business days. Express shipping (1-2 business days) is available for an additional fee. International shipping typically takes 5-14 business days depending on the destination. Production time is typically 1-2 business days.',
   },
   {
     category: 'Shipping',
     question: 'Do you ship internationally?',
-    answer: 'Currently, we ship within the United Kingdom only. We\'re working on expanding our shipping options to other countries.',
+    answer: 'Yes! We ship to many countries worldwide via Royal Mail International. This includes Europe, North America, Australia, and select Asian countries. Shipping costs and delivery times vary by destination.',
   },
   {
     category: 'Shipping',

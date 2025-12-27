@@ -35,6 +35,38 @@ interface ShippingOption {
   icon: React.ElementType;
 }
 
+// Countries supported for shipping (Royal Mail International)
+const SHIPPING_COUNTRIES = [
+  'United Kingdom',
+  'Ireland',
+  'France',
+  'Germany',
+  'Spain',
+  'Italy',
+  'Netherlands',
+  'Belgium',
+  'Austria',
+  'Portugal',
+  'Sweden',
+  'Denmark',
+  'Finland',
+  'Norway',
+  'Switzerland',
+  'Poland',
+  'Czech Republic',
+  'Greece',
+  'Hungary',
+  'Romania',
+  'Australia',
+  'New Zealand',
+  'Canada',
+  'United States',
+  'Japan',
+  'Singapore',
+  'Hong Kong',
+  'United Arab Emirates',
+];
+
 const SHIPPING_OPTIONS: ShippingOption[] = [
   {
     id: 'standard',
@@ -90,7 +122,7 @@ function CheckoutContent() {
     addressLine2: '',
     city: '',
     postcode: '',
-    country: 'UK',
+    country: 'United Kingdom',
   });
 
   // Shipping method state
@@ -563,16 +595,20 @@ function CheckoutContent() {
                     <label htmlFor="country" className="block text-sm font-medium text-foreground mb-2">
                       Country *
                     </label>
-                    <Input
+                    <select
                       id="country"
-                      type="text"
                       value={shippingAddress.country}
                       onChange={(e) => setShippingAddress({ ...shippingAddress, country: e.target.value })}
                       required
-                      className="bg-card/50"
-                      disabled
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Currently shipping to UK only</p>
+                      className="w-full h-10 px-3 rounded-md border border-input bg-card/50 text-foreground"
+                    >
+                      {SHIPPING_COUNTRIES.map((country) => (
+                        <option key={country} value={country}>
+                          {country}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground mt-1">We ship internationally via Royal Mail</p>
                   </div>
                 </CardContent>
               </Card>

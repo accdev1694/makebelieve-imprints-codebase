@@ -119,7 +119,36 @@ export async function POST(request: NextRequest) {
         customerId: user.userId,
       },
       shipping_address_collection: {
-        allowed_countries: ['GB'],
+        allowed_countries: [
+          'GB', // United Kingdom
+          'IE', // Ireland
+          'FR', // France
+          'DE', // Germany
+          'ES', // Spain
+          'IT', // Italy
+          'NL', // Netherlands
+          'BE', // Belgium
+          'AT', // Austria
+          'PT', // Portugal
+          'SE', // Sweden
+          'DK', // Denmark
+          'FI', // Finland
+          'NO', // Norway
+          'CH', // Switzerland
+          'PL', // Poland
+          'CZ', // Czech Republic
+          'GR', // Greece
+          'HU', // Hungary
+          'RO', // Romania
+          'AU', // Australia
+          'NZ', // New Zealand
+          'CA', // Canada
+          'US', // United States
+          'JP', // Japan
+          'SG', // Singapore
+          'HK', // Hong Kong
+          'AE', // United Arab Emirates
+        ],
       },
     });
 

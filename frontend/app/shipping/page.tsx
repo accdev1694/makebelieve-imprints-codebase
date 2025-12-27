@@ -79,39 +79,60 @@ export default function ShippingPage() {
                 Delivery Areas
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-muted-foreground">
-                We currently ship to all addresses within the United Kingdom, including:
-              </p>
-              <ul className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  England
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  Wales
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  Scotland
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  Northern Ireland
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  Channel Islands
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  Isle of Man
-                </li>
-              </ul>
-              <p className="text-sm text-muted-foreground mt-4">
-                Note: Delivery times to Scottish Highlands, Northern Ireland, and remote areas may take an additional 1-2 business days.
-              </p>
+            <CardContent className="space-y-6">
+              <div>
+                <h4 className="font-semibold mb-2">United Kingdom</h4>
+                <p className="text-muted-foreground text-sm mb-3">
+                  We ship to all UK addresses including England, Wales, Scotland, Northern Ireland, Channel Islands, and Isle of Man.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Note: Scottish Highlands, Northern Ireland, and remote areas may take an additional 1-2 business days.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">International Shipping</h4>
+                <p className="text-muted-foreground text-sm mb-3">
+                  We ship internationally via Royal Mail to the following regions:
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium mb-2">Europe (5-10 business days)</p>
+                    <ul className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                      <li>Ireland</li>
+                      <li>France</li>
+                      <li>Germany</li>
+                      <li>Spain</li>
+                      <li>Italy</li>
+                      <li>Netherlands</li>
+                      <li>Belgium</li>
+                      <li>Austria</li>
+                      <li>Portugal</li>
+                      <li>Sweden</li>
+                      <li>Denmark</li>
+                      <li>Switzerland</li>
+                      <li>Poland</li>
+                      <li>+ more</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium mb-2">Rest of World (7-14 business days)</p>
+                    <ul className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                      <li>United States</li>
+                      <li>Canada</li>
+                      <li>Australia</li>
+                      <li>New Zealand</li>
+                      <li>Japan</li>
+                      <li>Singapore</li>
+                      <li>Hong Kong</li>
+                      <li>UAE</li>
+                    </ul>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  International shipping costs vary by destination and are calculated at checkout. All orders include tracking.
+                </p>
+              </div>
             </CardContent>
           </Card>
 

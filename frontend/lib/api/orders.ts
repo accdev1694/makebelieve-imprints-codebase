@@ -83,6 +83,10 @@ export interface CreateOrderData {
   // Common fields
   shippingAddress: ShippingAddress;
   totalPrice: number;
+  // Promo/Discount fields
+  subtotal?: number;
+  discountAmount?: number;
+  promoCode?: string;
 }
 
 export interface OrdersListResponse {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
 import { OrderStatus } from '@prisma/client';
+import { recordPromoUsage } from '@/lib/server/promo-service';
 
 /**
  * GET /api/orders
@@ -113,6 +114,9 @@ export async function POST(request: NextRequest) {
       const order = await prisma.order.create({
         data: {
           customerId: user.userId,
+          subtotal: body.subtotal,
+          discountAmount: body.discountAmount,
+          promoCode: body.promoCode,
           totalPrice: body.totalPrice,
           shippingAddress: body.shippingAddress,
           status: 'pending',
@@ -146,6 +150,16 @@ export async function POST(request: NextRequest) {
           },
         },
       });
+
+      // Record promo usage if a promo code was applied
+      if (body.promoCode && body.discountAmount > 0) {
+        await recordPromoUsage(body.promoCode, {
+          userId: user.userId,
+          email: user.email,
+          orderId: order.id,
+          discountAmount: body.discountAmount,
+        });
+      }
 
       return NextResponse.json(
         { success: true, data: { order } },

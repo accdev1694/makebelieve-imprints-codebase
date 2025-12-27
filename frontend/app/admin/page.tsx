@@ -193,6 +193,15 @@ function AdminDashboardContent() {
             <Link href="/admin/customers">
               <Button variant="outline">View Customers</Button>
             </Link>
+            <Link href="/admin/subscribers">
+              <Button variant="outline">Subscribers</Button>
+            </Link>
+            <Link href="/admin/promos">
+              <Button variant="outline">Promo Codes</Button>
+            </Link>
+            <Link href="/admin/campaigns">
+              <Button variant="outline">Email Campaigns</Button>
+            </Link>
             <Button variant="outline" disabled>
               Reports (Coming Soon)
             </Button>

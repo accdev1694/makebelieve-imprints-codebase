@@ -130,3 +130,155 @@ ${APP_NAME}
 
   return sendEmail({ to: email, subject, html, text });
 }
+
+/**
+ * Send subscription confirmation email (double opt-in)
+ */
+export async function sendSubscriptionConfirmEmail(
+  email: string,
+  confirmToken: string
+): Promise<boolean> {
+  const confirmUrl = `${APP_URL}/subscribe/confirm?token=${confirmToken}`;
+
+  const subject = `Confirm your subscription to ${APP_NAME}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
+      </div>
+
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0;">Confirm Your Subscription</h2>
+
+        <p>Thanks for signing up for our newsletter!</p>
+
+        <p>Please confirm your email address by clicking the button below:</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${confirmUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            Confirm Subscription
+          </a>
+        </div>
+
+        <p style="color: #6b7280; font-size: 14px;">Once confirmed, you'll receive:</p>
+        <ul style="color: #6b7280; font-size: 14px;">
+          <li>Exclusive deals and promotions</li>
+          <li>New product announcements</li>
+          <li>10% off your first order</li>
+        </ul>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+        <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">
+          If you didn't sign up for this newsletter, you can safely ignore this email.
+        </p>
+      </div>
+
+      <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+        <p>&copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Confirm Your Subscription
+
+Thanks for signing up for our newsletter!
+
+Please confirm your email address by clicking the link below:
+${confirmUrl}
+
+Once confirmed, you'll receive:
+- Exclusive deals and promotions
+- New product announcements
+- 10% off your first order
+
+If you didn't sign up for this newsletter, you can safely ignore this email.
+
+---
+${APP_NAME}
+  `.trim();
+
+  return sendEmail({ to: email, subject, html, text });
+}
+
+/**
+ * Send welcome email after subscription is confirmed
+ */
+export async function sendWelcomeEmail(email: string): Promise<boolean> {
+  const shopUrl = `${APP_URL}/products`;
+  const unsubscribeUrl = `${APP_URL}/unsubscribe?email=${encodeURIComponent(email)}`;
+
+  const subject = `Welcome to ${APP_NAME}! Here's your 10% discount`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
+      </div>
+
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0;">Welcome to the Family!</h2>
+
+        <p>Your subscription is now confirmed. Thank you for joining us!</p>
+
+        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+          <p style="margin: 0; color: #6b7280; font-size: 14px;">Your exclusive discount code:</p>
+          <p style="margin: 10px 0 0; font-size: 28px; font-weight: bold; color: #6366f1; letter-spacing: 2px;">WELCOME10</p>
+          <p style="margin: 5px 0 0; color: #6b7280; font-size: 12px;">Use at checkout for 10% off your first order</p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${shopUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            Start Shopping
+          </a>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+        <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+          <a href="${unsubscribeUrl}" style="color: #9ca3af;">Unsubscribe</a>
+        </p>
+      </div>
+
+      <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+        <p>&copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Welcome to the Family!
+
+Your subscription is now confirmed. Thank you for joining us!
+
+Your exclusive discount code: WELCOME10
+Use at checkout for 10% off your first order
+
+Start shopping: ${shopUrl}
+
+---
+To unsubscribe: ${unsubscribeUrl}
+
+${APP_NAME}
+  `.trim();
+
+  return sendEmail({ to: email, subject, html, text });
+}

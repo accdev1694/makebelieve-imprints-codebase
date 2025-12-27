@@ -40,13 +40,38 @@ const SOCIAL_LINKS = [
 export function Footer() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
-      // TODO: Implement newsletter API call
+    if (!email.trim()) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/subscribers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'FOOTER' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to subscribe');
+        return;
+      }
+
+      setMessage(data.message);
       setSubscribed(true);
       setEmail('');
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -143,7 +168,7 @@ export function Footer() {
             </p>
             {subscribed ? (
               <p className="text-sm text-primary font-medium">
-                Thanks for subscribing!
+                {message || 'Check your email to confirm!'}
               </p>
             ) : (
               <form onSubmit={handleNewsletterSubmit} className="space-y-2">
@@ -153,10 +178,19 @@ export function Footer() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={loading}
                   className="bg-background"
                 />
-                <Button type="submit" className="w-full btn-gradient" size="sm">
-                  Subscribe
+                {error && (
+                  <p className="text-xs text-red-500">{error}</p>
+                )}
+                <Button
+                  type="submit"
+                  className="w-full btn-gradient"
+                  size="sm"
+                  disabled={loading}
+                >
+                  {loading ? 'Subscribing...' : 'Subscribe'}
                 </Button>
               </form>
             )}

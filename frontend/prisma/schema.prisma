@@ -256,6 +256,9 @@ model Order {
   printWidth       Int?             @map("print_width")
   printHeight      Int?             @map("print_height")
   previewUrl       String?          @map("preview_url") @db.VarChar(500)
+  subtotal         Decimal?         @db.Decimal(10, 2)
+  discountAmount   Decimal?         @map("discount_amount") @db.Decimal(10, 2)
+  promoCode        String?          @map("promo_code") @db.VarChar(50)
   totalPrice       Decimal          @map("total_price") @db.Decimal(10, 2)
   shippingAddress  Json             @map("shipping_address")
   royalmailOrderId String?          @map("royalmail_order_id") @db.VarChar(255)
@@ -275,6 +278,7 @@ model Order {
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@index([trackingNumber])
+  @@index([promoCode])
   @@map("orders")
 }
 
@@ -587,4 +591,175 @@ enum ReportPeriod {
   WEEKLY
   MONTHLY
   YEARLY
+}
+
+// ============================================
+// EMAIL SUBSCRIBER SYSTEM
+// ============================================
+
+model Subscriber {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email          String           @unique @db.VarChar(255)
+  name           String?          @db.VarChar(255)
+  status         SubscriberStatus @default(PENDING)
+  source         SubscriberSource @default(FOOTER)
+  confirmToken   String?          @map("confirm_token") @db.VarChar(255)
+  subscribedAt   DateTime?        @map("subscribed_at")
+  unsubscribedAt DateTime?        @map("unsubscribed_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("subscribers")
+}
+
+enum SubscriberStatus {
+  PENDING    // Awaiting email confirmation
+  ACTIVE     // Confirmed and receiving emails
+  UNSUBSCRIBED
+}
+
+enum SubscriberSource {
+  FOOTER
+  CHECKOUT
+  POPUP
+  ADMIN      // Manually added by admin
+}
+
+// ============================================
+// PROMO/DISCOUNT SYSTEM
+// ============================================
+
+model Promo {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code            String      @unique @db.VarChar(50)
+  name            String      @db.VarChar(255)
+  description     String?
+
+  // Discount configuration
+  discountType    DiscountType @map("discount_type")
+  discountValue   Decimal      @map("discount_value") @db.Decimal(10, 2) // Percentage (0-100) or fixed amount
+
+  // Scope: what the promo applies to
+  scope           PromoScope   @default(ALL_PRODUCTS)
+  categoryId      String?      @map("category_id") @db.Uuid
+  subcategoryId   String?      @map("subcategory_id") @db.Uuid
+  productIds      String[]     @map("product_ids") @db.Uuid // For specific products
+
+  // Validity period
+  startsAt        DateTime?    @map("starts_at")
+  expiresAt       DateTime?    @map("expires_at")
+
+  // Usage limits
+  maxUses         Int?         @map("max_uses")         // Total uses allowed (null = unlimited)
+  maxUsesPerUser  Int          @default(1) @map("max_uses_per_user") // Uses per customer (default 1)
+  currentUses     Int          @default(0) @map("current_uses")
+
+  // Requirements
+  minOrderAmount  Decimal?     @map("min_order_amount") @db.Decimal(10, 2)
+
+  // Status
+  isActive        Boolean      @default(true) @map("is_active")
+
+  // Metadata
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at")
+
+  // Relations
+  usages          PromoUsage[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([startsAt])
+  @@index([expiresAt])
+  @@index([scope])
+  @@map("promos")
+}
+
+model PromoUsage {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  promoId     String   @map("promo_id") @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid  // Can be null for guest checkout
+  orderId     String?  @map("order_id") @db.Uuid
+  email       String?  @db.VarChar(255)          // Track by email for guests
+
+  // Amount saved
+  discountAmount Decimal @map("discount_amount") @db.Decimal(10, 2)
+
+  usedAt      DateTime @default(now()) @map("used_at")
+
+  promo       Promo    @relation(fields: [promoId], references: [id], onDelete: Cascade)
+
+  @@index([promoId])
+  @@index([userId])
+  @@index([email])
+  @@index([orderId])
+  @@index([usedAt(sort: Desc)])
+  @@map("promo_usages")
+}
+
+enum DiscountType {
+  PERCENTAGE    // e.g., 10% off
+  FIXED_AMOUNT  // e.g., £5 off
+}
+
+enum PromoScope {
+  ALL_PRODUCTS      // Applies to entire order
+  CATEGORY          // Applies to specific category
+  SUBCATEGORY       // Applies to specific subcategory
+  SPECIFIC_PRODUCTS // Applies to specific product IDs
+}
+
+// ============================================
+// EMAIL CAMPAIGN SYSTEM
+// ============================================
+
+model EmailCampaign {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String         @db.VarChar(255)
+  subject       String         @db.VarChar(255)
+  previewText   String?        @map("preview_text") @db.VarChar(255)
+  content       String         // HTML content
+  plainText     String?        @map("plain_text") // Plain text version
+
+  // Campaign type and targeting
+  type          CampaignType   @default(NEWSLETTER)
+  promoId       String?        @map("promo_id") @db.Uuid // Link to a promo if announcing one
+
+  // Status and scheduling
+  status        CampaignStatus @default(DRAFT)
+  scheduledAt   DateTime?      @map("scheduled_at")
+  sentAt        DateTime?      @map("sent_at")
+
+  // Stats
+  recipientCount Int           @default(0) @map("recipient_count")
+  sentCount      Int           @default(0) @map("sent_count")
+  failedCount    Int           @default(0) @map("failed_count")
+
+  // Metadata
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([sentAt(sort: Desc)])
+  @@map("email_campaigns")
+}
+
+enum CampaignType {
+  NEWSLETTER    // General newsletter
+  PROMO         // Promotional campaign with promo code
+  ANNOUNCEMENT  // Product/feature announcement
+  SEASONAL      // Seasonal/holiday campaign
+}
+
+enum CampaignStatus {
+  DRAFT         // Being edited
+  SCHEDULED     // Scheduled for future send
+  SENDING       // Currently being sent
+  SENT          // Completed
+  FAILED        // Failed to send
+  CANCELLED     // Cancelled before send
 }

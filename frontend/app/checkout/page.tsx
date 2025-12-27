@@ -19,7 +19,7 @@ import {
   ShippingAddress,
 } from '@/lib/api/orders';
 import { formatPrice } from '@/lib/api/products';
-import { ShoppingBag, CreditCard, Lock, Truck, Clock, Zap, CheckCircle, ExternalLink } from 'lucide-react';
+import { ShoppingBag, CreditCard, Lock, Truck, Clock, Zap, CheckCircle, ExternalLink, Tag, X, Loader2 } from 'lucide-react';
 import { redirectToCheckout } from '@/lib/stripe';
 
 type CheckoutMode = 'cart' | 'design';
@@ -96,6 +96,18 @@ function CheckoutContent() {
   // Shipping method state
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('standard');
 
+  // Promo code state
+  const [promoCode, setPromoCode] = useState('');
+  const [promoValidating, setPromoValidating] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    name: string;
+    discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+    discountValue: number;
+    discountAmount: number;
+  } | null>(null);
+  const [promoError, setPromoError] = useState('');
+
   // Load design for legacy mode
   useEffect(() => {
     if (mode !== 'design' || !designId) return;
@@ -135,7 +147,58 @@ function CheckoutContent() {
   // Get the final total based on mode
   const finalSubtotal = mode === 'cart' ? subtotal : designPrice;
   const finalTax = mode === 'cart' ? tax : 0;
-  const finalTotal = finalSubtotal + finalTax + actualShippingCost;
+  const discountAmount = appliedPromo?.discountAmount || 0;
+  const finalTotal = Math.max(0, finalSubtotal + finalTax + actualShippingCost - discountAmount);
+
+  // Validate promo code
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+
+    setPromoValidating(true);
+    setPromoError('');
+
+    try {
+      const response = await fetch('/api/promos/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: promoCode,
+          email,
+          cartItems: mode === 'cart' ? cartItems.map(item => ({
+            productId: item.productId,
+            price: item.unitPrice,
+            quantity: item.quantity,
+          })) : [],
+          cartTotal: finalSubtotal + finalTax,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.valid) {
+        setPromoError(data.error || 'Invalid promo code');
+        return;
+      }
+
+      setAppliedPromo({
+        code: data.code,
+        name: data.name,
+        discountType: data.discountType,
+        discountValue: data.discountValue,
+        discountAmount: data.discountAmount,
+      });
+      setPromoCode('');
+    } catch {
+      setPromoError('Failed to validate promo code');
+    } finally {
+      setPromoValidating(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoError('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,6 +256,9 @@ function CheckoutContent() {
             },
           })),
           shippingAddress,
+          subtotal: finalSubtotal + finalTax,
+          discountAmount: discountAmount > 0 ? discountAmount : undefined,
+          promoCode: appliedPromo?.code,
           totalPrice: finalTotal,
         });
       } else if (design) {
@@ -630,6 +696,56 @@ function CheckoutContent() {
 
                   <Separator />
 
+                  {/* Promo Code */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Promo Code</label>
+                    {appliedPromo ? (
+                      <div className="flex items-center justify-between p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 text-green-500" />
+                          <div>
+                            <span className="font-mono font-bold text-green-500">{appliedPromo.code}</span>
+                            <p className="text-xs text-muted-foreground">{appliedPromo.name}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-500 font-medium">-{formatPrice(appliedPromo.discountAmount)}</span>
+                          <button
+                            type="button"
+                            onClick={handleRemovePromo}
+                            className="p-1 hover:bg-green-500/20 rounded"
+                          >
+                            <X className="h-4 w-4 text-green-500" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Enter code"
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                          className="bg-card/50 uppercase"
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyPromo())}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleApplyPromo}
+                          disabled={promoValidating || !promoCode.trim()}
+                        >
+                          {promoValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
+                        </Button>
+                      </div>
+                    )}
+                    {promoError && (
+                      <p className="text-xs text-red-500">{promoError}</p>
+                    )}
+                  </div>
+
+                  <Separator />
+
                   {/* Price Breakdown */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
@@ -652,6 +768,12 @@ function CheckoutContent() {
                         <span>{formatPrice(actualShippingCost)}</span>
                       )}
                     </div>
+                    {appliedPromo && (
+                      <div className="flex justify-between text-sm text-green-500">
+                        <span>Discount ({appliedPromo.code}):</span>
+                        <span>-{formatPrice(appliedPromo.discountAmount)}</span>
+                      </div>
+                    )}
                     <Separator />
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total:</span>

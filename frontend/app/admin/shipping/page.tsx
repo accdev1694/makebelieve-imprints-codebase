@@ -10,15 +10,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ordersService, Order, ORDER_STATUS_LABELS } from '@/lib/api/orders';
-import { shippingService } from '@/lib/api/shipping';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { Package, Truck, Download, FileText, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface ApiHealth {
   status: string;
-  message: string;
-  responseTime?: number;
+  provider?: string;
+  version?: string;
+  error?: string;
+  timestamp?: string;
 }
 
 function AdminShippingContent() {
@@ -31,7 +33,9 @@ function AdminShippingContent() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [manualTracking, setManualTracking] = useState<{ [orderId: string]: string }>({});
-  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
+  const [processingAction, setProcessingAction] = useState<string | null>(null);
+  const [manifesting, setManifesting] = useState(false);
 
   // Redirect if not admin
   useEffect(() => {
@@ -47,29 +51,100 @@ function AdminShippingContent() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError('');
 
-      // Fetch orders that need shipping (payment_confirmed or printing status)
-      const [ordersData, healthData] = await Promise.all([
+      // Fetch orders and health status in parallel
+      const [ordersData, healthResponse] = await Promise.all([
         ordersService.list(1, 50),
-        shippingService.healthCheck().catch(() => ({
-          status: 'unhealthy',
-          message: 'Failed to connect to Royal Mail API',
+        fetch('/api/shipping/health').then(res => res.json()).catch(() => ({
+          status: 'error',
+          error: 'Failed to connect to Royal Mail API',
         })),
       ]);
 
+      // Filter orders that need shipping action
       const ordersNeedingShipping = ordersData.orders.filter(
         (o) =>
-          o.status === 'payment_confirmed' ||
+          o.status === 'confirmed' ||
           o.status === 'printing' ||
           (o.status === 'shipped' && !o.trackingNumber)
       );
 
       setOrders(ordersNeedingShipping);
-      setApiHealth(healthData);
-    } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to load data');
+      setApiHealth(healthResponse);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load data';
+      setError(message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateShipment = async (order: Order) => {
+    setProcessingOrderId(order.id);
+    setProcessingAction('shipment');
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch('/api/shipping/shipments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: order.id,
+          weightInGrams: 500, // Default weight, could be made configurable
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create shipment');
+      }
+
+      setSuccess(`Shipment created for order #${order.id.slice(0, 8).toUpperCase()}. You can now download the label.`);
+      fetchData(); // Refresh to get updated order
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create shipment';
+      setError(message);
+    } finally {
+      setProcessingOrderId(null);
+      setProcessingAction(null);
+    }
+  };
+
+  const handleDownloadLabel = async (order: Order) => {
+    setProcessingOrderId(order.id);
+    setProcessingAction('label');
+    setError('');
+
+    try {
+      const response = await fetch(`/api/shipping/labels/${order.id}`);
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to download label');
+      }
+
+      // Download the PDF
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `label-${order.id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      setSuccess(`Label downloaded for order #${order.id.slice(0, 8).toUpperCase()}`);
+      fetchData(); // Refresh to get tracking number
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to download label';
+      setError(message);
+    } finally {
+      setProcessingOrderId(null);
+      setProcessingAction(null);
     }
   };
 
@@ -81,23 +156,19 @@ function AdminShippingContent() {
       return;
     }
 
-    setUpdatingOrderId(order.id);
+    setProcessingOrderId(order.id);
+    setProcessingAction('manual');
     setError('');
     setSuccess('');
 
     try {
-      // Update order with manual tracking number
-      // Note: This requires a backend endpoint to update tracking number
-      await apiClient.put(`/orders/${order.id}/tracking`, {
+      // Update order status to shipped with tracking number
+      await apiClient.patch(`/orders/${order.id}/status`, {
+        status: 'shipped',
         trackingNumber: trackingNumber.trim(),
       });
 
-      // Update order status to shipped
-      await apiClient.put(`/orders/${order.id}/status`, {
-        status: 'shipped',
-      });
-
-      setSuccess(`Order ${order.id.slice(0, 8)} marked as shipped with tracking number`);
+      setSuccess(`Order #${order.id.slice(0, 8).toUpperCase()} marked as shipped`);
 
       // Remove from list
       setOrders(orders.filter((o) => o.id !== order.id));
@@ -106,12 +177,43 @@ function AdminShippingContent() {
         delete updated[order.id];
         return updated;
       });
-    } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to update order');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update order';
+      setError(message);
     } finally {
-      setUpdatingOrderId(null);
+      setProcessingOrderId(null);
+      setProcessingAction(null);
     }
   };
+
+  const handleManifest = async () => {
+    setManifesting(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch('/api/shipping/manifest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create manifest');
+      }
+
+      setSuccess(`Manifest #${data.manifestNumber} created. Orders are ready for Royal Mail collection.`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create manifest';
+      setError(message);
+    } finally {
+      setManifesting(false);
+    }
+  };
+
+  const isApiHealthy = apiHealth?.status === 'healthy';
 
   if (user && user.userType !== 'PRINTER_ADMIN') {
     return null;
@@ -132,113 +234,145 @@ function AdminShippingContent() {
               <span className="text-neon-gradient">Shipping Management</span>
             </h1>
           </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            {isApiHealthy && orders.some(o => o.royalmailOrderId) && (
+              <Button
+                onClick={handleManifest}
+                disabled={manifesting}
+                className="btn-gradient"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                {manifesting ? 'Creating...' : 'Manifest Orders'}
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {error && (
-          <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm mb-6">
+          <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm mb-6 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
             {error}
+            <button onClick={() => setError('')} className="ml-auto font-bold">×</button>
           </div>
         )}
 
         {success && (
-          <div className="bg-green-500/10 border border-green-500/50 text-green-500 px-4 py-3 rounded-lg text-sm mb-6">
+          <div className="bg-green-500/10 border border-green-500/50 text-green-500 px-4 py-3 rounded-lg text-sm mb-6 flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
             {success}
+            <button onClick={() => setSuccess('')} className="ml-auto font-bold">×</button>
           </div>
         )}
 
         {/* API Health Status */}
-        {apiHealth && (
-          <Card className="card-glow mb-6">
-            <CardHeader>
-              <CardTitle>Royal Mail API Status</CardTitle>
-              <CardDescription>Current status of shipping API integration</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-3 h-3 rounded-md ${
-                      apiHealth.status === 'healthy'
-                        ? 'bg-green-500'
-                        : apiHealth.status === 'degraded'
-                          ? 'bg-yellow-500'
-                          : 'bg-red-500'
-                    }`}
-                  ></div>
-                  <div>
-                    <p className="font-semibold capitalize">{apiHealth.status}</p>
-                    <p className="text-sm text-muted-foreground">{apiHealth.message}</p>
-                  </div>
-                </div>
-                {apiHealth.responseTime && (
-                  <Badge variant="outline">{apiHealth.responseTime}ms</Badge>
-                )}
-              </div>
-
-              {apiHealth.status !== 'healthy' && (
-                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/50 rounded-lg">
-                  <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-500 mb-2">
-                    ⚠️ Manual Label Generation Required
+        <Card className="card-glow mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Royal Mail API Status
+            </CardTitle>
+            <CardDescription>Click & Drop API integration status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    isApiHealthy
+                      ? 'bg-green-500'
+                      : apiHealth?.status === 'unhealthy'
+                        ? 'bg-red-500'
+                        : 'bg-yellow-500'
+                  }`}
+                />
+                <div>
+                  <p className="font-semibold capitalize">
+                    {isApiHealthy ? 'Connected' : 'Disconnected'}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    The Royal Mail API is currently unavailable. Use the manual process below to
-                    create shipping labels and enter tracking numbers.
+                    {apiHealth?.provider || 'Royal Mail Click & Drop'}
+                    {apiHealth?.version && ` (v${apiHealth.version})`}
                   </p>
                 </div>
+              </div>
+              {isApiHealthy ? (
+                <Badge className="bg-green-500/10 text-green-500 border-green-500/50">
+                  Ready
+                </Badge>
+              ) : (
+                <Badge className="bg-yellow-500/10 text-yellow-500 border-yellow-500/50">
+                  Manual Mode
+                </Badge>
               )}
+            </div>
+
+            {!isApiHealthy && (
+              <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/50 rounded-lg">
+                <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-500 mb-2">
+                  ⚠️ API Unavailable - Using Manual Mode
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {apiHealth?.error || 'Cannot connect to Royal Mail API. Use manual label generation via Click & Drop website.'}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Manual Fallback Instructions - Only show when API is down */}
+        {!isApiHealthy && (
+          <Card className="card-glow mb-6">
+            <CardHeader>
+              <CardTitle>Manual Shipping Process</CardTitle>
+              <CardDescription>How to create labels when the API is unavailable</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ol className="space-y-3 text-sm">
+                <li className="flex gap-3">
+                  <span className="font-bold text-primary">1.</span>
+                  <span>
+                    Go to Royal Mail Click & Drop:{' '}
+                    <a
+                      href="https://parcel.royalmail.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      parcel.royalmail.com
+                    </a>
+                  </span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="font-bold text-primary">2.</span>
+                  <span>Create a new order using the customer's shipping address</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="font-bold text-primary">3.</span>
+                  <span>Print the shipping label</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="font-bold text-primary">4.</span>
+                  <span>Enter the tracking number below and mark as shipped</span>
+                </li>
+              </ol>
             </CardContent>
           </Card>
         )}
 
-        {/* Manual Fallback Instructions */}
-        <Card className="card-glow mb-6">
-          <CardHeader>
-            <CardTitle>Manual Shipping Process</CardTitle>
-            <CardDescription>How to create labels when the API is unavailable</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ol className="space-y-3 text-sm">
-              <li className="flex gap-3">
-                <span className="font-bold text-primary">1.</span>
-                <span>
-                  Go to Royal Mail Click & Drop website:{' '}
-                  <a
-                    href="https://www.royalmail.com/click-and-drop"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    royalmail.com/click-and-drop
-                  </a>
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold text-primary">2.</span>
-                <span>Create a new shipment using the customer's shipping address below</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold text-primary">3.</span>
-                <span>Download and print the shipping label</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold text-primary">4.</span>
-                <span>Copy the tracking number from the label</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold text-primary">5.</span>
-                <span>Enter the tracking number in the form below and click "Mark as Shipped"</span>
-              </li>
-            </ol>
-          </CardContent>
-        </Card>
-
         {/* Orders Needing Shipping */}
         <Card className="card-glow">
           <CardHeader>
-            <CardTitle>Orders Awaiting Shipment</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Truck className="h-5 w-5" />
+              Orders Awaiting Shipment
+            </CardTitle>
             <CardDescription>
               {orders.length} order{orders.length !== 1 ? 's' : ''} ready to ship
             </CardDescription>
@@ -247,84 +381,125 @@ function AdminShippingContent() {
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
-                  <div className="inline-block animate-spin rounded-md h-8 w-8 border-t-2 border-b-2 border-primary mb-2"></div>
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-2"></div>
                   <p className="text-sm text-muted-foreground">Loading orders...</p>
                 </div>
               </div>
             ) : orders.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No orders awaiting shipment</p>
+                <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                <p className="text-muted-foreground">All orders have been shipped!</p>
               </div>
             ) : (
               <div className="space-y-6">
-                {orders.map((order) => (
-                  <div key={order.id} className="p-6 bg-card/30 rounded-lg space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-lg">
-                          Order #{order.id.slice(0, 8).toUpperCase()}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {order.design?.name || 'Product Order'}
-                          {order.material && ` • ${MATERIAL_LABELS[order.material] || order.material}`}
-                          {order.printSize && ` • ${PRINT_SIZE_LABELS[order.printSize] || order.printSize}`}
-                        </p>
+                {orders.map((order) => {
+                  const hasRoyalMailOrder = !!order.royalmailOrderId;
+                  const isProcessing = processingOrderId === order.id;
+
+                  return (
+                    <div key={order.id} className="p-6 bg-card/30 rounded-lg space-y-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold text-lg">
+                            Order #{order.id.slice(0, 8).toUpperCase()}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {order.items?.length || 0} item(s) • £{Number(order.totalPrice).toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {hasRoyalMailOrder && (
+                            <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/50">
+                              RM: {order.royalmailOrderId}
+                            </Badge>
+                          )}
+                          <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/50">
+                            {ORDER_STATUS_LABELS[order.status] || order.status}
+                          </Badge>
+                        </div>
                       </div>
-                      <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/50 border">
-                        {ORDER_STATUS_LABELS[order.status]}
-                      </Badge>
-                    </div>
 
-                    <Separator />
+                      <Separator />
 
-                    {/* Shipping Address */}
-                    <div>
-                      <p className="text-sm font-semibold mb-2">Shipping Address:</p>
-                      <div className="text-sm bg-muted/30 p-3 rounded-lg space-y-1">
-                        <p className="font-medium">{order.shippingAddress.name}</p>
-                        <p>{order.shippingAddress.addressLine1}</p>
-                        {order.shippingAddress.addressLine2 && (
-                          <p>{order.shippingAddress.addressLine2}</p>
-                        )}
-                        <p>
-                          {order.shippingAddress.city}, {order.shippingAddress.postcode}
-                        </p>
-                        <p>{order.shippingAddress.country}</p>
+                      {/* Shipping Address */}
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-semibold mb-2">Shipping Address:</p>
+                          <div className="text-sm bg-muted/30 p-3 rounded-lg space-y-1">
+                            <p className="font-medium">{order.shippingAddress?.name}</p>
+                            <p>{order.shippingAddress?.addressLine1}</p>
+                            {order.shippingAddress?.addressLine2 && (
+                              <p>{order.shippingAddress.addressLine2}</p>
+                            )}
+                            <p>
+                              {order.shippingAddress?.city}, {order.shippingAddress?.postcode}
+                            </p>
+                            <p>{order.shippingAddress?.country}</p>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div>
+                          <p className="text-sm font-semibold mb-2">Actions:</p>
+                          <div className="space-y-2">
+                            {isApiHealthy && !hasRoyalMailOrder && (
+                              <Button
+                                onClick={() => handleCreateShipment(order)}
+                                disabled={isProcessing}
+                                className="w-full"
+                                variant="outline"
+                              >
+                                <Package className="h-4 w-4 mr-2" />
+                                {isProcessing && processingAction === 'shipment'
+                                  ? 'Creating...'
+                                  : 'Create Shipment'}
+                              </Button>
+                            )}
+
+                            {hasRoyalMailOrder && (
+                              <Button
+                                onClick={() => handleDownloadLabel(order)}
+                                disabled={isProcessing}
+                                className="w-full btn-gradient"
+                              >
+                                <Download className="h-4 w-4 mr-2" />
+                                {isProcessing && processingAction === 'label'
+                                  ? 'Downloading...'
+                                  : 'Download Label'}
+                              </Button>
+                            )}
+
+                            {/* Manual tracking input */}
+                            <div className="flex gap-2">
+                              <Input
+                                type="text"
+                                placeholder="Tracking number"
+                                value={manualTracking[order.id] || ''}
+                                onChange={(e) =>
+                                  setManualTracking({
+                                    ...manualTracking,
+                                    [order.id]: e.target.value,
+                                  })
+                                }
+                                className="flex-1 bg-card/50 font-mono text-sm"
+                              />
+                              <Button
+                                onClick={() => handleManualShip(order)}
+                                disabled={!manualTracking[order.id] || isProcessing}
+                                variant="secondary"
+                                size="sm"
+                              >
+                                {isProcessing && processingAction === 'manual'
+                                  ? '...'
+                                  : 'Ship'}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-
-                    <Separator />
-
-                    {/* Manual Tracking Number Entry */}
-                    <div>
-                      <p className="text-sm font-semibold mb-2">Enter Tracking Number:</p>
-                      <div className="flex gap-2">
-                        <Input
-                          type="text"
-                          placeholder="e.g., RM123456789GB"
-                          value={manualTracking[order.id] || ''}
-                          onChange={(e) =>
-                            setManualTracking({
-                              ...manualTracking,
-                              [order.id]: e.target.value,
-                            })
-                          }
-                          className="flex-1 bg-card/50 font-mono"
-                        />
-                        <Button
-                          onClick={() => handleManualShip(order)}
-                          disabled={!manualTracking[order.id] || updatingOrderId === order.id}
-                          className="btn-gradient"
-                        >
-                          {updatingOrderId === order.id ? 'Updating...' : 'Mark as Shipped'}
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        This will update the order status to "Shipped" and notify the customer
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

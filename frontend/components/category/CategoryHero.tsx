@@ -22,7 +22,7 @@ export function CategoryHero({
   heroImage,
   ctaText = 'Browse Products',
   ctaLink,
-  gradient = 'from-black/80 via-black/60 to-black/40',
+  gradient = 'from-black/90 via-black/85 to-black/75',
 }: CategoryHeroProps) {
   return (
     <section className="relative overflow-hidden">
@@ -55,7 +55,7 @@ export function CategoryHero({
             <Button
               asChild
               size="lg"
-              className="bg-white text-primary hover:bg-white/90 gap-2"
+              className="bg-white text-indigo-900 font-bold hover:bg-white/90 gap-2"
             >
               <Link href={ctaLink}>
                 {ctaText}

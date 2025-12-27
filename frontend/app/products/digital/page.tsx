@@ -61,7 +61,7 @@ export default function DigitalPage() {
         heroImage="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1600&q=80"
         ctaText="Browse Downloads"
         ctaLink="#products"
-        gradient="from-black/80 via-black/60 to-black/40"
+        gradient="from-black/90 via-black/85 to-black/75"
       />
 
       {/* Featured Products */}
@@ -87,11 +87,11 @@ export default function DigitalPage() {
       )}
 
       {/* All Products */}
-      <section id="products" className="py-16 bg-gray-50/50">
+      <section id="products" className="py-16 bg-gray-900">
         <div className="container mx-auto px-4">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold">All Digital Products</h2>
-            <p className="text-muted-foreground">Browse our complete digital collection</p>
+            <h2 className="text-2xl font-bold text-white">All Digital Products</h2>
+            <p className="text-gray-400">Browse our complete digital collection</p>
           </div>
 
           {loading ? (
@@ -109,7 +109,7 @@ export default function DigitalPage() {
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No products found in this category.</p>
+              <p className="text-gray-400">No products found in this category.</p>
               <Link href="/products">
                 <Button className="mt-4">Browse All Products</Button>
               </Link>
@@ -131,7 +131,7 @@ export default function DigitalPage() {
                   >
                     Previous
                   </Button>
-                  <span className="flex items-center px-4">
+                  <span className="flex items-center px-4 text-gray-400">
                     Page {page} of {totalPages}
                   </span>
                   <Button

@@ -193,11 +193,12 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
       />
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="bg-gray-900 py-8">
+        <div className="container mx-auto px-4">
         {/* Subcategory Filter */}
         {subcategories.length > 0 && (
           <div className="mb-8">
-            <h3 className="text-sm font-medium text-muted-foreground mb-3">Filter by Type</h3>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Filter by Type</h3>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant={selectedSubcategory === null ? 'default' : 'outline'}
@@ -236,7 +237,7 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
             placeholder={`Search in ${category.name}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full max-w-md px-4 py-2 rounded-lg border border-input bg-background"
+            className="w-full max-w-md px-4 py-2 rounded-lg border border-gray-700 bg-gray-800 text-white placeholder-gray-400"
           />
         </div>
 
@@ -276,18 +277,18 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
 
         {/* Results Header */}
         <div className="flex items-center justify-between mb-6">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-400">
             {loading ? 'Loading...' : `${total} product${total !== 1 ? 's' : ''} found`}
           </p>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Sort by:</span>
+            <span className="text-sm text-gray-400">Sort by:</span>
             <select
               value={sortBy}
               onChange={(e) => {
                 setSortBy(e.target.value);
                 setPage(1);
               }}
-              className="px-3 py-1.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="px-3 py-1.5 rounded-lg border border-gray-700 bg-gray-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -303,8 +304,8 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
           <ProductGridSkeleton count={8} />
         ) : products.length === 0 ? (
           <div className="text-center py-16">
-            <h3 className="text-lg font-medium mb-2">No products found</h3>
-            <p className="text-muted-foreground mb-4">
+            <h3 className="text-lg font-medium text-white mb-2">No products found</h3>
+            <p className="text-gray-400 mb-4">
               Try adjusting your filters or search query.
             </p>
             <Button onClick={handleClearFilters}>Clear Filters</Button>
@@ -327,7 +328,7 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
                 >
                   Previous
                 </Button>
-                <span className="flex items-center px-4 text-sm text-muted-foreground">
+                <span className="flex items-center px-4 text-sm text-gray-400">
                   Page {page} of {totalPages}
                 </span>
                 <Button
@@ -341,6 +342,7 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
             )}
           </>
         )}
+        </div>
       </div>
     </main>
   );

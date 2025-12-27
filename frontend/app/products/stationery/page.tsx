@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { CategoryHero } from '@/components/category/CategoryHero';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/ProductCard';
 import { Product, productsService } from '@/lib/api/products';
+import { Category, categoriesService, getCategoryImage } from '@/lib/api/categories';
 
-const CATEGORY = 'STATIONERY';
+const CATEGORY_SLUG = 'stationery';
 
 export default function StationeryPage() {
+  const [category, setCategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,12 +23,17 @@ export default function StationeryPage() {
   const retry = () => setRetryCount((c) => c + 1);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
+
+        // Fetch category for dynamic hero image
+        const categoryData = await categoriesService.get(CATEGORY_SLUG);
+        setCategory(categoryData);
+
         const featured = await productsService.list({
-          category: CATEGORY,
+          categorySlug: CATEGORY_SLUG,
           featured: true,
           limit: 4,
           status: 'ACTIVE',
@@ -34,7 +41,7 @@ export default function StationeryPage() {
         setFeaturedProducts(featured.products);
 
         const all = await productsService.list({
-          category: CATEGORY,
+          categorySlug: CATEGORY_SLUG,
           page,
           limit: 12,
           status: 'ACTIVE',
@@ -48,20 +55,19 @@ export default function StationeryPage() {
       }
     };
 
-    fetchProducts();
+    fetchData();
   }, [page, retryCount]);
 
   return (
     <main className="min-h-screen bg-background">
       {/* Hero Section */}
       <CategoryHero
-        title="Business Stationery"
+        title={category?.name || "Business Stationery"}
         subtitle="Professional Printing"
-        description="Make a lasting impression with custom business cards, letterheads, leaflets, and more. Quality stationery that represents your brand professionally."
-        heroImage="https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=1600&q=80"
+        description={category?.description || "Make a lasting impression with custom business cards, letterheads, leaflets, and more. Quality stationery that represents your brand professionally."}
+        heroImage={category ? getCategoryImage(category) : '/images/hero.png'}
         ctaText="Start Creating"
         ctaLink="#products"
-        gradient="from-black/90 via-black/85 to-black/75"
       />
 
       {/* Featured Products */}

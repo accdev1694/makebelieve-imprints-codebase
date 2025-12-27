@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { CategoryHero } from '@/components/category/CategoryHero';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/ProductCard';
 import { Product, productsService } from '@/lib/api/products';
+import { Category, categoriesService, getCategoryImage } from '@/lib/api/categories';
 
-const CATEGORY = 'LARGE_FORMAT';
+const CATEGORY_SLUG = 'large-format';
 
 export default function LargeFormatPage() {
+  const [category, setCategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,12 +23,17 @@ export default function LargeFormatPage() {
   const retry = () => setRetryCount((c) => c + 1);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
+
+        // Fetch category for dynamic hero image
+        const categoryData = await categoriesService.get(CATEGORY_SLUG);
+        setCategory(categoryData);
+
         const featured = await productsService.list({
-          category: CATEGORY,
+          categorySlug: CATEGORY_SLUG,
           featured: true,
           limit: 4,
           status: 'ACTIVE',
@@ -34,7 +41,7 @@ export default function LargeFormatPage() {
         setFeaturedProducts(featured.products);
 
         const all = await productsService.list({
-          category: CATEGORY,
+          categorySlug: CATEGORY_SLUG,
           page,
           limit: 12,
           status: 'ACTIVE',
@@ -48,20 +55,19 @@ export default function LargeFormatPage() {
       }
     };
 
-    fetchProducts();
+    fetchData();
   }, [page, retryCount]);
 
   return (
     <main className="min-h-screen bg-background">
       {/* Hero Section */}
       <CategoryHero
-        title="Large Format Printing"
+        title={category?.name || "Large Format Printing"}
         subtitle="Big Impact Prints"
-        description="Make a statement with our large format printing services. Perfect for banners, posters, signage, and exhibition displays."
-        heroImage="https://images.unsplash.com/photo-1626785774573-4b799315345d?w=1600&q=80"
+        description={category?.description || "Make a statement with our large format printing services. Perfect for banners, posters, signage, and exhibition displays."}
+        heroImage={category ? getCategoryImage(category) : '/images/hero.png'}
         ctaText="Start Creating"
         ctaLink="#products"
-        gradient="from-black/90 via-black/85 to-black/75"
       />
 
       {/* Featured Products */}

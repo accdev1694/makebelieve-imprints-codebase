@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { CategoryHero } from '@/components/category/CategoryHero';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/ProductCard';
 import { Product, productsService } from '@/lib/api/products';
+import { Category, categoriesService, getCategoryImage } from '@/lib/api/categories';
 
-const CATEGORY = 'PHOTO_PRINTS';
+const CATEGORY_SLUG = 'photo-prints';
 
 export default function PhotoPrintsPage() {
+  const [category, setCategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,12 +23,17 @@ export default function PhotoPrintsPage() {
   const retry = () => setRetryCount((c) => c + 1);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
+
+        // Fetch category for dynamic hero image
+        const categoryData = await categoriesService.get(CATEGORY_SLUG);
+        setCategory(categoryData);
+
         const featured = await productsService.list({
-          category: CATEGORY,
+          categorySlug: CATEGORY_SLUG,
           featured: true,
           limit: 4,
           status: 'ACTIVE',
@@ -34,7 +41,7 @@ export default function PhotoPrintsPage() {
         setFeaturedProducts(featured.products);
 
         const all = await productsService.list({
-          category: CATEGORY,
+          categorySlug: CATEGORY_SLUG,
           page,
           limit: 12,
           status: 'ACTIVE',
@@ -48,20 +55,19 @@ export default function PhotoPrintsPage() {
       }
     };
 
-    fetchProducts();
+    fetchData();
   }, [page, retryCount]);
 
   return (
     <main className="min-h-screen bg-background">
       {/* Hero Section */}
       <CategoryHero
-        title="Premium Photo Prints"
+        title={category?.name || "Premium Photo Prints"}
         subtitle="Gallery Quality"
-        description="Transform your photographs into stunning wall art. From canvas prints to acrylic displays, we offer premium options to showcase your memories."
-        heroImage="https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81?w=1600&q=80"
+        description={category?.description || "Transform your photographs into stunning wall art. From canvas prints to acrylic displays, we offer premium options to showcase your memories."}
+        heroImage={category ? getCategoryImage(category) : '/images/hero.png'}
         ctaText="Start Creating"
         ctaLink="#products"
-        gradient="from-black/90 via-black/85 to-black/75"
       />
 
       {/* Featured Products */}

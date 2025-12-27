@@ -58,10 +58,10 @@ export default function StationeryPage() {
         title="Business Stationery"
         subtitle="Professional Printing"
         description="Make a lasting impression with custom business cards, letterheads, leaflets, and more. Quality stationery that represents your brand professionally."
-        heroImage="https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=1600&q=80"
+        heroImage="https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=1600&q=80"
         ctaText="Start Creating"
         ctaLink="#products"
-        gradient="from-blue-600/90 to-indigo-600/90"
+        gradient="from-black/80 via-black/60 to-black/40"
       />
 
       {/* Featured Products */}

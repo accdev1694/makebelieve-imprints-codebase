@@ -22,7 +22,7 @@ export function CategoryHero({
   heroImage,
   ctaText = 'Browse Products',
   ctaLink,
-  gradient = 'from-primary/90 to-purple-600/90',
+  gradient = 'from-black/80 via-black/60 to-black/40',
 }: CategoryHeroProps) {
   return (
     <section className="relative overflow-hidden">

@@ -58,10 +58,10 @@ export default function DigitalPage() {
         title="Digital Downloads"
         subtitle="Instant Access"
         description="Get instant access to printable designs, templates, and digital products. Download immediately and print at home or at your local print shop."
-        heroImage="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1600&q=80"
+        heroImage="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1600&q=80"
         ctaText="Browse Downloads"
         ctaLink="#products"
-        gradient="from-violet-600/90 to-purple-600/90"
+        gradient="from-black/80 via-black/60 to-black/40"
       />
 
       {/* Featured Products */}

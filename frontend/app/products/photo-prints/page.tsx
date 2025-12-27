@@ -58,10 +58,10 @@ export default function PhotoPrintsPage() {
         title="Premium Photo Prints"
         subtitle="Gallery Quality"
         description="Transform your photographs into stunning wall art. From canvas prints to acrylic displays, we offer premium options to showcase your memories."
-        heroImage="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=1600&q=80"
+        heroImage="https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81?w=1600&q=80"
         ctaText="Start Creating"
         ctaLink="#products"
-        gradient="from-teal-600/90 to-cyan-600/90"
+        gradient="from-black/80 via-black/60 to-black/40"
       />
 
       {/* Featured Products */}

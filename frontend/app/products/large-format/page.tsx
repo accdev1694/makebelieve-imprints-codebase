@@ -58,10 +58,10 @@ export default function LargeFormatPage() {
         title="Large Format Printing"
         subtitle="Big Impact Prints"
         description="Make a statement with our large format printing services. Perfect for banners, posters, signage, and exhibition displays."
-        heroImage="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1600&q=80"
+        heroImage="https://images.unsplash.com/photo-1626785774573-4b799315345d?w=1600&q=80"
         ctaText="Start Creating"
         ctaLink="#products"
-        gradient="from-orange-600/90 to-red-600/90"
+        gradient="from-black/80 via-black/60 to-black/40"
       />
 
       {/* Featured Products */}

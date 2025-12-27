@@ -104,17 +104,25 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Royal Mail shipment creation failed:', error);
+      const errorMessage = typeof error.message === 'string'
+        ? error.message
+        : JSON.stringify(error.message);
       return NextResponse.json(
-        { error: error.message, details: error.details },
+        { error: errorMessage, details: error.details },
         { status: 400 }
       );
     }
 
     // Check for created orders
     if (!data || data.successCount === 0) {
-      const errorMessages = data?.failedOrders?.map((f) => f.errors.join(', ')).join('; ');
+      const failedErrors = data?.failedOrders?.map((f) => {
+        if (Array.isArray(f.errors)) {
+          return f.errors.map((e: unknown) => typeof e === 'string' ? e : JSON.stringify(e)).join(', ');
+        }
+        return typeof f.errors === 'string' ? f.errors : JSON.stringify(f.errors);
+      }).join('; ');
       return NextResponse.json(
-        { error: `Failed to create shipment: ${errorMessages || 'Unknown error'}` },
+        { error: failedErrors || 'Failed to create shipment - unknown error' },
         { status: 400 }
       );
     }

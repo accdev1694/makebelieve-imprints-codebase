@@ -93,7 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userData = await authService.login(data);
     setUser(userData);
     setCachedUser(userData);
-    router.push('/dashboard');
+    // Redirect admins to admin dashboard, customers to their dashboard
+    if (userData.userType === 'PRINTER_ADMIN') {
+      router.push('/admin');
+    } else {
+      router.push('/dashboard');
+    }
   };
 
   const register = async (data: RegisterData) => {

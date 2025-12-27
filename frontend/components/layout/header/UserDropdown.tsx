@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { User, LayoutDashboard, Package, Palette, Settings, LogOut } from 'lucide-react';
+import { User, LayoutDashboard, Package, Palette, Settings, LogOut, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { User as UserType } from '@/lib/api/auth';
@@ -18,6 +18,8 @@ const MENU_ITEMS = [
   { label: 'My Designs', href: '/design/my-designs', icon: Palette },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
+
+const ADMIN_ITEM = { label: 'Admin Dashboard', href: '/admin', icon: ShieldCheck };
 
 export function UserDropdown({ user, onLogout }: UserDropdownProps) {
   if (!user) {
@@ -64,6 +66,27 @@ export function UserDropdown({ user, onLogout }: UserDropdownProps) {
             <p className="font-medium text-sm">{user.name}</p>
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
+
+          {/* Admin Link (only for admins) */}
+          {user.userType === 'PRINTER_ADMIN' && (
+            <>
+              <DropdownMenu.Item asChild>
+                <Link
+                  href={ADMIN_ITEM.href}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 text-sm rounded-md',
+                    'cursor-pointer outline-none',
+                    'hover:bg-accent focus:bg-accent',
+                    'transition-colors text-primary font-medium'
+                  )}
+                >
+                  <ADMIN_ITEM.icon className="h-4 w-4" />
+                  {ADMIN_ITEM.label}
+                </Link>
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator className="h-px bg-border my-1" />
+            </>
+          )}
 
           {/* Menu Items */}
           {MENU_ITEMS.map((item) => (

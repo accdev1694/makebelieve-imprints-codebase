@@ -310,7 +310,7 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
                 <div className="space-y-2">
                   <p className="text-sm font-medium mb-3">Update Status:</p>
 
-                  {order.status === 'pending' && (
+                  {(order.status === 'pending' || order.status === 'confirmed') && (
                     <Button
                       className="w-full"
                       onClick={() => handleUpdateStatus('payment_confirmed')}

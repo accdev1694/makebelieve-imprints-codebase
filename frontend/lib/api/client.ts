@@ -118,10 +118,19 @@ apiClient.interceptors.response.use(
 
     // Handle 401 Unauthorized - try to refresh token
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-      // Don't try to refresh if we're already calling the refresh endpoint
+      // Don't try to refresh if we're calling auth endpoints (login, register, refresh)
       const url = originalRequest.url || '';
-      if (url.includes('auth/refresh')) {
-        return Promise.reject(error);
+      if (url.includes('auth/refresh') || url.includes('auth/login') || url.includes('auth/register')) {
+        // Format the error properly for auth endpoints
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const apiError = error.response.data as any;
+        const message = apiError?.message || 'Invalid email or password. Please try again.';
+        return Promise.reject({
+          statusCode: 401,
+          message,
+          error: apiError?.error || 'Authentication Failed',
+          data: apiError,
+        });
       }
 
       if (isRefreshing) {

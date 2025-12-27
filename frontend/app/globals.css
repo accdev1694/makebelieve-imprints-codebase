@@ -60,7 +60,7 @@
     --color-error: 4 75% 56%; /* #E53935 */
 
     /* Shadcn mapping */
-    --background: 217 26% 7%; /* bg-primary */
+    --background: 220 20% 4%; /* Near black with slight blue tint */
     --foreground: 211 100% 95%; /* text-primary */
     --card: 220 32% 12%; /* bg-secondary */
     --card-foreground: 211 100% 95%;

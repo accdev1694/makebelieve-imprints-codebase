@@ -22,11 +22,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    console.log('Sending test campaign:', id, 'to:', testEmail);
     const success = await sendTestCampaign(id, testEmail);
 
     if (!success) {
+      console.error('sendTestCampaign returned false');
       return NextResponse.json(
-        { error: 'Failed to send test email' },
+        { error: 'Failed to send test email. Check server logs for details.' },
         { status: 500 }
       );
     }
@@ -36,6 +38,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       message: `Test email sent to ${testEmail}`,
     });
   } catch (error) {
+    console.error('Test campaign error:', error);
     return handleApiError(error);
   }
 }

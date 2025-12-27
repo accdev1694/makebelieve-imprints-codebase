@@ -32,7 +32,9 @@ interface SendEmailOptions {
 export async function sendEmail({ to, subject, html, text }: SendEmailOptions): Promise<boolean> {
   try {
     const resend = getResendClient();
-    const { error } = await resend.emails.send({
+    console.log('Sending email to:', to, 'from:', FROM_EMAIL);
+
+    const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to,
       subject,
@@ -41,13 +43,14 @@ export async function sendEmail({ to, subject, html, text }: SendEmailOptions): 
     });
 
     if (error) {
-      console.error('Error sending email:', error);
+      console.error('Resend API error:', JSON.stringify(error, null, 2));
       return false;
     }
 
+    console.log('Email sent successfully, ID:', data?.id);
     return true;
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Exception sending email:', error);
     return false;
   }
 }

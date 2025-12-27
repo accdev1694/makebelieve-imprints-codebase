@@ -15,7 +15,7 @@ function getResendClient(): Resend {
 }
 
 // Email configuration
-const FROM_EMAIL = process.env.EMAIL_FROM || 'MakeBelieve Imprints <noreply@makebelieveimprints.com>';
+const FROM_EMAIL = process.env.EMAIL_FROM || 'MakeBelieve Imprints <noreply@send.makebelieveimprints.co.uk>';
 const APP_NAME = 'MakeBelieve Imprints';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 

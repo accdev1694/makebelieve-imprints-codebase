@@ -31,7 +31,7 @@ export function Header({
   const headerClasses = cn(
     'sticky top-0 z-50',
     {
-      'border-b border-border/50 bg-card/30 backdrop-blur-sm': variant === 'default',
+      'border-b border-border/50 bg-card/65 backdrop-blur-sm': variant === 'default',
       'bg-transparent': variant === 'transparent',
       'border-b border-border bg-background': variant === 'minimal',
     },

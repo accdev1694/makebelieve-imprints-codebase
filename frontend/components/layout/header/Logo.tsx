@@ -21,7 +21,7 @@ export function Logo({ className, size = 'md' }: LogoProps) {
   return (
     <Link href="/" className={cn('flex items-center', className)}>
       <Image
-        src="/logo.png"
+        src="/images/logo.png"
         alt="MakeBelieve Imprints"
         width={width}
         height={height}

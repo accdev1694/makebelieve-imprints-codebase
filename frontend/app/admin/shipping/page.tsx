@@ -13,7 +13,7 @@ import { ordersService, Order, ORDER_STATUS_LABELS } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import { Package, Truck, Download, FileText, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { Package, Truck, Download, FileText, RefreshCw, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 
 interface ApiHealth {
   status: string;
@@ -210,6 +210,38 @@ function AdminShippingContent() {
       setError(message);
     } finally {
       setManifesting(false);
+    }
+  };
+
+  const handleDeleteShipment = async (order: Order) => {
+    if (!confirm(`Delete Royal Mail shipment for order #${order.id.slice(0, 8).toUpperCase()}? This will remove it from Royal Mail and clear shipping data.`)) {
+      return;
+    }
+
+    setProcessingOrderId(order.id);
+    setProcessingAction('delete');
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch(`/api/shipping/shipments/${order.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete shipment');
+      }
+
+      setSuccess(`Shipment deleted for order #${order.id.slice(0, 8).toUpperCase()}`);
+      fetchData(); // Refresh to get updated order
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete shipment';
+      setError(message);
+    } finally {
+      setProcessingOrderId(null);
+      setProcessingAction(null);
     }
   };
 
@@ -457,16 +489,31 @@ function AdminShippingContent() {
                             )}
 
                             {hasRoyalMailOrder && (
-                              <Button
-                                onClick={() => handleDownloadLabel(order)}
-                                disabled={isProcessing}
-                                className="w-full btn-gradient"
-                              >
-                                <Download className="h-4 w-4 mr-2" />
-                                {isProcessing && processingAction === 'label'
-                                  ? 'Downloading...'
-                                  : 'Download Label'}
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={() => handleDownloadLabel(order)}
+                                  disabled={isProcessing}
+                                  className="flex-1 btn-gradient"
+                                >
+                                  <Download className="h-4 w-4 mr-2" />
+                                  {isProcessing && processingAction === 'label'
+                                    ? 'Downloading...'
+                                    : 'Download Label'}
+                                </Button>
+                                <Button
+                                  onClick={() => handleDeleteShipment(order)}
+                                  disabled={isProcessing}
+                                  variant="destructive"
+                                  size="icon"
+                                  title="Delete shipment"
+                                >
+                                  {isProcessing && processingAction === 'delete' ? (
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
                             )}
 
                             {/* Manual tracking input */}

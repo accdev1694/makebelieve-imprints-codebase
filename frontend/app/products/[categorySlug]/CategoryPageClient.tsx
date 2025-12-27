@@ -195,7 +195,7 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
       />
 
       {/* Main Content */}
-      <div className="bg-gray-900 py-8">
+      <div className="pt-8 pb-8">
         <div className="container mx-auto px-4">
         {/* Subcategory Filter */}
         {subcategories.length > 0 && (

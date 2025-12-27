@@ -93,7 +93,7 @@ export default function DigitalPage() {
       )}
 
       {/* All Products */}
-      <section id="products" className="py-16 bg-gray-900">
+      <section id="products" className="py-16">
         <div className="container mx-auto px-4">
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-white">All Digital Products</h2>

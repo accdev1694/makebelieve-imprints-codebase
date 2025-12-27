@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 interface LogoProps {
@@ -9,15 +10,24 @@ interface LogoProps {
 }
 
 export function Logo({ className, size = 'md' }: LogoProps) {
-  const sizeClasses = {
-    sm: 'text-lg',
-    md: 'text-xl',
-    lg: 'text-2xl',
+  const sizeConfig = {
+    sm: { width: 32, height: 32 },
+    md: { width: 40, height: 40 },
+    lg: { width: 48, height: 48 },
   };
 
+  const { width, height } = sizeConfig[size];
+
   return (
-    <Link href="/" className={cn('font-bold', sizeClasses[size], className)}>
-      <span className="text-neon-gradient">MakeBelieve</span>
+    <Link href="/" className={cn('flex items-center', className)}>
+      <Image
+        src="/logo.png"
+        alt="MakeBelieve Imprints"
+        width={width}
+        height={height}
+        priority
+        className="object-contain"
+      />
     </Link>
   );
 }

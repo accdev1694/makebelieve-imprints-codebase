@@ -3,36 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Camera, Image, Frame, Star } from 'lucide-react';
 import { CategoryHero } from '@/components/category/CategoryHero';
-import { CategoryFeatures } from '@/components/category/CategoryFeatures';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/ProductCard';
 import { Product, productsService } from '@/lib/api/products';
 
 const CATEGORY = 'PHOTO_PRINTS';
-
-const features = [
-  {
-    icon: <Camera className="h-6 w-6" />,
-    title: 'Photo Quality',
-    description: 'Professional-grade printing that captures every detail of your images.',
-  },
-  {
-    icon: <Image className="h-6 w-6" />,
-    title: 'Premium Materials',
-    description: 'Choose from canvas, acrylic, aluminum, and fine art paper.',
-  },
-  {
-    icon: <Frame className="h-6 w-6" />,
-    title: 'Gallery Ready',
-    description: 'Museum-quality prints ready to hang and display.',
-  },
-  {
-    icon: <Star className="h-6 w-6" />,
-    title: 'Archival Quality',
-    description: 'Prints that last a lifetime with fade-resistant inks.',
-  },
-];
 
 export default function PhotoPrintsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -87,13 +62,6 @@ export default function PhotoPrintsPage() {
         ctaText="Start Creating"
         ctaLink="#products"
         gradient="from-teal-600/90 to-cyan-600/90"
-      />
-
-      {/* Features Section */}
-      <CategoryFeatures
-        title="Premium Photo Quality"
-        subtitle="For Your Precious Memories"
-        features={features}
       />
 
       {/* Featured Products */}

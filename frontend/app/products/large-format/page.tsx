@@ -3,36 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Maximize, Eye, Shield, Zap } from 'lucide-react';
 import { CategoryHero } from '@/components/category/CategoryHero';
-import { CategoryFeatures } from '@/components/category/CategoryFeatures';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/ProductCard';
 import { Product, productsService } from '@/lib/api/products';
 
 const CATEGORY = 'LARGE_FORMAT';
-
-const features = [
-  {
-    icon: <Maximize className="h-6 w-6" />,
-    title: 'Any Size',
-    description: 'From A2 to billboard size, we print at any scale you need.',
-  },
-  {
-    icon: <Eye className="h-6 w-6" />,
-    title: 'High Resolution',
-    description: 'Crystal clear prints that look stunning from any distance.',
-  },
-  {
-    icon: <Shield className="h-6 w-6" />,
-    title: 'Durable Materials',
-    description: 'Weather-resistant options for indoor and outdoor use.',
-  },
-  {
-    icon: <Zap className="h-6 w-6" />,
-    title: 'Quick Production',
-    description: 'Fast turnaround for time-sensitive projects.',
-  },
-];
 
 export default function LargeFormatPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -87,13 +62,6 @@ export default function LargeFormatPage() {
         ctaText="Start Creating"
         ctaLink="#products"
         gradient="from-orange-600/90 to-red-600/90"
-      />
-
-      {/* Features Section */}
-      <CategoryFeatures
-        title="Go Big With Confidence"
-        subtitle="Large Format Excellence"
-        features={features}
       />
 
       {/* Featured Products */}

@@ -3,36 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Download, Zap, FileText, Infinity } from 'lucide-react';
 import { CategoryHero } from '@/components/category/CategoryHero';
-import { CategoryFeatures } from '@/components/category/CategoryFeatures';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/ProductCard';
 import { Product, productsService } from '@/lib/api/products';
 
 const CATEGORY = 'DIGITAL';
-
-const features = [
-  {
-    icon: <Download className="h-6 w-6" />,
-    title: 'Instant Download',
-    description: 'Get your files immediately after purchase - no waiting required.',
-  },
-  {
-    icon: <Zap className="h-6 w-6" />,
-    title: 'High Quality',
-    description: 'Professional-grade digital files ready for printing or sharing.',
-  },
-  {
-    icon: <FileText className="h-6 w-6" />,
-    title: 'Multiple Formats',
-    description: 'Download in PDF, PNG, JPG, or other formats as needed.',
-  },
-  {
-    icon: <Infinity className="h-6 w-6" />,
-    title: 'Unlimited Use',
-    description: 'Print as many times as you want for personal use.',
-  },
-];
 
 export default function DigitalPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -87,13 +62,6 @@ export default function DigitalPage() {
         ctaText="Browse Downloads"
         ctaLink="#products"
         gradient="from-violet-600/90 to-purple-600/90"
-      />
-
-      {/* Features Section */}
-      <CategoryFeatures
-        title="Digital Convenience"
-        subtitle="Download & Print"
-        features={features}
       />
 
       {/* Featured Products */}

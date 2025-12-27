@@ -12,7 +12,6 @@ import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 import { Product, productsService, CustomizationType } from '@/lib/api/products';
 import { Category, Subcategory, getCategoryImage, categoriesService } from '@/lib/api/categories';
 import { CategoryHero } from '@/components/category/CategoryHero';
-import { CategoryFeatures } from '@/components/category/CategoryFeatures';
 import { useDebounce } from '@/hooks/useDebounce';
 
 interface CategoryPageClientProps {
@@ -192,17 +191,6 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
         description={category.description || `Explore our ${category.name.toLowerCase()} collection`}
         heroImage={getCategoryImage(category)}
       />
-
-      {/* Subcategory Features */}
-      {subcategories.length > 0 && (
-        <CategoryFeatures
-          features={subcategories.map((sub) => ({
-            title: sub.name,
-            description: sub.description || '',
-            icon: sub.slug,
-          }))}
-        />
-      )}
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">

@@ -3,36 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { PenTool, Layers, BadgeCheck, Truck } from 'lucide-react';
 import { CategoryHero } from '@/components/category/CategoryHero';
-import { CategoryFeatures } from '@/components/category/CategoryFeatures';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/ProductCard';
 import { Product, productsService } from '@/lib/api/products';
 
 const CATEGORY = 'STATIONERY';
-
-const features = [
-  {
-    icon: <PenTool className="h-6 w-6" />,
-    title: 'Premium Paper',
-    description: 'High-quality paper stocks that feel luxurious and professional.',
-  },
-  {
-    icon: <Layers className="h-6 w-6" />,
-    title: 'Custom Finishes',
-    description: 'Choose from matte, gloss, silk, or textured finishes.',
-  },
-  {
-    icon: <BadgeCheck className="h-6 w-6" />,
-    title: 'Professional Quality',
-    description: 'Sharp, crisp printing that makes your brand stand out.',
-  },
-  {
-    icon: <Truck className="h-6 w-6" />,
-    title: 'Fast Turnaround',
-    description: 'Quick production times without compromising on quality.',
-  },
-];
 
 export default function StationeryPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -87,13 +62,6 @@ export default function StationeryPage() {
         ctaText="Start Creating"
         ctaLink="#products"
         gradient="from-blue-600/90 to-indigo-600/90"
-      />
-
-      {/* Features Section */}
-      <CategoryFeatures
-        title="Professional Print Quality"
-        subtitle="Business Essentials"
-        features={features}
       />
 
       {/* Featured Products */}

@@ -41,7 +41,7 @@ export function Header({
   return (
     <>
       <header className={headerClasses}>
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-between gap-4">
             {/* Logo */}
             <Logo />

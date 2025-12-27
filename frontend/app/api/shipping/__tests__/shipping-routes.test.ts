@@ -1,26 +1,13 @@
 /**
+ * @jest-environment @edge-runtime/jest-environment
+ */
+
+/**
  * Shipping API Routes Tests
  *
  * Tests for shipping API endpoints
- *
- * NOTE: These tests are currently skipped because Next.js API routes
- * require Web APIs (Request, Response, ReadableStream, etc.) that aren't
- * available in Jest's Node.js environment. The Royal Mail service tests
- * in lib/server/__tests__/royal-mail-service.test.ts provide comprehensive
- * coverage of the core shipping functionality.
- *
- * To enable these tests, you would need to configure Jest with proper
- * polyfills or use a testing framework that supports Web APIs natively.
  */
 
-// Skip this entire test suite until proper Web API polyfills are configured
-describe.skip('Shipping API Routes', () => {
-  it('placeholder - tests skipped due to Next.js/Jest compatibility', () => {
-    expect(true).toBe(true);
-  });
-});
-
-/* Original tests preserved below for future reference
 import { NextRequest } from 'next/server';
 import { mockDeep, mockReset, DeepMockProxy } from 'jest-mock-extended';
 import { PrismaClient, Order, User } from '@prisma/client';
@@ -585,4 +572,3 @@ describe('Shipping API Routes', () => {
     });
   });
 });
-*/

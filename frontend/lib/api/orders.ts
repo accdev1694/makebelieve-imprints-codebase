@@ -42,7 +42,9 @@ export interface Order {
   shippingAddress: ShippingAddress;
   totalPrice: number | string;
   status: OrderStatus;
+  royalmailOrderId?: string | null;
   trackingNumber?: string | null;
+  carrier?: string | null;
   createdAt: string;
   updatedAt: string;
   design?: {

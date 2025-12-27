@@ -72,6 +72,11 @@ export async function POST(request: NextRequest) {
       countryOfOrigin: 'GB',
     }));
 
+    // Calculate order financial details
+    const totalPrice = Number(order.totalPrice);
+    const subtotal = order.subtotal ? Number(order.subtotal) : totalPrice;
+    const shippingCostCharged = order.discountAmount ? 0 : Math.max(0, totalPrice - subtotal);
+
     // Create shipment in Royal Mail
     const { data, error } = await createShipment({
       orderReference: order.id,
@@ -100,6 +105,12 @@ export async function POST(request: NextRequest) {
             senderType: 'Business',
           }
         : undefined,
+      // Required order financial details
+      orderDate: order.createdAt.toISOString(),
+      subtotal: subtotal,
+      shippingCostCharged: shippingCostCharged,
+      total: totalPrice,
+      currencyCode: 'GBP',
     });
 
     if (error) {

@@ -59,6 +59,12 @@ export interface CreateShipmentRequest {
     contentType: 'Sale' | 'Gift' | 'Sample' | 'Documents' | 'Return' | 'Other';
     senderType: 'Business' | 'Private';
   };
+  // Required order financial details
+  orderDate: string; // ISO datetime when order was placed
+  subtotal: number; // Value of goods excluding shipping
+  shippingCostCharged: number; // Shipping cost charged to customer
+  total: number; // Total order value
+  currencyCode?: string; // Default: GBP
 }
 
 export interface RoyalMailOrder {
@@ -270,6 +276,12 @@ export async function createShipment(
         shippingDate: request.shippingDate || new Date().toISOString().split('T')[0],
         serviceCode: request.serviceCode,
         customsInfo: request.customsInfo,
+        // Required order financial details
+        orderDate: request.orderDate,
+        subtotal: request.subtotal,
+        shippingCostCharged: request.shippingCostCharged,
+        total: request.total,
+        currencyCode: request.currencyCode || 'GBP',
       },
     ],
   };

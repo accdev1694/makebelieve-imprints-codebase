@@ -41,14 +41,14 @@ export function CategoryHero({
 
       {/* Content */}
       <div className="relative container mx-auto px-4 py-20 md:py-32">
-        <div className="max-w-2xl text-white">
-          <p className="text-sm md:text-base font-medium text-white/80 mb-2 uppercase tracking-wider">
+        <div className="max-w-3xl text-white">
+          <p className="text-base md:text-lg font-medium text-white/80 mb-2 uppercase tracking-wider">
             {subtitle}
           </p>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
             {title}
           </h1>
-          <p className="text-lg md:text-xl text-white/90 mb-8 max-w-xl">
+          <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-xl leading-relaxed">
             {description}
           </p>
           {ctaLink && (

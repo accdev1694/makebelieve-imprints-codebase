@@ -73,8 +73,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       });
     }
 
-    // Return PDF
-    return new NextResponse(labelData, {
+    // Return PDF (convert Buffer to Uint8Array for NextResponse compatibility)
+    return new NextResponse(new Uint8Array(labelData), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="label-${orderId}.pdf"`,

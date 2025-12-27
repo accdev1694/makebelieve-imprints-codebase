@@ -7,8 +7,16 @@ import jwt, { SignOptions } from 'jsonwebtoken';
  */
 
 // Token configuration
-const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
-const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key-change-this-in-production';
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+const ACCESS_TOKEN_SECRET = getRequiredEnv('JWT_SECRET');
+const REFRESH_TOKEN_SECRET = getRequiredEnv('JWT_REFRESH_SECRET');
 const ACCESS_TOKEN_EXPIRY = process.env.JWT_EXPIRES_IN || '15m';
 const REFRESH_TOKEN_EXPIRY = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 

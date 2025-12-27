@@ -3,7 +3,7 @@ import { sendEmail } from './email';
 import { EmailCampaign, Promo } from '@prisma/client';
 
 const APP_NAME = 'MakeBelieve Imprints';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://makebelieveimprints.co.uk';
 
 /**
  * Generate campaign email HTML

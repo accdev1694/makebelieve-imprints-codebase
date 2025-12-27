@@ -190,6 +190,8 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
         subtitle={`${total} product${total !== 1 ? 's' : ''} available`}
         description={category.description || `Explore our ${category.name.toLowerCase()} collection`}
         heroImage={getCategoryImage(category)}
+        ctaText="Browse Products"
+        ctaLink="#products"
       />
 
       {/* Main Content */}

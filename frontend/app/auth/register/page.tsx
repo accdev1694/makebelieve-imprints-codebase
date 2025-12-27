@@ -170,6 +170,15 @@ export default function RegisterPage() {
               </Link>
             </div>
 
+            <div className="mt-2 text-center text-sm">
+              <Link
+                href="/auth/forgot-password"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Forgot your password?
+              </Link>
+            </div>
+
             <div className="mt-4 text-center">
               <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
                 ← Back to home

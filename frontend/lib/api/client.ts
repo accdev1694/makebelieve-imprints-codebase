@@ -128,6 +128,7 @@ apiClient.interceptors.response.use(
         return Promise.reject({
           statusCode: 401,
           message,
+          code: apiError?.code, // Include error code for distinct error handling
           error: apiError?.error || 'Authentication Failed',
           data: apiError,
         });

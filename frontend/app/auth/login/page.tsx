@@ -7,35 +7,56 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 
+type ErrorType = 'USER_NOT_FOUND' | 'INVALID_PASSWORD' | 'GENERIC';
+
+interface LoginError {
+  type: ErrorType;
+  message: string;
+}
+
 export default function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<LoginError | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError(null);
     setLoading(true);
 
     try {
       await login({ email, password });
     } catch (err: any) {
-      // Handle different error formats from the API
-      let errorMessage = 'Login failed. Please check your credentials.';
+      // Handle different error codes from the API
+      const errorCode = err?.code || err?.data?.code;
 
-      if (typeof err === 'string') {
-        errorMessage = err;
-      } else if (err?.error?.message) {
-        errorMessage = err.error.message;
-      } else if (err?.message) {
-        errorMessage = err.message;
-      } else if (err?.error) {
-        errorMessage = typeof err.error === 'string' ? err.error : errorMessage;
+      if (errorCode === 'USER_NOT_FOUND') {
+        setError({
+          type: 'USER_NOT_FOUND',
+          message: 'No account found with this email.',
+        });
+      } else if (errorCode === 'INVALID_PASSWORD') {
+        setError({
+          type: 'INVALID_PASSWORD',
+          message: 'Incorrect password.',
+        });
+      } else {
+        // Fallback to generic error
+        let errorMessage = 'Login failed. Please check your credentials.';
+        if (typeof err === 'string') {
+          errorMessage = err;
+        } else if (err?.message) {
+          errorMessage = err.message;
+        } else if (err?.error) {
+          errorMessage = typeof err.error === 'string' ? err.error : errorMessage;
+        }
+        setError({
+          type: 'GENERIC',
+          message: errorMessage,
+        });
       }
-
-      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -67,7 +88,27 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm">
-                  {error}
+                  <p>{error.message}</p>
+                  {error.type === 'USER_NOT_FOUND' && (
+                    <p className="mt-2">
+                      <Link
+                        href="/auth/register"
+                        className="text-primary hover:text-primary/80 font-medium underline"
+                      >
+                        Create an account
+                      </Link>
+                    </p>
+                  )}
+                  {error.type === 'INVALID_PASSWORD' && (
+                    <p className="mt-2">
+                      <Link
+                        href="/auth/forgot-password"
+                        className="text-primary hover:text-primary/80 font-medium underline"
+                      >
+                        Reset your password
+                      </Link>
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -87,12 +128,20 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-foreground mb-2"
-                >
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    Password
+                  </label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-sm text-primary hover:text-primary/80"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <Input
                   id="password"
                   type="password"

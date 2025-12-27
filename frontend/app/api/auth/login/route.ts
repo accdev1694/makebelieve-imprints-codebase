@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { login } from '@/lib/server/auth-service';
+import { login, UserNotFoundError, InvalidPasswordError } from '@/lib/server/auth-service';
 import { setAuthCookies, handleApiError, transformUserForFrontend } from '@/lib/server/auth';
 
 export async function POST(request: NextRequest) {
@@ -33,12 +33,29 @@ export async function POST(request: NextRequest) {
     // Set auth cookies
     return setAuthCookies(response, result.tokens.accessToken, result.tokens.refreshToken);
   } catch (error) {
-    if (error instanceof Error && error.message === 'Invalid email or password') {
+    // Handle distinct login errors
+    if (error instanceof UserNotFoundError) {
       return NextResponse.json(
-        { error: 'Invalid email or password' },
+        {
+          error: error.message,
+          code: error.code,
+          message: 'No account found with this email. Would you like to create one?',
+        },
         { status: 401 }
       );
     }
+
+    if (error instanceof InvalidPasswordError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: error.code,
+          message: 'Incorrect password. Forgot your password?',
+        },
+        { status: 401 }
+      );
+    }
+
     return handleApiError(error);
   }
 }

@@ -9,19 +9,20 @@ datasource db {
 }
 
 model User {
-  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  type          UserType
-  email         String          @unique @db.VarChar(255)
-  passwordHash  String          @map("password_hash") @db.VarChar(255)
-  name          String          @db.VarChar(255)
-  profile       Json?
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @default(now()) @updatedAt @map("updated_at")
-  designs       Design[]
-  orders        Order[]
-  refreshTokens RefreshToken[]
-  reviews       Review[]
-  preferences   UserPreference?
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type                UserType
+  email               String               @unique @db.VarChar(255)
+  passwordHash        String               @map("password_hash") @db.VarChar(255)
+  name                String               @db.VarChar(255)
+  profile             Json?
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @default(now()) @updatedAt @map("updated_at")
+  designs             Design[]
+  orders              Order[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  reviews             Review[]
+  preferences         UserPreference?
 
   @@index([email])
   @@index([type])
@@ -39,6 +40,20 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @map("token_hash") @db.VarChar(255)
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 model Design {

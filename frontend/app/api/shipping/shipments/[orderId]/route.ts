@@ -39,7 +39,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Delete from Royal Mail (pass as number since orderIdentifier is numeric)
     const { data, error } = await deleteOrders([parseInt(order.royalmailOrderId, 10)]);
 
-    if (error) {
+    // Check if error is "order not found" - this is OK, order was already deleted in Royal Mail
+    const isOrderNotFoundError = error?.message?.includes('does not exist') ||
+                                  error?.message?.includes('not found') ||
+                                  error?.code === '3';
+
+    if (error && !isOrderNotFoundError) {
+      // Real error (network, auth, etc.) - fail
       console.error('Royal Mail delete failed:', error);
       return NextResponse.json(
         { error: error.message },
@@ -47,7 +53,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Clear shipping fields from database
+    if (isOrderNotFoundError) {
+      console.log('Order already deleted from Royal Mail, clearing local data');
+    }
+
+    // Clear shipping fields from database (always do this if we get here)
     await prisma.order.update({
       where: { id: orderId },
       data: {

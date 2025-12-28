@@ -157,7 +157,8 @@ export async function POST(request: NextRequest) {
       royalMailOrderId: createdOrder.orderIdentifier,
       orderReference: createdOrder.orderReference,
       trackingNumber: createdOrder.trackingNumber,
-      message: 'Shipment created. Use Download Label to get the shipping label.',
+      clickAndDropUrl: 'https://parcel.royalmail.com/orders',
+      message: 'Shipment created. Pay and print label in Royal Mail Click & Drop.',
     });
   } catch (error) {
     console.error('Create shipment error:', error);

@@ -13,7 +13,7 @@ import { ordersService, Order, ORDER_STATUS_LABELS } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import { Package, Truck, Download, FileText, RefreshCw, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { Package, Truck, Download, FileText, RefreshCw, CheckCircle, AlertCircle, Trash2, ExternalLink } from 'lucide-react';
 
 interface ApiHealth {
   status: string;
@@ -102,7 +102,7 @@ function AdminShippingContent() {
         throw new Error(data.error || 'Failed to create shipment');
       }
 
-      setSuccess(`Shipment created for order #${order.id.slice(0, 8).toUpperCase()}. You can now download the label.`);
+      setSuccess(`Shipment created for order #${order.id.slice(0, 8).toUpperCase()}. Pay and print label in Click & Drop.`);
       fetchData(); // Refresh to get updated order
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to create shipment';
@@ -123,6 +123,14 @@ function AdminShippingContent() {
 
       if (!response.ok) {
         const data = await response.json();
+
+        // Handle payment required - redirect to Click & Drop
+        if (response.status === 402 || data.code === 'PAYMENT_REQUIRED') {
+          window.open(data.clickAndDropUrl || 'https://parcel.royalmail.com/orders', '_blank');
+          setError('Payment required. Opening Click & Drop to pay and print label...');
+          return;
+        }
+
         throw new Error(data.error || 'Failed to download label');
       }
 
@@ -491,14 +499,11 @@ function AdminShippingContent() {
                             {hasRoyalMailOrder && (
                               <div className="flex gap-2">
                                 <Button
-                                  onClick={() => handleDownloadLabel(order)}
-                                  disabled={isProcessing}
+                                  onClick={() => window.open('https://parcel.royalmail.com/orders', '_blank')}
                                   className="flex-1 btn-gradient"
                                 >
-                                  <Download className="h-4 w-4 mr-2" />
-                                  {isProcessing && processingAction === 'label'
-                                    ? 'Downloading...'
-                                    : 'Download Label'}
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  Pay & Print in Click & Drop
                                 </Button>
                                 <Button
                                   onClick={() => handleDeleteShipment(order)}

@@ -46,6 +46,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (labelError) {
       console.error('Failed to get label:', labelError);
+
+      // Handle 403 - account doesn't have API label access (no OBA)
+      if (labelError.code === 'HTTP_403') {
+        return NextResponse.json(
+          {
+            error: 'Label download requires payment in Click & Drop',
+            code: 'PAYMENT_REQUIRED',
+            clickAndDropUrl: 'https://parcel.royalmail.com/orders',
+            message: 'Please pay for postage in Royal Mail Click & Drop to download the label.',
+          },
+          { status: 402 } // Payment Required
+        );
+      }
+
       return NextResponse.json(
         { error: labelError.message },
         { status: 400 }

@@ -131,7 +131,7 @@ export default function TermsPage() {
               If you have any questions about these Terms, please contact us at:
             </p>
             <ul>
-              <li>Email: hello@makebelieveimprints.co.uk</li>
+              <li>Email: admin@makebelieveimprints.co.uk</li>
               <li>Contact Form: <Link href="/contact" className="text-primary hover:underline">Contact Page</Link></li>
             </ul>
           </CardContent>

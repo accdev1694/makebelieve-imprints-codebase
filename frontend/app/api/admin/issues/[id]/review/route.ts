@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import { IssueStatus, IssueResolutionType } from '@prisma/client';
+import {
+  sendIssueApprovedEmail,
+  sendIssueInfoRequestedEmail,
+  sendIssueRejectedEmail,
+} from '@/lib/server/email';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -25,9 +30,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       isFinalRejection?: boolean;
     };
 
+    console.log('Review issue request:', { issueId, action, message, isFinalRejection });
+
     // Validate action
     const validActions: ReviewAction[] = ['APPROVE_REPRINT', 'APPROVE_REFUND', 'REQUEST_INFO', 'REJECT'];
     if (!action || !validActions.includes(action)) {
+      console.log('Invalid action:', action, 'valid actions:', validActions);
       return NextResponse.json(
         { error: 'Invalid action. Must be APPROVE_REPRINT, APPROVE_REFUND, REQUEST_INFO, or REJECT' },
         { status: 400 }
@@ -66,6 +74,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Check if issue can be reviewed
     const reviewableStatuses: IssueStatus[] = ['AWAITING_REVIEW', 'INFO_REQUESTED'];
     if (!reviewableStatuses.includes(issue.status)) {
+      console.log('Issue status not reviewable:', issue.status, 'valid statuses:', reviewableStatuses);
       return NextResponse.json(
         { error: `This issue cannot be reviewed in its current status: ${issue.status}` },
         { status: 400 }
@@ -146,10 +155,51 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return { issue: updatedIssue, message: issueMessage };
     });
 
-    // TODO: Send email notification to customer based on action
-    // - sendIssueApprovedEmail for APPROVE_*
-    // - sendIssueInfoRequestedEmail for REQUEST_INFO
-    // - sendIssueRejectedEmail for REJECT
+    // Send email notification to customer based on action
+    const customer = issue.orderItem.order.customer;
+    try {
+      let emailSent = false;
+
+      if (action === 'APPROVE_REPRINT' || action === 'APPROVE_REFUND') {
+        const resolutionType = action === 'APPROVE_REPRINT' ? 'reprint' : 'refund';
+        emailSent = await sendIssueApprovedEmail(
+          customer.email,
+          customer.name,
+          issueId,
+          resolutionType,
+          systemMessage
+        );
+      } else if (action === 'REQUEST_INFO') {
+        emailSent = await sendIssueInfoRequestedEmail(
+          customer.email,
+          customer.name,
+          issueId,
+          systemMessage
+        );
+      } else if (action === 'REJECT') {
+        emailSent = await sendIssueRejectedEmail(
+          customer.email,
+          customer.name,
+          issueId,
+          systemMessage,
+          !isFinalRejection // canAppeal
+        );
+      }
+
+      if (emailSent) {
+        // Update the message to track email was sent
+        await prisma.issueMessage.update({
+          where: { id: result.message.id },
+          data: {
+            emailSent: true,
+            emailSentAt: new Date(),
+          },
+        });
+      }
+    } catch (emailErr) {
+      // Log but don't fail the request if email fails
+      console.error('Failed to send review notification email:', emailErr);
+    }
 
     const actionMessages: Record<ReviewAction, string> = {
       APPROVE_REPRINT: 'Issue approved for reprint. Ready for processing.',

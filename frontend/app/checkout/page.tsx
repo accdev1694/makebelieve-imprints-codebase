@@ -869,8 +869,8 @@ function CheckoutContent() {
               </Card>
 
               {/* Proceed to Payment Button */}
-              <Button type="submit" className="w-full btn-gradient text-lg py-6" disabled={submitting}>
-                {submitting ? 'Redirecting to payment...' : `Proceed to Payment - ${formatPrice(finalTotal)}`}
+              <Button type="submit" className="w-full btn-gradient text-lg py-6" loading={submitting}>
+                {`Proceed to Payment - ${formatPrice(finalTotal)}`}
               </Button>
 
               <p className="text-xs text-muted-foreground text-center">

@@ -12,9 +12,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import apiClient from '@/lib/api/client';
+import { storageService } from '@/lib/api/storage';
 import Link from 'next/link';
 import { format, formatDistanceToNow } from 'date-fns';
-import { AlertCircle, Check, X, MessageSquare, Truck, RefreshCw, DollarSign, Info, FileText, Download } from 'lucide-react';
+import { AlertCircle, Check, X, MessageSquare, Truck, RefreshCw, DollarSign, Info, FileText, Download, Camera } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 type IssueStatus =
@@ -164,6 +165,8 @@ function AdminIssueDetailContent() {
 
   // Actions
   const [messageContent, setMessageContent] = useState('');
+  const [messageImages, setMessageImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -226,14 +229,16 @@ function AdminIssueDetailContent() {
   };
 
   const sendMessage = async () => {
-    if (!messageContent.trim() || sendingMessage) return;
+    if ((!messageContent.trim() && messageImages.length === 0) || sendingMessage) return;
 
     try {
       setSendingMessage(true);
       await apiClient.post(`/admin/issues/${issueId}/messages`, {
-        content: messageContent.trim(),
+        content: messageContent.trim() || (messageImages.length > 0 ? '(Image attached)' : ''),
+        imageUrls: messageImages.length > 0 ? messageImages : undefined,
       });
       setMessageContent('');
+      setMessageImages([]);
       await fetchIssue();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } }; message?: string };
@@ -243,14 +248,54 @@ function AdminIssueDetailContent() {
     }
   };
 
+  const handleAdminMessageImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (messageImages.length >= 5) {
+      alert('Maximum 5 images allowed per message');
+      return;
+    }
+
+    const file = files[0];
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a valid image file (JPG, PNG, WebP, or GIF)');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image must be less than 10MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const imageUrl = await storageService.uploadFile(file);
+      setMessageImages((prev) => [...prev, imageUrl]);
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      alert(error?.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const removeAdminMessageImage = (index: number) => {
+    setMessageImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleReview = async () => {
     if (!reviewAction || actionLoading) return;
 
     try {
       setActionLoading(true);
+      // Convert action to uppercase for API (e.g., 'approve_reprint' -> 'APPROVE_REPRINT')
+      const apiAction = reviewAction.toUpperCase();
       await apiClient.post(`/admin/issues/${issueId}/review`, {
-        action: reviewAction,
-        notes: reviewNotes || undefined,
+        action: apiAction,
+        message: reviewNotes || undefined,
       });
       setReviewAction(null);
       setReviewNotes('');
@@ -350,7 +395,7 @@ function AdminIssueDetailContent() {
     }
   };
 
-  const canReview = issue && ['SUBMITTED', 'AWAITING_REVIEW'].includes(issue.status);
+  const canReview = issue && ['AWAITING_REVIEW', 'INFO_REQUESTED'].includes(issue.status);
   const canProcess = issue && ['APPROVED_REPRINT', 'APPROVED_REFUND'].includes(issue.status);
   const canMessage = issue && !['COMPLETED', 'CLOSED'].includes(issue.status);
 
@@ -559,12 +604,67 @@ function AdminIssueDetailContent() {
                       rows={3}
                       className="mb-3"
                     />
-                    <div className="flex justify-end">
+
+                    {/* Image Preview */}
+                    {messageImages.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {messageImages.map((url, index) => (
+                          <div key={index} className="relative group">
+                            <div className="w-16 h-16 rounded-lg overflow-hidden border border-border">
+                              <img
+                                src={url}
+                                alt={`Attachment ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeAdminMessageImage(index)}
+                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center">
+                      {/* Image Upload Button */}
+                      <div>
+                        {messageImages.length < 5 && (
+                          <label htmlFor="admin-message-image-upload" className="cursor-pointer">
+                            <div className="flex items-center gap-2 px-3 py-2 border border-dashed border-border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors">
+                              {uploadingImage ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent" />
+                                  <span className="text-sm">Uploading...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Camera className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-sm text-muted-foreground">Add Image</span>
+                                </>
+                              )}
+                            </div>
+                          </label>
+                        )}
+                        <input
+                          id="admin-message-image-upload"
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          onChange={handleAdminMessageImageUpload}
+                          disabled={uploadingImage}
+                          className="hidden"
+                        />
+                      </div>
+
                       <Button
                         onClick={sendMessage}
-                        disabled={!messageContent.trim() || sendingMessage}
+                        disabled={!messageContent.trim() && messageImages.length === 0}
+                        loading={sendingMessage}
                       >
-                        {sendingMessage ? 'Sending...' : 'Send Message'}
+                        Send Message
                       </Button>
                     </div>
                   </div>
@@ -750,10 +850,10 @@ function AdminIssueDetailContent() {
                   {/* Save Button */}
                   <Button
                     onClick={handleSaveClaim}
-                    disabled={claimSaving}
+                    loading={claimSaving}
                     className="w-full"
                   >
-                    {claimSaving ? 'Saving...' : 'Save Claim Details'}
+                    Save Claim Details
                   </Button>
 
                   {/* Show submitted date if available */}
@@ -852,7 +952,9 @@ function AdminIssueDetailContent() {
           </DialogHeader>
           <div className="py-4">
             <Label htmlFor="review-notes">
-              {reviewAction === 'reject' ? 'Rejection Reason (required)' : 'Notes (optional)'}
+              {reviewAction === 'reject' ? 'Rejection Reason (required)'
+                : reviewAction === 'request_info' ? 'What information do you need? (required)'
+                : 'Notes (optional)'}
             </Label>
             <Textarea
               id="review-notes"
@@ -875,7 +977,8 @@ function AdminIssueDetailContent() {
             </Button>
             <Button
               onClick={handleReview}
-              disabled={actionLoading || (reviewAction === 'reject' && !reviewNotes.trim())}
+              disabled={(reviewAction === 'reject' || reviewAction === 'request_info') && !reviewNotes.trim()}
+              loading={actionLoading}
               className={
                 reviewAction === 'reject'
                   ? 'bg-red-500 hover:bg-red-600'
@@ -883,10 +986,12 @@ function AdminIssueDetailContent() {
                   ? 'bg-purple-500 hover:bg-purple-600'
                   : reviewAction === 'approve_refund'
                   ? 'bg-green-500 hover:bg-green-600'
+                  : reviewAction === 'request_info'
+                  ? 'bg-orange-500 hover:bg-orange-600'
                   : ''
               }
             >
-              {actionLoading ? 'Processing...' : 'Confirm'}
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -943,8 +1048,8 @@ function AdminIssueDetailContent() {
             <Button variant="outline" onClick={() => setProcessModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleProcess} disabled={actionLoading}>
-              {actionLoading ? 'Processing...' : 'Confirm'}
+            <Button onClick={handleProcess} loading={actionLoading}>
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -216,8 +216,8 @@ export function ImageManager({
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1 btn-gradient" disabled={isLoading}>
-                  {isLoading ? 'Adding...' : 'Add Image'}
+                <Button type="submit" className="flex-1 btn-gradient" loading={isLoading}>
+                  Add Image
                 </Button>
               </div>
             </form>

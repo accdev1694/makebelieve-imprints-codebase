@@ -253,9 +253,9 @@ export function VariantForm({
             <Button
               type="submit"
               className="flex-1 btn-gradient"
-              disabled={isLoading}
+              loading={isLoading}
             >
-              {isLoading ? 'Saving...' : isEditing ? 'Update Variant' : 'Add Variant'}
+              {isEditing ? 'Update Variant' : 'Add Variant'}
             </Button>
           </div>
         </form>

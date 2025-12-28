@@ -172,7 +172,7 @@ export function ProductList({ initialData, categories }: ProductListProps) {
               ))}
             </select>
 
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" loading={isLoading}>
               Search
             </Button>
           </form>

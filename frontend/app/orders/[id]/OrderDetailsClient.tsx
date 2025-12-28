@@ -107,6 +107,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   // Issue modal state
   const [issueModalOpen, setIssueModalOpen] = useState(false);
   const [issueReason, setIssueReason] = useState('');
+  const [issuePreference, setIssuePreference] = useState<'REPRINT' | 'REFUND' | ''>('');
   const [issueNotes, setIssueNotes] = useState('');
   const [issueImages, setIssueImages] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -237,7 +238,19 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   const handleReportIssue = async () => {
     if (!selectedItem) return;
     if (!issueReason) {
-      setIssueError('Please select a reason for your issue');
+      setIssueError('Please select an issue type');
+      return;
+    }
+    if (!issuePreference) {
+      setIssueError('Please select what you would like us to do (replacement or refund)');
+      return;
+    }
+    if (!issueNotes.trim()) {
+      setIssueError('Please provide additional details about the issue');
+      return;
+    }
+    if (issueImages.length === 0) {
+      setIssueError('Please upload at least one photo showing the issue');
       return;
     }
 
@@ -247,6 +260,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
     try {
       await apiClient.post(`/orders/${orderId}/items/${selectedItem.id}/issue`, {
         reason: issueReason,
+        preferredResolution: issuePreference,
         notes: issueNotes,
         imageUrls: issueImages,
       });
@@ -262,6 +276,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   const openIssueModal = (item: OrderItemWithIssue) => {
     setSelectedItem(item);
     setIssueReason('');
+    setIssuePreference('');
     setIssueNotes('');
     setIssueImages([]);
     setIssueError('');
@@ -599,10 +614,10 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
               <>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="issue-reason">What&apos;s the issue?</Label>
+                    <Label htmlFor="issue-reason">What&apos;s the issue? <span className="text-destructive">*</span></Label>
                     <Select value={issueReason} onValueChange={setIssueReason}>
                       <SelectTrigger id="issue-reason">
-                        <SelectValue placeholder="Select a reason..." />
+                        <SelectValue placeholder="Select issue..." />
                       </SelectTrigger>
                       <SelectContent>
                         {ISSUE_REASONS.map((reason) => (
@@ -617,22 +632,59 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                     </Select>
                   </div>
 
+                  {/* Resolution Preference */}
                   <div className="space-y-2">
-                    <Label htmlFor="issue-notes">Additional Details (optional)</Label>
+                    <Label>What would you like us to do? <span className="text-destructive">*</span></Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIssuePreference('REPRINT')}
+                        className={`p-4 rounded-lg border-2 text-center transition-all ${
+                          issuePreference === 'REPRINT'
+                            ? 'border-purple-500 bg-purple-500/10 text-purple-500'
+                            : 'border-border hover:border-purple-500/50 hover:bg-purple-500/5'
+                        }`}
+                      >
+                        <div className="text-2xl mb-1">🔄</div>
+                        <div className="font-medium">Send Replacement</div>
+                        <div className="text-xs text-muted-foreground mt-1">Free reprint shipped to you</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIssuePreference('REFUND')}
+                        className={`p-4 rounded-lg border-2 text-center transition-all ${
+                          issuePreference === 'REFUND'
+                            ? 'border-green-500 bg-green-500/10 text-green-500'
+                            : 'border-border hover:border-green-500/50 hover:bg-green-500/5'
+                        }`}
+                      >
+                        <div className="text-2xl mb-1">💰</div>
+                        <div className="font-medium">Issue Refund</div>
+                        <div className="text-xs text-muted-foreground mt-1">Get your money back</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="issue-notes">Additional Details <span className="text-destructive">*</span></Label>
                     <Textarea
                       id="issue-notes"
                       placeholder="Please describe the issue in detail..."
                       value={issueNotes}
                       onChange={(e) => setIssueNotes(e.target.value)}
                       rows={3}
+                      required
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Please provide a detailed description of the issue to help us resolve it quickly.
+                    </p>
                   </div>
 
                   {/* Image Upload */}
                   <div className="space-y-2">
-                    <Label>Photos of the Issue (recommended)</Label>
+                    <Label>Photos of the Issue <span className="text-destructive">*</span></Label>
                     <p className="text-xs text-muted-foreground">
-                      Upload up to 5 photos showing the damage or issue.
+                      Please upload at least 1 photo (up to 5) showing the damage or issue to help us investigate.
                     </p>
 
                     {issueImages.length > 0 && (
@@ -702,10 +754,11 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                   </Button>
                   <Button
                     onClick={handleReportIssue}
-                    disabled={submittingIssue || !issueReason}
+                    disabled={!issueReason || !issuePreference || !issueNotes.trim() || issueImages.length === 0}
+                    loading={submittingIssue}
                     className="bg-orange-500 hover:bg-orange-600"
                   >
-                    {submittingIssue ? 'Submitting...' : 'Submit Report'}
+                    Submit Report
                   </Button>
                 </DialogFooter>
               </>

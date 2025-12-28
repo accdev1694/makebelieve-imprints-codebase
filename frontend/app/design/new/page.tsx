@@ -193,9 +193,10 @@ function DesignEditorContent() {
             <Button
               className="btn-gradient"
               onClick={handleSave}
-              disabled={loading || (!selectedFile && !selectedTemplate) || !name}
+              loading={loading}
+              disabled={(!selectedFile && !selectedTemplate) || !name}
             >
-              {loading ? 'Saving...' : 'Save Design'}
+              Save Design
             </Button>
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Facebook, Instagram, Twitter, CreditCard } from 'lucide-react';
+import { Facebook, Instagram, Twitter, CreditCard, Mail, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Logo } from './header/Logo';
@@ -83,10 +83,28 @@ export function Footer() {
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <Logo size="lg" className="mb-4" />
-            <p className="text-muted-foreground text-sm mb-6 max-w-sm">
+            <p className="text-muted-foreground text-sm mb-4 max-w-sm">
               Your trusted custom print service. Quality prints, personalized with care,
               delivered to your door.
             </p>
+
+            {/* Contact Info */}
+            <div className="space-y-2 mb-4 text-sm">
+              <a
+                href="mailto:admin@makebelieveimprints.co.uk"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Mail className="h-4 w-4" />
+                admin@makebelieveimprints.co.uk
+              </a>
+              <a
+                href="tel:+447389100532"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Phone className="h-4 w-4" />
+                +44 7389 100532
+              </a>
+            </div>
 
             {/* Social Links */}
             <div className="flex gap-3">
@@ -188,9 +206,9 @@ export function Footer() {
                   type="submit"
                   className="w-full btn-gradient"
                   size="sm"
-                  disabled={loading}
+                  loading={loading}
                 >
-                  {loading ? 'Subscribing...' : 'Subscribe'}
+                  Subscribe
                 </Button>
               </form>
             )}

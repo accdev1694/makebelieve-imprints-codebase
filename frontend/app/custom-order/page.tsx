@@ -355,9 +355,9 @@ export default function CustomOrderPage() {
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full btn-gradient gap-2" disabled={submitting}>
+                  <Button type="submit" className="w-full btn-gradient gap-2" loading={submitting}>
                     <Send className="h-4 w-4" />
-                    {submitting ? 'Submitting...' : 'Submit Inquiry'}
+                    Submit Inquiry
                   </Button>
                 </form>
               </CardContent>

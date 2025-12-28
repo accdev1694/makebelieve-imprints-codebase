@@ -120,8 +120,8 @@ export default function ForgotPasswordPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full btn-gradient" disabled={loading}>
-                  {loading ? 'Sending...' : 'Send Reset Link'}
+                <Button type="submit" className="w-full btn-gradient" loading={loading}>
+                  Send Reset Link
                 </Button>
               </form>
             )}

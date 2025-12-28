@@ -83,8 +83,8 @@ function TrackingPageContent() {
                   onChange={(e) => setTrackingNumber(e.target.value)}
                   className="flex-1 bg-card/50"
                 />
-                <Button type="submit" className="btn-gradient" disabled={loading}>
-                  {loading ? 'Tracking...' : 'Track'}
+                <Button type="submit" className="btn-gradient" loading={loading}>
+                  Track
                 </Button>
               </div>
             </form>

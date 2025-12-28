@@ -789,8 +789,8 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
               <Button variant="outline" onClick={() => setReprintModalOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleReprint} disabled={processingResolution || !selectedReason}>
-                {processingResolution ? 'Creating...' : 'Create Reprint'}
+              <Button onClick={handleReprint} disabled={!selectedReason} loading={processingResolution}>
+                Create Reprint
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -848,9 +848,10 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
               <Button
                 variant="destructive"
                 onClick={handleRefund}
-                disabled={processingResolution || !selectedReason}
+                disabled={!selectedReason}
+                loading={processingResolution}
               >
-                {processingResolution ? 'Processing...' : 'Issue Refund'}
+                Issue Refund
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -916,13 +917,9 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
                 className={processAction === 'REPRINT' ? 'bg-purple-500 hover:bg-purple-600' : ''}
                 variant={processAction === 'REFUND' ? 'destructive' : 'default'}
                 onClick={handleProcessPendingIssue}
-                disabled={processingResolution}
+                loading={processingResolution}
               >
-                {processingResolution
-                  ? 'Processing...'
-                  : processAction === 'REPRINT'
-                  ? 'Approve Reprint'
-                  : 'Issue Refund'}
+                {processAction === 'REPRINT' ? 'Approve Reprint' : 'Issue Refund'}
               </Button>
             </DialogFooter>
           </DialogContent>

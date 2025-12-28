@@ -660,8 +660,8 @@ function AdminCampaignsContent() {
                 <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" className="btn-gradient" disabled={submitting}>
-                  {submitting ? 'Saving...' : editingCampaign ? 'Update' : 'Create'}
+                <Button type="submit" className="btn-gradient" loading={submitting}>
+                  {editingCampaign ? 'Update' : 'Create'}
                 </Button>
               </div>
             </form>

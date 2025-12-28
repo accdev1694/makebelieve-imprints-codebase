@@ -277,18 +277,17 @@ function AdminShippingContent() {
             </h1>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <Button variant="outline" size="sm" onClick={fetchData} loading={loading}>
               Refresh
             </Button>
             {isApiHealthy && orders.some(o => o.royalmailOrderId) && (
               <Button
                 onClick={handleManifest}
-                disabled={manifesting}
+                loading={manifesting}
                 className="btn-gradient"
               >
                 <FileText className="h-4 w-4 mr-2" />
-                {manifesting ? 'Creating...' : 'Manifest Orders'}
+                Manifest Orders
               </Button>
             )}
           </div>
@@ -487,14 +486,12 @@ function AdminShippingContent() {
                             {isApiHealthy && !hasRoyalMailOrder && (
                               <Button
                                 onClick={() => handleCreateShipment(order)}
-                                disabled={isProcessing}
+                                loading={isProcessing && processingAction === 'shipment'}
                                 className="w-full"
                                 variant="outline"
                               >
                                 <Package className="h-4 w-4 mr-2" />
-                                {isProcessing && processingAction === 'shipment'
-                                  ? 'Creating...'
-                                  : 'Create Shipment'}
+                                Create Shipment
                               </Button>
                             )}
 

@@ -132,9 +132,10 @@ function AccountSettingsContent() {
               <Button
                 type="submit"
                 className="btn-gradient"
-                disabled={loading || name === user?.name}
+                loading={loading}
+                disabled={name === user?.name}
               >
-                {loading ? 'Saving...' : 'Save Changes'}
+                Save Changes
               </Button>
             </form>
           </CardContent>

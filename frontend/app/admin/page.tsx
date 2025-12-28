@@ -62,12 +62,11 @@ function AdminDashboardContent() {
         shippedOrders: shipped,
       });
 
-      // Fetch pending issues count
+      // Fetch pending issues count from new issues endpoint
       try {
-        const resolutionsData = await apiClient.get<{ resolutions: Array<{ status: string }> }>('/admin/resolutions');
-        const pendingCount = resolutionsData.data?.resolutions?.filter(
-          (r) => r.status === 'PENDING' || r.status === 'PROCESSING'
-        ).length || 0;
+        const issuesData = await apiClient.get<{ stats: { pending: number; infoRequested: number } }>('/admin/issues');
+        // Count pending as: AWAITING_REVIEW + INFO_REQUESTED (issues needing attention)
+        const pendingCount = (issuesData.data?.stats?.pending || 0) + (issuesData.data?.stats?.infoRequested || 0);
         setPendingIssues(pendingCount);
       } catch {
         // Silently fail - issues count is not critical

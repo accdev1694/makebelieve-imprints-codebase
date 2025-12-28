@@ -87,7 +87,18 @@ export async function GET(request: NextRequest) {
       _count: undefined,
     }));
 
-    return NextResponse.json({ issues: issuesWithUnread });
+    // Calculate total unread messages across all issues
+    const totalUnread = issues.reduce((sum, issue) => sum + issue._count.messages, 0);
+
+    // Calculate stats
+    const stats = {
+      total: issues.length,
+      pending: issues.filter(i => ['AWAITING_REVIEW', 'INFO_REQUESTED'].includes(i.status)).length,
+      resolved: issues.filter(i => ['COMPLETED', 'CLOSED'].includes(i.status)).length,
+      unreadMessages: totalUnread,
+    };
+
+    return NextResponse.json({ issues: issuesWithUnread, stats });
   } catch (error) {
     console.error('Get user issues error:', error);
     return handleApiError(error);

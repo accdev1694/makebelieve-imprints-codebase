@@ -570,8 +570,8 @@ function CategoryManagementContent() {
                 <Button variant="outline" className="flex-1" onClick={() => setShowCategoryModal(false)}>
                   Cancel
                 </Button>
-                <Button className="flex-1 btn-gradient" onClick={saveCategory} disabled={formLoading}>
-                  {formLoading ? 'Saving...' : editingCategory ? 'Update' : 'Create'}
+                <Button className="flex-1 btn-gradient" onClick={saveCategory} loading={formLoading}>
+                  {editingCategory ? 'Update' : 'Create'}
                 </Button>
               </div>
             </CardContent>
@@ -663,8 +663,8 @@ function CategoryManagementContent() {
                 <Button variant="outline" className="flex-1" onClick={() => setShowSubcategoryModal(false)}>
                   Cancel
                 </Button>
-                <Button className="flex-1 btn-gradient" onClick={saveSubcategory} disabled={formLoading}>
-                  {formLoading ? 'Saving...' : editingSubcategory ? 'Update' : 'Create'}
+                <Button className="flex-1 btn-gradient" onClick={saveSubcategory} loading={formLoading}>
+                  {editingSubcategory ? 'Update' : 'Create'}
                 </Button>
               </div>
             </CardContent>

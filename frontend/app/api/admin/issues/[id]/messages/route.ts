@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
+import { sendIssueMessageEmail } from '@/lib/server/email';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -123,7 +124,31 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // TODO: Send email notification to customer
+    // Send email notification to customer
+    const customer = issue.orderItem.order.customer;
+    try {
+      const emailSent = await sendIssueMessageEmail(
+        customer.email,
+        customer.name,
+        issueId,
+        'admin',
+        content.trim()
+      );
+
+      if (emailSent) {
+        // Update message to track email was sent
+        await prisma.issueMessage.update({
+          where: { id: message.id },
+          data: {
+            emailSent: true,
+            emailSentAt: new Date(),
+          },
+        });
+      }
+    } catch (emailErr) {
+      // Log but don't fail the request if email fails
+      console.error('Failed to send issue message email:', emailErr);
+    }
 
     return NextResponse.json({
       success: true,

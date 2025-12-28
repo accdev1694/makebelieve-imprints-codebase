@@ -612,8 +612,8 @@ function AdminPromosContent() {
                 <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" className="btn-gradient" disabled={submitting}>
-                  {submitting ? 'Saving...' : editingPromo ? 'Update' : 'Create'}
+                <Button type="submit" className="btn-gradient" loading={submitting}>
+                  {editingPromo ? 'Update' : 'Create'}
                 </Button>
               </div>
             </form>

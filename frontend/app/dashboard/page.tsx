@@ -9,12 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { ordersService } from '@/lib/api/orders';
 import { designsService } from '@/lib/api/designs';
+import apiClient from '@/lib/api/client';
 
 function DashboardContent() {
   const { user } = useAuth();
   const [totalOrders, setTotalOrders] = useState(0);
   const [pendingOrders, setPendingOrders] = useState(0);
   const [activeDesigns, setActiveDesigns] = useState(0);
+  const [unreadIssues, setUnreadIssues] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,6 +44,14 @@ function DashboardContent() {
         // Fetch designs
         const designs = await designsService.list();
         setActiveDesigns(designs.length);
+
+        // Fetch unread issues count
+        try {
+          const issuesResponse = await apiClient.get<{ stats: { unreadMessages: number } }>('/issues');
+          setUnreadIssues(issuesResponse.data?.stats?.unreadMessages || 0);
+        } catch {
+          // Issues endpoint might fail if no issues exist
+        }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -126,7 +136,14 @@ function DashboardContent() {
               <Button variant="outline">View Orders</Button>
             </Link>
             <Link href="/account/issues">
-              <Button variant="outline">My Issues</Button>
+              <Button variant="outline" className="relative">
+                My Issues
+                {unreadIssues > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {unreadIssues > 9 ? '9+' : unreadIssues}
+                  </span>
+                )}
+              </Button>
             </Link>
             <Link href="/products">
               <Button variant="outline">Browse Products</Button>

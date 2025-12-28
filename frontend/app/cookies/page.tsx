@@ -185,7 +185,7 @@ export default function CookiesPage() {
               If you have any questions about our use of cookies, please contact us:
             </p>
             <ul>
-              <li>Email: hello@makebelieveimprints.co.uk</li>
+              <li>Email: admin@makebelieveimprints.co.uk</li>
               <li>Contact Form: <Link href="/contact" className="text-primary hover:underline">Contact Page</Link></li>
             </ul>
 

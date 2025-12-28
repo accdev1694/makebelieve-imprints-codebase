@@ -216,8 +216,8 @@ function ResetPasswordContent() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full btn-gradient" disabled={loading}>
-                  {loading ? 'Resetting...' : 'Reset Password'}
+                <Button type="submit" className="w-full btn-gradient" loading={loading}>
+                  Reset Password
                 </Button>
               </form>
             )}

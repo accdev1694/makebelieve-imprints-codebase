@@ -20,7 +20,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { id: orderId, itemId } = await params;
 
     const body = await request.json();
-    const { reason, notes, imageUrls } = body;
+    const { reason, preferredResolution, notes, imageUrls } = body;
 
     // Validate reason
     if (!reason) {
@@ -136,6 +136,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Build initial notes with preference prefix
+    const preferenceLabel = preferredResolution === 'REPRINT'
+      ? '[Customer requests: REPLACEMENT]'
+      : preferredResolution === 'REFUND'
+      ? '[Customer requests: REFUND]'
+      : '';
+    const formattedNotes = preferenceLabel
+      ? `${preferenceLabel}\n\n${notes || 'No additional details provided.'}`
+      : notes || null;
+
     // Create the issue with AWAITING_REVIEW status (auto-transition from SUBMITTED)
     const issue = await prisma.issue.create({
       data: {
@@ -143,7 +153,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         reason: reason as IssueReason,
         status: 'AWAITING_REVIEW' as IssueStatus,
         carrierFault: carrierFaultStatus,
-        initialNotes: notes || null,
+        initialNotes: formattedNotes,
         imageUrls: validatedImageUrls.length > 0 ? validatedImageUrls : undefined,
         originalIssueId: originalIssueId,
         createdBy: user.userId,

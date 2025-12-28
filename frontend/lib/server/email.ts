@@ -348,7 +348,7 @@ export async function sendReprintConfirmationEmail(
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
 
         <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">
-          If you have any questions, please reply to this email or contact us at support@makebelieveimprints.co.uk
+          If you have any questions, please reply to this email or contact us at admin@makebelieveimprints.co.uk
         </p>
       </div>
 
@@ -375,7 +375,7 @@ View your order: ${orderUrl}
 
 Thank you for your patience and understanding. We're committed to making things right!
 
-If you have any questions, please reply to this email or contact us at support@makebelieveimprints.co.uk
+If you have any questions, please reply to this email or contact us at admin@makebelieveimprints.co.uk
 
 ---
 ${APP_NAME}
@@ -442,7 +442,7 @@ export async function sendRefundConfirmationEmail(
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
 
         <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">
-          If you have any questions, please reply to this email or contact us at support@makebelieveimprints.co.uk
+          If you have any questions, please reply to this email or contact us at admin@makebelieveimprints.co.uk
         </p>
       </div>
 
@@ -467,7 +467,7 @@ The refund will be credited to your original payment method. Please allow 5-10 b
 
 We apologise for any inconvenience caused. We value your business and hope to serve you again in the future.
 
-If you have any questions, please reply to this email or contact us at support@makebelieveimprints.co.uk
+If you have any questions, please reply to this email or contact us at admin@makebelieveimprints.co.uk
 
 ---
 ${APP_NAME}

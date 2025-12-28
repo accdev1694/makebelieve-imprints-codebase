@@ -59,7 +59,7 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">Email Us</h3>
                     <p className="text-sm text-muted-foreground">
-                      hello@makebelieveimprints.co.uk
+                      admin@makebelieveimprints.co.uk
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       We'll respond within 24 hours
@@ -78,7 +78,7 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">Call Us</h3>
                     <p className="text-sm text-muted-foreground">
-                      +44 (0) 123 456 7890
+                      +44 7389 100532
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Mon-Fri 9am-5pm GMT
@@ -224,9 +224,9 @@ export default function ContactPage() {
                     <Button
                       type="submit"
                       className="w-full btn-gradient"
-                      disabled={submitting}
+                      loading={submitting}
                     >
-                      {submitting ? 'Sending...' : 'Send Message'}
+                      Send Message
                     </Button>
                   </form>
                 )}

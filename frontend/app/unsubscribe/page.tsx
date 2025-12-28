@@ -93,11 +93,11 @@ function UnsubscribeContent() {
 
         <Button
           type="submit"
-          disabled={loading}
+          loading={loading}
           variant="outline"
           className="w-full"
         >
-          {loading ? 'Processing...' : 'Unsubscribe'}
+          Unsubscribe
         </Button>
       </form>
 

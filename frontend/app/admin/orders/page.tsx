@@ -307,11 +307,9 @@ function AdminOrdersContent() {
                                 size="sm"
                                 className="w-full"
                                 onClick={() => handleUpdateStatus(order.id, nextStatus)}
-                                disabled={isUpdating}
+                                loading={isUpdating}
                               >
-                                {isUpdating
-                                  ? 'Updating...'
-                                  : `Mark as ${ORDER_STATUS_LABELS[nextStatus]}`}
+                                {`Mark as ${ORDER_STATUS_LABELS[nextStatus]}`}
                               </Button>
                             )}
 

@@ -126,7 +126,7 @@ export default function PrivacyPage() {
               <li><strong>Withdraw Consent:</strong> Withdraw consent for marketing at any time</li>
             </ul>
             <p>
-              To exercise these rights, please contact us at hello@makebelieveimprints.co.uk.
+              To exercise these rights, please contact us at admin@makebelieveimprints.co.uk.
             </p>
 
             <h2>9. Cookies</h2>
@@ -159,7 +159,7 @@ export default function PrivacyPage() {
               For privacy-related questions or to exercise your rights, contact us at:
             </p>
             <ul>
-              <li>Email: hello@makebelieveimprints.co.uk</li>
+              <li>Email: admin@makebelieveimprints.co.uk</li>
               <li>Contact Form: <Link href="/contact" className="text-primary hover:underline">Contact Page</Link></li>
             </ul>
 

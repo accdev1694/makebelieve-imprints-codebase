@@ -131,10 +131,10 @@ export function AddToCartSection({
             size="lg"
             className="w-full btn-gradient gap-2"
             onClick={handleAddToCart}
-            disabled={isAddingToCart}
+            loading={isAddingToCart}
           >
             <ShoppingCart className="h-5 w-5" />
-            {isAddingToCart ? 'Adding...' : 'Add to Cart'}
+            Add to Cart
           </Button>
 
           {isCustomizable && (

@@ -146,9 +146,9 @@ export function ProductForm({
           </h1>
         </div>
 
-        <Button type="submit" className="btn-gradient" disabled={isLoading}>
+        <Button type="submit" className="btn-gradient" loading={isLoading}>
           <Save className="h-4 w-4 mr-2" />
-          {isLoading ? 'Saving...' : 'Save Product'}
+          Save Product
         </Button>
       </div>
 

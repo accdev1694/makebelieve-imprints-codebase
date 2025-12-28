@@ -156,7 +156,7 @@ export default function ReturnsPage() {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                To start a return request, email us at hello@makebelieveimprints.co.uk with your order number and photos of the issue. We'll get back to you within 24 hours.
+                To start a return request, email us at admin@makebelieveimprints.co.uk with your order number and photos of the issue. We'll get back to you within 24 hours.
               </p>
             </CardContent>
           </Card>

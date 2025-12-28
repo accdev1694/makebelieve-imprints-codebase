@@ -36,8 +36,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Delete from Royal Mail
-    const { data, error } = await deleteOrders([order.royalmailOrderId]);
+    // Delete from Royal Mail (pass as number since orderIdentifier is numeric)
+    const { data, error } = await deleteOrders([parseInt(order.royalmailOrderId, 10)]);
 
     if (error) {
       console.error('Royal Mail delete failed:', error);

@@ -251,7 +251,7 @@ describe('Royal Mail Service', () => {
 
       const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(callBody.items[0].orderReference).toBe('ORDER-123');
-      expect(callBody.items[0].recipient.fullName).toBe('John Smith');
+      expect(callBody.items[0].recipient.address.fullName).toBe('John Smith');
       expect(callBody.items[0].packages[0].weightInGrams).toBe(500);
     });
 

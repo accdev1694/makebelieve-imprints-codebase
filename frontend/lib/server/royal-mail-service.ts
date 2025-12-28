@@ -254,11 +254,11 @@ export async function createShipment(
       {
         orderReference: request.orderReference,
         recipient: {
-          fullName: request.recipient.fullName,
-          companyName: request.recipient.companyName,
           phoneNumber: request.recipient.phoneNumber,
           emailAddress: request.recipient.emailAddress,
           address: {
+            fullName: request.recipient.fullName,
+            companyName: request.recipient.companyName,
             addressLine1: request.recipient.addressLine1,
             addressLine2: request.recipient.addressLine2,
             addressLine3: request.recipient.addressLine3,

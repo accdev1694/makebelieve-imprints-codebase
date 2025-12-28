@@ -272,6 +272,7 @@ model Order {
   customer         User             @relation(fields: [customerId], references: [id])
   design           Design?          @relation(fields: [designId], references: [id])
   payment          Payment?
+  resolutions      Resolution[]
   review           Review?
 
   @@index([customerId])
@@ -484,6 +485,7 @@ enum OrderStatus {
   shipped
   delivered
   cancelled
+  refunded
 }
 
 enum PrintSize {
@@ -762,4 +764,56 @@ enum CampaignStatus {
   SENT          // Completed
   FAILED        // Failed to send
   CANCELLED     // Cancelled before send
+}
+
+// ============================================
+// RETURNS & RESOLUTIONS SYSTEM
+// ============================================
+
+model Resolution {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId        String           @map("order_id") @db.Uuid
+  order          Order            @relation(fields: [orderId], references: [id])
+  type           ResolutionType
+  reason         ResolutionReason
+  notes          String?
+
+  // For reprints - link to the new order created
+  reprintOrderId String?          @map("reprint_order_id") @db.Uuid
+
+  // For refunds
+  refundAmount   Decimal?         @map("refund_amount") @db.Decimal(10, 2)
+  stripeRefundId String?          @map("stripe_refund_id") @db.VarChar(255)
+
+  // Status tracking
+  status         ResolutionStatus @default(PENDING)
+  createdBy      String           @map("created_by") @db.Uuid  // Admin user ID
+  createdAt      DateTime         @default(now()) @map("created_at")
+  processedAt    DateTime?        @map("processed_at")
+
+  @@index([orderId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("resolutions")
+}
+
+enum ResolutionType {
+  REPRINT
+  REFUND
+}
+
+enum ResolutionReason {
+  DAMAGED_IN_TRANSIT
+  QUALITY_ISSUE
+  WRONG_ITEM
+  PRINTING_ERROR
+  OTHER
+}
+
+enum ResolutionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }

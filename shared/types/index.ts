@@ -232,7 +232,8 @@ export type OrderStatus =
   | 'printing'
   | 'shipped'
   | 'delivered'
-  | 'cancelled';
+  | 'cancelled'
+  | 'refunded';
 
 export interface ShippingAddress {
   name: string;

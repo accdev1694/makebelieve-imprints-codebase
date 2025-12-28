@@ -210,4 +210,5 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   shipped: 'Shipped',
   delivered: 'Delivered',
   cancelled: 'Cancelled',
+  refunded: 'Refunded',
 };

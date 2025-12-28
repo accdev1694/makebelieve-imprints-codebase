@@ -80,6 +80,7 @@ function AdminOrdersContent() {
       shipped: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
       delivered: 'bg-green-500/10 text-green-500 border-green-500/50',
       cancelled: 'bg-red-500/10 text-red-500 border-red-500/50',
+      refunded: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
     };
     return colors[status];
   };
@@ -93,6 +94,7 @@ function AdminOrdersContent() {
       shipped: 'delivered',
       delivered: null,
       cancelled: null,
+      refunded: null,
     };
     return workflow[currentStatus];
   };

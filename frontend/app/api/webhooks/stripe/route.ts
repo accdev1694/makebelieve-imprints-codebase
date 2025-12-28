@@ -72,6 +72,12 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge;
+        await handleChargeRefunded(charge);
+        break;
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
@@ -192,4 +198,74 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
   ]);
 
   console.log(`Payment failed for order ${orderId}`);
+}
+
+/**
+ * Handle refunded charge (from Stripe dashboard or API)
+ */
+async function handleChargeRefunded(charge: Stripe.Charge) {
+  // Get the payment intent ID from the charge
+  const paymentIntentId =
+    typeof charge.payment_intent === 'string'
+      ? charge.payment_intent
+      : charge.payment_intent?.id;
+
+  if (!paymentIntentId) {
+    console.log('No payment intent in charge');
+    return;
+  }
+
+  // Find the payment by Stripe payment ID
+  const payment = await prisma.payment.findFirst({
+    where: { stripePaymentId: paymentIntentId },
+    include: { order: true },
+  });
+
+  if (!payment) {
+    console.log(`No payment found for payment intent ${paymentIntentId}`);
+    return;
+  }
+
+  // Skip if already refunded
+  if (payment.refundedAt || payment.order.status === 'refunded') {
+    console.log(`Order ${payment.orderId} already marked as refunded`);
+    return;
+  }
+
+  // Update payment and order
+  await prisma.$transaction([
+    prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        refundedAt: new Date(),
+        status: 'REFUNDED',
+      },
+    }),
+    prisma.order.update({
+      where: { id: payment.orderId },
+      data: { status: 'refunded' },
+    }),
+  ]);
+
+  // Check if there's a pending resolution to complete
+  const pendingResolution = await prisma.resolution.findFirst({
+    where: {
+      orderId: payment.orderId,
+      type: 'REFUND',
+      status: 'PROCESSING',
+    },
+  });
+
+  if (pendingResolution) {
+    await prisma.resolution.update({
+      where: { id: pendingResolution.id },
+      data: {
+        status: 'COMPLETED',
+        stripeRefundId: charge.refunds?.data[0]?.id,
+        processedAt: new Date(),
+      },
+    });
+  }
+
+  console.log(`Order ${payment.orderId} marked as refunded via webhook`);
 }

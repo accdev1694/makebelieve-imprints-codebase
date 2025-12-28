@@ -8,10 +8,50 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { ordersService, Order, OrderItem, ORDER_STATUS_LABELS, OrderStatus } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+
+// Resolution types
+interface Resolution {
+  id: string;
+  orderId: string;
+  type: 'REPRINT' | 'REFUND';
+  reason: string;
+  notes: string | null;
+  reprintOrderId: string | null;
+  refundAmount: number | null;
+  stripeRefundId: string | null;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  createdAt: string;
+  processedAt: string | null;
+}
+
+const RESOLUTION_REASONS = [
+  { value: 'DAMAGED_IN_TRANSIT', label: 'Damaged in Transit' },
+  { value: 'QUALITY_ISSUE', label: 'Quality Issue' },
+  { value: 'WRONG_ITEM', label: 'Wrong Item Sent' },
+  { value: 'PRINTING_ERROR', label: 'Printing Error' },
+  { value: 'OTHER', label: 'Other' },
+];
 
 interface AdminOrderDetailsClientProps {
   orderId: string;
@@ -26,6 +66,14 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [updating, setUpdating] = useState(false);
+
+  // Resolution states
+  const [resolutions, setResolutions] = useState<Resolution[]>([]);
+  const [reprintModalOpen, setReprintModalOpen] = useState(false);
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [selectedReason, setSelectedReason] = useState('');
+  const [notes, setNotes] = useState('');
+  const [processingResolution, setProcessingResolution] = useState(false);
 
   useEffect(() => {
     if (user && user.userType !== 'PRINTER_ADMIN') {
@@ -54,6 +102,84 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
     loadOrder();
   }, [orderId]);
 
+  // Load resolutions
+  useEffect(() => {
+    const loadResolutions = async () => {
+      if (!orderId) return;
+      try {
+        const response = await apiClient.get<{ resolutions: Resolution[] }>(`/orders/${orderId}/resolutions`);
+        setResolutions(response.data?.resolutions || []);
+      } catch (err) {
+        console.error('Failed to load resolutions:', err);
+      }
+    };
+    loadResolutions();
+  }, [orderId]);
+
+  const handleReprint = async () => {
+    if (!selectedReason) {
+      setError('Please select a reason');
+      return;
+    }
+
+    setProcessingResolution(true);
+    setError('');
+
+    try {
+      const response = await apiClient.post<{ reprintOrderId: string }>(`/orders/${orderId}/reprint`, {
+        reason: selectedReason,
+        notes: notes || undefined,
+      });
+
+      setSuccess(`Reprint order created successfully. New order ID: ${response.data.reprintOrderId.slice(0, 8).toUpperCase()}`);
+      setReprintModalOpen(false);
+      setSelectedReason('');
+      setNotes('');
+
+      // Reload resolutions
+      const resResponse = await apiClient.get<{ resolutions: Resolution[] }>(`/orders/${orderId}/resolutions`);
+      setResolutions(resResponse.data?.resolutions || []);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.message || 'Failed to create reprint');
+    } finally {
+      setProcessingResolution(false);
+    }
+  };
+
+  const handleRefund = async () => {
+    if (!selectedReason) {
+      setError('Please select a reason');
+      return;
+    }
+
+    setProcessingResolution(true);
+    setError('');
+
+    try {
+      const response = await apiClient.post<{ amount: number }>(`/orders/${orderId}/refund`, {
+        reason: selectedReason,
+        notes: notes || undefined,
+      });
+
+      setSuccess(`Refund issued successfully. Amount: £${response.data.amount?.toFixed(2)}`);
+      setRefundModalOpen(false);
+      setSelectedReason('');
+      setNotes('');
+
+      // Reload order to get updated status
+      const orderData = await ordersService.get(orderId);
+      setOrder(orderData);
+
+      // Reload resolutions
+      const resResponse = await apiClient.get<{ resolutions: Resolution[] }>(`/orders/${orderId}/resolutions`);
+      setResolutions(resResponse.data?.resolutions || []);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.message || 'Failed to issue refund');
+    } finally {
+      setProcessingResolution(false);
+    }
+  };
+
   const handleUpdateStatus = async (newStatus: OrderStatus) => {
     if (!order) return;
 
@@ -81,8 +207,24 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
       shipped: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
       delivered: 'bg-green-500/10 text-green-500 border-green-500/50',
       cancelled: 'bg-red-500/10 text-red-500 border-red-500/50',
+      refunded: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
+    };
+    return colors[status] || 'bg-gray-500/10 text-gray-500 border-gray-500/50';
+  };
+
+  const getResolutionStatusColor = (status: Resolution['status']): string => {
+    const colors: Record<Resolution['status'], string> = {
+      PENDING: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50',
+      PROCESSING: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
+      COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/50',
+      FAILED: 'bg-red-500/10 text-red-500 border-red-500/50',
     };
     return colors[status];
+  };
+
+  const getReasonLabel = (reason: string): string => {
+    const found = RESOLUTION_REASONS.find((r) => r.value === reason);
+    return found?.label || reason;
   };
 
   if (user && user.userType !== 'PRINTER_ADMIN') {
@@ -375,22 +517,202 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
 
             <Card className="card-glow">
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle>Issue Resolution</CardTitle>
+                <CardDescription>Handle customer issues</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button variant="outline" className="w-full" disabled>
-                  Print Label
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setSelectedReason('');
+                    setNotes('');
+                    setReprintModalOpen(true);
+                  }}
+                  disabled={order.status === 'cancelled' || order.status === 'refunded'}
+                >
+                  Create Reprint Order
                 </Button>
-                <Button variant="outline" className="w-full" disabled>
-                  Send Email Update
+                <Button
+                  variant="outline"
+                  className="w-full text-orange-500 hover:text-orange-600 border-orange-500/50 hover:border-orange-600"
+                  onClick={() => {
+                    setSelectedReason('');
+                    setNotes('');
+                    setRefundModalOpen(true);
+                  }}
+                  disabled={order.status === 'cancelled' || order.status === 'refunded' || order.status === 'pending'}
+                >
+                  Issue Refund
                 </Button>
-                <Button variant="outline" className="w-full" disabled>
-                  Download Invoice
-                </Button>
+                {order.status === 'refunded' && (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    This order has been refunded.
+                  </p>
+                )}
               </CardContent>
             </Card>
+
+            {/* Resolution History */}
+            {resolutions.length > 0 && (
+              <Card className="card-glow">
+                <CardHeader>
+                  <CardTitle>Resolution History</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {resolutions.map((resolution) => (
+                    <div
+                      key={resolution.id}
+                      className="bg-muted/30 p-3 rounded-lg space-y-2 text-sm"
+                    >
+                      <div className="flex justify-between items-start">
+                        <Badge className={`${getResolutionStatusColor(resolution.status)} border`}>
+                          {resolution.type}
+                        </Badge>
+                        <Badge variant="outline" className={getResolutionStatusColor(resolution.status)}>
+                          {resolution.status}
+                        </Badge>
+                      </div>
+                      <p className="text-muted-foreground">
+                        <span className="font-medium">Reason:</span> {getReasonLabel(resolution.reason)}
+                      </p>
+                      {resolution.notes && (
+                        <p className="text-muted-foreground">
+                          <span className="font-medium">Notes:</span> {resolution.notes}
+                        </p>
+                      )}
+                      {resolution.reprintOrderId && (
+                        <p className="text-muted-foreground">
+                          <span className="font-medium">Reprint Order:</span>{' '}
+                          <Link
+                            href={`/admin/orders/${resolution.reprintOrderId}`}
+                            className="text-primary hover:underline"
+                          >
+                            {resolution.reprintOrderId.slice(0, 8).toUpperCase()}
+                          </Link>
+                        </p>
+                      )}
+                      {resolution.refundAmount && (
+                        <p className="text-muted-foreground">
+                          <span className="font-medium">Refund:</span> £{Number(resolution.refundAmount).toFixed(2)}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground/70">
+                        {new Date(resolution.createdAt).toLocaleString('en-GB')}
+                      </p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
+
+        {/* Reprint Modal */}
+        <Dialog open={reprintModalOpen} onOpenChange={setReprintModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Reprint Order</DialogTitle>
+              <DialogDescription>
+                Create a free replacement order for this customer. They will be notified via email.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="reprint-reason">Reason for Reprint</Label>
+                <Select value={selectedReason} onValueChange={setSelectedReason}>
+                  <SelectTrigger id="reprint-reason">
+                    <SelectValue placeholder="Select reason..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RESOLUTION_REASONS.map((reason) => (
+                      <SelectItem key={reason.value} value={reason.value}>
+                        {reason.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reprint-notes">Notes (Optional)</Label>
+                <Textarea
+                  id="reprint-notes"
+                  placeholder="Add any additional notes..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setReprintModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleReprint} disabled={processingResolution || !selectedReason}>
+                {processingResolution ? 'Creating...' : 'Create Reprint'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Refund Modal */}
+        <Dialog open={refundModalOpen} onOpenChange={setRefundModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Issue Refund</DialogTitle>
+              <DialogDescription>
+                Issue a full refund to the customer. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="bg-orange-500/10 border border-orange-500/50 text-orange-600 px-4 py-3 rounded-lg text-sm">
+                <strong>Warning:</strong> Refunds are processed via Stripe and cannot be reversed.
+                Consider offering a reprint first.
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="refund-reason">Reason for Refund</Label>
+                <Select value={selectedReason} onValueChange={setSelectedReason}>
+                  <SelectTrigger id="refund-reason">
+                    <SelectValue placeholder="Select reason..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RESOLUTION_REASONS.map((reason) => (
+                      <SelectItem key={reason.value} value={reason.value}>
+                        {reason.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="refund-notes">Notes (Optional)</Label>
+                <Textarea
+                  id="refund-notes"
+                  placeholder="Add any additional notes..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+              <div className="bg-muted/30 p-3 rounded-lg">
+                <p className="text-sm">
+                  <span className="text-muted-foreground">Refund Amount:</span>{' '}
+                  <span className="font-bold text-lg">£{Number(order.totalPrice).toFixed(2)}</span>
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRefundModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleRefund}
+                disabled={processingResolution || !selectedReason}
+              >
+                {processingResolution ? 'Processing...' : 'Issue Refund'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

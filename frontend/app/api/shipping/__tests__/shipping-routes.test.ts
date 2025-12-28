@@ -106,6 +106,9 @@ describe('Shipping API Routes', () => {
       customerId: 'customer-456',
       status: 'confirmed',
       totalPrice: 45.99 as unknown as import('@prisma/client/runtime/library').Decimal,
+      subtotal: 40.99 as unknown as import('@prisma/client/runtime/library').Decimal,
+      createdAt: new Date('2024-01-15T10:00:00Z'),
+      updatedAt: new Date('2024-01-15T10:00:00Z'),
       shippingAddress: {
         name: 'John Smith',
         addressLine1: '123 Main Street',

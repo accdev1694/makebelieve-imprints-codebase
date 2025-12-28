@@ -191,6 +191,11 @@ function AdminDashboardContent() {
             <Link href="/admin/shipping">
               <Button variant="outline">Shipping & Labels</Button>
             </Link>
+            <Link href="/admin/returns">
+              <Button variant="outline" className="border-orange-500/50 text-orange-500 hover:text-orange-600">
+                Issues & Returns
+              </Button>
+            </Link>
             <Link href="/admin/customers">
               <Button variant="outline">View Customers</Button>
             </Link>

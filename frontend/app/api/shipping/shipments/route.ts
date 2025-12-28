@@ -111,12 +111,8 @@ export async function POST(request: NextRequest) {
       shippingCostCharged: shippingCostCharged,
       total: totalPrice,
       currencyCode: 'GBP',
-      // Generate label immediately (required for postage to be applied)
-      label: {
-        includeLabelInResponse: true,
-        includeCN: isInternational,
-        includeReturnsLabel: false,
-      },
+      // Note: Shipping rules in Click & Drop will auto-apply postage
+      // Label can then be fetched via /api/shipping/labels/[orderId]
     });
 
     if (error) {
@@ -146,14 +142,13 @@ export async function POST(request: NextRequest) {
 
     const createdOrder = data.createdOrders[0];
 
-    // Update order with Royal Mail order ID and tracking number
+    // Update order with Royal Mail order ID
     await prisma.order.update({
       where: { id: orderId },
       data: {
         royalmailOrderId: String(createdOrder.orderIdentifier),
         trackingNumber: createdOrder.trackingNumber || null,
         carrier: 'Royal Mail',
-        status: createdOrder.label ? 'printing' : order.status, // Move to printing if label generated
       },
     });
 
@@ -162,10 +157,7 @@ export async function POST(request: NextRequest) {
       royalMailOrderId: createdOrder.orderIdentifier,
       orderReference: createdOrder.orderReference,
       trackingNumber: createdOrder.trackingNumber,
-      label: createdOrder.label, // Base64 encoded PDF
-      message: createdOrder.label
-        ? 'Shipment created and label generated successfully.'
-        : 'Shipment created successfully.',
+      message: 'Shipment created. Use Download Label to get the shipping label.',
     });
   } catch (error) {
     console.error('Create shipment error:', error);

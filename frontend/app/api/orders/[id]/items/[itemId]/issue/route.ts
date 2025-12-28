@@ -5,19 +5,19 @@ import { IssueReason, IssueStatus, CarrierFault } from '@prisma/client';
 import { differenceInDays } from 'date-fns';
 
 interface RouteParams {
-  params: Promise<{ orderId: string; itemId: string }>;
+  params: Promise<{ id: string; itemId: string }>;
 }
 
 const ISSUE_REPORTING_WINDOW_DAYS = 14;
 
 /**
- * POST /api/orders/[orderId]/items/[itemId]/issue
+ * POST /api/orders/[id]/items/[itemId]/issue
  * Customer reports an issue on a specific order item
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth(request);
-    const { orderId, itemId } = await params;
+    const { id: orderId, itemId } = await params;
 
     const body = await request.json();
     const { reason, notes, imageUrls } = body;
@@ -180,13 +180,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 }
 
 /**
- * GET /api/orders/[orderId]/items/[itemId]/issue
+ * GET /api/orders/[id]/items/[itemId]/issue
  * Get the issue for a specific order item (if exists)
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth(request);
-    const { orderId, itemId } = await params;
+    const { id: orderId, itemId } = await params;
 
     // Get the order item with issue
     const orderItem = await prisma.orderItem.findUnique({

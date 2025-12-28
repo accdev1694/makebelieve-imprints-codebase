@@ -212,7 +212,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      setIssueError('Image must be less than 10MB');
+      setIssueError('Image must be less than 10MB. Large images will be automatically compressed.');
       return;
     }
 

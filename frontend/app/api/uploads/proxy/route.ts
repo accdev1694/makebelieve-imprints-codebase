@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
 
+// Configure route segment for larger uploads
+export const runtime = 'nodejs';
+export const maxDuration = 30; // 30 seconds timeout
+
 /**
  * PUT /api/uploads/proxy
  * Upload a file - stores as data URL for now (R2 integration can be added later)

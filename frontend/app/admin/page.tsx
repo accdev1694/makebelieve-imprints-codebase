@@ -64,9 +64,10 @@ function AdminDashboardContent() {
 
       // Fetch pending issues count from new issues endpoint
       try {
-        const issuesData = await apiClient.get<{ stats: { pending: number; infoRequested: number } }>('/admin/issues');
+        const issuesData = await apiClient.get<{ stats: { byStatus: Record<string, number> } }>('/admin/issues');
         // Count pending as: AWAITING_REVIEW + INFO_REQUESTED (issues needing attention)
-        const pendingCount = (issuesData.data?.stats?.pending || 0) + (issuesData.data?.stats?.infoRequested || 0);
+        const byStatus = issuesData.data?.stats?.byStatus || {};
+        const pendingCount = (byStatus['AWAITING_REVIEW'] || 0) + (byStatus['INFO_REQUESTED'] || 0);
         setPendingIssues(pendingCount);
       } catch {
         // Silently fail - issues count is not critical

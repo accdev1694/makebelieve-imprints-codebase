@@ -48,6 +48,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       include: {
         orderItem: {
           include: {
+            product: {
+              select: {
+                name: true,
+              },
+            },
             order: {
               include: {
                 customer: {
@@ -160,12 +165,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
       let emailSent = false;
 
+      const productName = issue.orderItem.product?.name || 'your item';
+
       if (action === 'APPROVE_REPRINT' || action === 'APPROVE_REFUND') {
-        const resolutionType = action === 'APPROVE_REPRINT' ? 'reprint' : 'refund';
+        const resolutionType = action === 'APPROVE_REPRINT' ? 'REPRINT' : 'REFUND';
         emailSent = await sendIssueApprovedEmail(
           customer.email,
           customer.name,
           issueId,
+          productName,
           resolutionType,
           systemMessage
         );
@@ -174,6 +182,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           customer.email,
           customer.name,
           issueId,
+          productName,
           systemMessage
         );
       } else if (action === 'REJECT') {
@@ -181,6 +190,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           customer.email,
           customer.name,
           issueId,
+          productName,
           systemMessage,
           !isFinalRejection // canAppeal
         );

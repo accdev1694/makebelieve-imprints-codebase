@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     await requireAdmin(request);
 
     const body = await request.json();
-    const { orderId, weightInGrams, serviceCode } = body;
+    const { orderId, weightInGrams, serviceCode, packageFormat } = body;
 
     if (!orderId) {
       return NextResponse.json(
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       packages: [
         {
           weightInGrams: weightInGrams || 500, // Default to 500g if not specified
-          packageFormatIdentifier: 'parcel',
+          packageFormatIdentifier: packageFormat || 'largeLetter', // Default to largeLetter for prints
         },
       ],
       orderItems: isInternational ? orderItems : undefined,

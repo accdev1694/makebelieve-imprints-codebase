@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     const subtotal = order.subtotal ? Number(order.subtotal) : totalPrice;
     const shippingCostCharged = order.discountAmount ? 0 : Math.max(0, totalPrice - subtotal);
 
-    // Create shipment in Royal Mail
+    // Create shipment in Royal Mail with label generation
     const { data, error } = await createShipment({
       orderReference: order.id,
       recipient: {
@@ -111,6 +111,12 @@ export async function POST(request: NextRequest) {
       shippingCostCharged: shippingCostCharged,
       total: totalPrice,
       currencyCode: 'GBP',
+      // Generate label immediately (required for postage to be applied)
+      label: {
+        includeLabelInResponse: true,
+        includeCN: isInternational,
+        includeReturnsLabel: false,
+      },
     });
 
     if (error) {
@@ -140,12 +146,14 @@ export async function POST(request: NextRequest) {
 
     const createdOrder = data.createdOrders[0];
 
-    // Update order with Royal Mail order ID
+    // Update order with Royal Mail order ID and tracking number
     await prisma.order.update({
       where: { id: orderId },
       data: {
         royalmailOrderId: String(createdOrder.orderIdentifier),
+        trackingNumber: createdOrder.trackingNumber || null,
         carrier: 'Royal Mail',
+        status: createdOrder.label ? 'printing' : order.status, // Move to printing if label generated
       },
     });
 
@@ -153,7 +161,11 @@ export async function POST(request: NextRequest) {
       success: true,
       royalMailOrderId: createdOrder.orderIdentifier,
       orderReference: createdOrder.orderReference,
-      message: 'Shipment created successfully. You can now generate the label.',
+      trackingNumber: createdOrder.trackingNumber,
+      label: createdOrder.label, // Base64 encoded PDF
+      message: createdOrder.label
+        ? 'Shipment created and label generated successfully.'
+        : 'Shipment created successfully.',
     });
   } catch (error) {
     console.error('Create shipment error:', error);

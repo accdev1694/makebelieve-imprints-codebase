@@ -65,6 +65,12 @@ export interface CreateShipmentRequest {
   shippingCostCharged: number; // Shipping cost charged to customer
   total: number; // Total order value
   currencyCode?: string; // Default: GBP
+  // Label generation options
+  label?: {
+    includeLabelInResponse: boolean;
+    includeCN?: boolean;
+    includeReturnsLabel?: boolean;
+  };
 }
 
 export interface RoyalMailOrder {
@@ -89,6 +95,8 @@ export interface CreateShipmentResponse {
   createdOrders: {
     orderIdentifier: number;
     orderReference: string;
+    trackingNumber?: string;
+    label?: string; // Base64 encoded PDF when includeLabelInResponse is true
   }[];
   failedOrders: {
     orderReference: string;
@@ -284,6 +292,8 @@ export async function createShipment(
         shippingCostCharged: request.shippingCostCharged,
         total: request.total,
         currencyCode: request.currencyCode || 'GBP',
+        // Label generation (generates label immediately if provided)
+        label: request.label,
       },
     ],
   };

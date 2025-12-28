@@ -40,9 +40,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await deleteOrders([parseInt(order.royalmailOrderId, 10)]);
 
     // Check if error is "order not found" - this is OK, order was already deleted in Royal Mail
+    // Royal Mail returns 400 with code '2' when order doesn't exist
     const isOrderNotFoundError = error?.message?.includes('does not exist') ||
                                   error?.message?.includes('not found') ||
-                                  error?.code === '3';
+                                  error?.code === '3' ||
+                                  error?.code === '2' ||
+                                  error?.code === 'HTTP_400'; // Generic 400 on delete usually means order gone
 
     if (error && !isOrderNotFoundError) {
       // Real error (network, auth, etc.) - fail

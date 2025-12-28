@@ -499,7 +499,7 @@ function AdminShippingContent() {
                             {hasRoyalMailOrder && (
                               <div className="flex gap-2">
                                 <Button
-                                  onClick={() => window.open('https://parcel.royalmail.com/orders', '_blank')}
+                                  onClick={() => window.open('https://business.parcel.royalmail.com/', '_blank')}
                                   className="flex-1 btn-gradient"
                                 >
                                   <ExternalLink className="h-4 w-4 mr-2" />

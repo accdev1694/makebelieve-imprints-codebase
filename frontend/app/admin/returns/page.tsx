@@ -16,6 +16,7 @@ interface Resolution {
   type: 'REPRINT' | 'REFUND';
   reason: string;
   notes: string | null;
+  imageUrls: string[] | null;
   reprintOrderId: string | null;
   refundAmount: number | null;
   stripeRefundId: string | null;
@@ -293,6 +294,30 @@ function ReturnsContent() {
                           <p className="text-sm mt-2 text-muted-foreground italic">
                             Notes: {resolution.notes}
                           </p>
+                        )}
+
+                        {/* Customer uploaded images */}
+                        {resolution.imageUrls && resolution.imageUrls.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs font-medium text-muted-foreground mb-1">Customer Photos:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {resolution.imageUrls.map((url, imgIndex) => (
+                                <a
+                                  key={imgIndex}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block w-12 h-12 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+                                >
+                                  <img
+                                    src={url}
+                                    alt={`Issue photo ${imgIndex + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </div>
 

@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ordersService, Order, OrderStatus, ORDER_STATUS_LABELS } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
+import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 
 function AdminDashboardContent() {
@@ -22,6 +23,7 @@ function AdminDashboardContent() {
     printingOrders: 0,
     shippedOrders: 0,
   });
+  const [pendingIssues, setPendingIssues] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -59,6 +61,17 @@ function AdminDashboardContent() {
         printingOrders: printing,
         shippedOrders: shipped,
       });
+
+      // Fetch pending issues count
+      try {
+        const resolutionsData = await apiClient.get<{ resolutions: Array<{ status: string }> }>('/admin/resolutions');
+        const pendingCount = resolutionsData.data?.resolutions?.filter(
+          (r) => r.status === 'PENDING' || r.status === 'PROCESSING'
+        ).length || 0;
+        setPendingIssues(pendingCount);
+      } catch {
+        // Silently fail - issues count is not critical
+      }
     } catch (err: any) {
       setError(err?.error || err?.message || 'Failed to load dashboard data');
     } finally {
@@ -192,8 +205,13 @@ function AdminDashboardContent() {
               <Button variant="outline">Shipping & Labels</Button>
             </Link>
             <Link href="/admin/returns">
-              <Button variant="outline" className="border-orange-500/50 text-orange-500 hover:text-orange-600">
+              <Button variant="outline" className="border-orange-500/50 text-orange-500 hover:text-orange-600 relative">
                 Issues & Returns
+                {pendingIssues > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {pendingIssues > 9 ? '9+' : pendingIssues}
+                  </span>
+                )}
               </Button>
             </Link>
             <Link href="/admin/customers">

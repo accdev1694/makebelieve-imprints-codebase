@@ -7,10 +7,53 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { ordersService, Order, OrderItem, ORDER_STATUS_LABELS, OrderStatus } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
+import { storageService } from '@/lib/api/storage';
+import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 import Image from 'next/image';
+import { X, Upload, Camera } from 'lucide-react';
+
+const ISSUE_REASONS = [
+  { value: 'DAMAGED_IN_TRANSIT', label: 'Damaged in Transit', description: 'Item arrived damaged or broken' },
+  { value: 'QUALITY_ISSUE', label: 'Quality Issue', description: 'Print quality not as expected' },
+  { value: 'WRONG_ITEM', label: 'Wrong Item', description: 'Received a different item than ordered' },
+  { value: 'PRINTING_ERROR', label: 'Printing Error', description: 'Colors, alignment, or image printed incorrectly' },
+  { value: 'OTHER', label: 'Other', description: 'Another issue not listed above' },
+];
+
+const REASON_LABELS: Record<string, string> = {
+  DAMAGED_IN_TRANSIT: 'Damaged in Transit',
+  QUALITY_ISSUE: 'Quality Issue',
+  WRONG_ITEM: 'Wrong Item',
+  PRINTING_ERROR: 'Printing Error',
+  OTHER: 'Other',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Under Review',
+  PROCESSING: 'Processing',
+  COMPLETED: 'Resolved',
+  FAILED: 'Failed',
+};
+
+interface Issue {
+  id: string;
+  type: 'REPRINT' | 'REFUND';
+  reason: string;
+  notes: string | null;
+  imageUrls: string[] | null;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  createdAt: string;
+  processedAt: string | null;
+  reprintOrderId: string | null;
+  refundAmount: number | null;
+}
 
 interface OrderDetailsClientProps {
   orderId: string;
@@ -23,6 +66,18 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Issue reporting state
+  const [issueModalOpen, setIssueModalOpen] = useState(false);
+  const [viewIssueModalOpen, setViewIssueModalOpen] = useState(false);
+  const [existingIssues, setExistingIssues] = useState<Issue[]>([]);
+  const [issueReason, setIssueReason] = useState('');
+  const [issueNotes, setIssueNotes] = useState('');
+  const [issueImages, setIssueImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [submittingIssue, setSubmittingIssue] = useState(false);
+  const [issueSuccess, setIssueSuccess] = useState(false);
+  const [issueError, setIssueError] = useState('');
+
   useEffect(() => {
     const loadOrder = async () => {
       if (!orderId) {
@@ -34,8 +89,9 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
       try {
         const orderData = await ordersService.get(orderId);
         setOrder(orderData);
-      } catch (err: any) {
-        setError(err?.error || err?.message || 'Failed to load order');
+      } catch (err: unknown) {
+        const e = err as { error?: string; message?: string };
+        setError(e?.error || e?.message || 'Failed to load order');
       } finally {
         setLoading(false);
       }
@@ -43,6 +99,20 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
 
     loadOrder();
   }, [orderId]);
+
+  // Fetch existing issues for this order
+  useEffect(() => {
+    const loadIssues = async () => {
+      if (!orderId) return;
+      try {
+        const response = await apiClient.get<{ issues: Issue[] }>(`/orders/${orderId}/issues`);
+        setExistingIssues(response.data?.issues || []);
+      } catch {
+        // Silently fail - issues are supplementary
+      }
+    };
+    loadIssues();
+  }, [orderId, issueSuccess]); // Reload when a new issue is submitted
 
   const getStatusColor = (status: OrderStatus): string => {
     const colors: Record<OrderStatus, string> = {
@@ -71,6 +141,79 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
     };
     return icons[status];
   };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Limit to 5 images total
+    if (issueImages.length >= 5) {
+      setIssueError('Maximum 5 images allowed');
+      return;
+    }
+
+    const file = files[0];
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setIssueError('Please upload a valid image file (JPG, PNG, WebP, or GIF)');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setIssueError('Image must be less than 10MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    setIssueError('');
+
+    try {
+      const imageUrl = await storageService.uploadFile(file);
+      setIssueImages((prev) => [...prev, imageUrl]);
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      setIssueError(error?.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+      // Reset input
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setIssueImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleReportIssue = async () => {
+    if (!issueReason) {
+      setIssueError('Please select a reason for your issue');
+      return;
+    }
+
+    setSubmittingIssue(true);
+    setIssueError('');
+
+    try {
+      await apiClient.post(`/orders/${orderId}/report-issue`, {
+        reason: issueReason,
+        notes: issueNotes,
+        imageUrls: issueImages,
+      });
+      setIssueSuccess(true);
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      setIssueError(error?.response?.data?.error || error?.message || 'Failed to submit issue report');
+    } finally {
+      setSubmittingIssue(false);
+    }
+  };
+
+  const canReportIssue = order && ['shipped', 'delivered'].includes(order.status);
+  const hasExistingIssue = existingIssues.length > 0;
+  const latestIssue = hasExistingIssue ? existingIssues[0] : null;
 
   if (loading) {
     return (
@@ -336,7 +479,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
           </CardContent>
         </Card>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
           <Link href="/orders">
             <Button variant="outline" className="w-full sm:w-auto">Back to Orders</Button>
           </Link>
@@ -345,6 +488,31 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
               <Button variant="outline" className="w-full sm:w-auto">Track Shipment</Button>
             </Link>
           )}
+          {canReportIssue && !hasExistingIssue && (
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto border-orange-500/50 text-orange-500 hover:text-orange-600"
+              onClick={() => {
+                setIssueReason('');
+                setIssueNotes('');
+                setIssueImages([]);
+                setIssueError('');
+                setIssueSuccess(false);
+                setIssueModalOpen(true);
+              }}
+            >
+              Report an Issue
+            </Button>
+          )}
+          {hasExistingIssue && (
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto border-orange-500/50 text-orange-500 hover:text-orange-600"
+              onClick={() => setViewIssueModalOpen(true)}
+            >
+              View Issue
+            </Button>
+          )}
           <Link href="/products">
             <Button variant="outline" className="w-full sm:w-auto">Continue Shopping</Button>
           </Link>
@@ -352,6 +520,258 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
             <Button className="btn-gradient w-full sm:w-auto">Create Another Design</Button>
           </Link>
         </div>
+
+        {/* Report Issue Modal */}
+        <Dialog open={issueModalOpen} onOpenChange={setIssueModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Report an Issue</DialogTitle>
+              <DialogDescription>
+                Let us know what went wrong with your order. We&apos;ll review your report and get back to you.
+              </DialogDescription>
+            </DialogHeader>
+
+            {issueSuccess ? (
+              <div className="py-6 text-center">
+                <div className="text-4xl mb-4">✓</div>
+                <h3 className="text-lg font-semibold text-green-500 mb-2">Issue Reported Successfully</h3>
+                <p className="text-muted-foreground mb-4">
+                  Our team will review your issue and contact you shortly. You&apos;ll receive an email when we have an update.
+                </p>
+                <Button onClick={() => setIssueModalOpen(false)}>Close</Button>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="issue-reason">What&apos;s the issue?</Label>
+                    <Select value={issueReason} onValueChange={setIssueReason}>
+                      <SelectTrigger id="issue-reason">
+                        <SelectValue placeholder="Select a reason..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ISSUE_REASONS.map((reason) => (
+                          <SelectItem key={reason.value} value={reason.value}>
+                            <div>
+                              <div className="font-medium">{reason.label}</div>
+                              <div className="text-xs text-muted-foreground">{reason.description}</div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="issue-notes">Additional Details (optional)</Label>
+                    <Textarea
+                      id="issue-notes"
+                      placeholder="Please describe the issue in detail. Include any relevant information that might help us resolve it faster."
+                      value={issueNotes}
+                      onChange={(e) => setIssueNotes(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Image Upload Section */}
+                  <div className="space-y-2">
+                    <Label>Photos of the Issue (recommended)</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Upload up to 5 photos showing the damage or issue. This helps us process your request faster.
+                    </p>
+
+                    {/* Image Previews */}
+                    {issueImages.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {issueImages.map((url, index) => (
+                          <div key={index} className="relative group">
+                            <div className="w-20 h-20 rounded-lg overflow-hidden border border-border">
+                              <img
+                                src={url}
+                                alt={`Issue photo ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(index)}
+                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Upload Button */}
+                    {issueImages.length < 5 && (
+                      <div className="flex gap-2">
+                        <label htmlFor="issue-image-upload" className="cursor-pointer">
+                          <div className="flex items-center gap-2 px-4 py-2 border border-dashed border-border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors">
+                            {uploadingImage ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent" />
+                                <span className="text-sm">Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Camera className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">
+                                  {issueImages.length === 0 ? 'Add Photos' : 'Add More'}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </label>
+                        <input
+                          id="issue-image-upload"
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          onChange={handleImageUpload}
+                          disabled={uploadingImage}
+                          className="hidden"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {issueError && (
+                    <div className="bg-destructive/10 border border-destructive/50 text-destructive px-3 py-2 rounded-md text-sm">
+                      {issueError}
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIssueModalOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleReportIssue}
+                    disabled={submittingIssue || !issueReason}
+                    className="bg-orange-500 hover:bg-orange-600"
+                  >
+                    {submittingIssue ? 'Submitting...' : 'Submit Report'}
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* View Issue Modal */}
+        <Dialog open={viewIssueModalOpen} onOpenChange={setViewIssueModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Issue Details</DialogTitle>
+              <DialogDescription>
+                Your reported issue for this order
+              </DialogDescription>
+            </DialogHeader>
+
+            {latestIssue && (
+              <div className="space-y-4 py-4">
+                {/* Status Badge */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Status:</span>
+                  <Badge
+                    className={
+                      latestIssue.status === 'COMPLETED'
+                        ? 'bg-green-500/10 text-green-500 border-green-500/50'
+                        : latestIssue.status === 'FAILED'
+                        ? 'bg-red-500/10 text-red-500 border-red-500/50'
+                        : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50'
+                    }
+                  >
+                    {STATUS_LABELS[latestIssue.status] || latestIssue.status}
+                  </Badge>
+                </div>
+
+                {/* Issue Details */}
+                <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Issue Type</p>
+                    <p className="font-medium">{REASON_LABELS[latestIssue.reason] || latestIssue.reason}</p>
+                  </div>
+
+                  {latestIssue.notes && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Your Description</p>
+                      <p className="text-sm">{latestIssue.notes}</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-xs text-muted-foreground">Reported On</p>
+                    <p className="text-sm">
+                      {new Date(latestIssue.createdAt).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+
+                  {/* Uploaded Photos */}
+                  {latestIssue.imageUrls && latestIssue.imageUrls.length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-2">Your Photos</p>
+                      <div className="flex flex-wrap gap-2">
+                        {latestIssue.imageUrls.map((url, index) => (
+                          <a
+                            key={index}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-16 h-16 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+                          >
+                            <img
+                              src={url}
+                              alt={`Issue photo ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Resolution Info */}
+                {latestIssue.status === 'COMPLETED' && (
+                  <div className="bg-green-500/10 border border-green-500/50 p-4 rounded-lg">
+                    <p className="font-medium text-green-600 mb-2">Issue Resolved</p>
+                    {latestIssue.type === 'REPRINT' && latestIssue.reprintOrderId && (
+                      <p className="text-sm text-muted-foreground">
+                        A replacement order has been created and will be shipped to you shortly.
+                      </p>
+                    )}
+                    {latestIssue.type === 'REFUND' && latestIssue.refundAmount && (
+                      <p className="text-sm text-muted-foreground">
+                        A refund of £{Number(latestIssue.refundAmount).toFixed(2)} has been processed to your original payment method.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {latestIssue.status === 'PENDING' && (
+                  <div className="bg-yellow-500/10 border border-yellow-500/50 p-4 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      Our team is reviewing your issue. We&apos;ll contact you via email with an update soon.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button onClick={() => setViewIssueModalOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

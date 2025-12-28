@@ -125,6 +125,9 @@ function DashboardContent() {
             <Link href="/orders">
               <Button variant="outline">View Orders</Button>
             </Link>
+            <Link href="/account/issues">
+              <Button variant="outline">My Issues</Button>
+            </Link>
             <Link href="/products">
               <Button variant="outline">Browse Products</Button>
             </Link>

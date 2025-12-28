@@ -37,6 +37,7 @@ interface Resolution {
   type: 'REPRINT' | 'REFUND';
   reason: string;
   notes: string | null;
+  imageUrls: string[] | null;
   reprintOrderId: string | null;
   refundAmount: number | null;
   stripeRefundId: string | null;
@@ -74,6 +75,9 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
   const [selectedReason, setSelectedReason] = useState('');
   const [notes, setNotes] = useState('');
   const [processingResolution, setProcessingResolution] = useState(false);
+  const [processIssueModalOpen, setProcessIssueModalOpen] = useState(false);
+  const [selectedPendingIssue, setSelectedPendingIssue] = useState<Resolution | null>(null);
+  const [processAction, setProcessAction] = useState<'REPRINT' | 'REFUND'>('REPRINT');
 
   useEffect(() => {
     if (user && user.userType !== 'PRINTER_ADMIN') {
@@ -197,6 +201,44 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
       setUpdating(false);
     }
   };
+
+  const handleProcessPendingIssue = async () => {
+    if (!selectedPendingIssue) return;
+
+    setProcessingResolution(true);
+    setError('');
+
+    try {
+      const response = await apiClient.post(`/admin/resolutions/${selectedPendingIssue.id}/process`, {
+        action: processAction,
+        notes: notes || undefined,
+      });
+
+      if (processAction === 'REPRINT') {
+        setSuccess(`Reprint order created successfully. New order ID: ${response.data.reprintOrderId.slice(0, 8).toUpperCase()}`);
+      } else {
+        setSuccess(`Refund processed successfully. Amount: £${response.data.amount?.toFixed(2)}`);
+        // Reload order to get updated status
+        const orderData = await ordersService.get(orderId);
+        setOrder(orderData);
+      }
+
+      setProcessIssueModalOpen(false);
+      setSelectedPendingIssue(null);
+      setNotes('');
+
+      // Reload resolutions
+      const resResponse = await apiClient.get<{ resolutions: Resolution[] }>(`/orders/${orderId}/resolutions`);
+      setResolutions(resResponse.data?.resolutions || []);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.message || 'Failed to process issue');
+    } finally {
+      setProcessingResolution(false);
+    }
+  };
+
+  // Find pending customer issues
+  const pendingIssues = resolutions.filter((r) => r.status === 'PENDING');
 
   const getStatusColor = (status: OrderStatus): string => {
     const colors: Record<OrderStatus, string> = {
@@ -517,34 +559,134 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
 
             <Card className="card-glow">
               <CardHeader>
-                <CardTitle>Issue Resolution</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  Issue Resolution
+                  {pendingIssues.length > 0 && (
+                    <Badge className="bg-red-500 text-white">
+                      {pendingIssues.length} Pending
+                    </Badge>
+                  )}
+                </CardTitle>
                 <CardDescription>Handle customer issues</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    setSelectedReason('');
-                    setNotes('');
-                    setReprintModalOpen(true);
-                  }}
-                  disabled={order.status === 'cancelled' || order.status === 'refunded'}
-                >
-                  Create Reprint Order
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full text-orange-500 hover:text-orange-600 border-orange-500/50 hover:border-orange-600"
-                  onClick={() => {
-                    setSelectedReason('');
-                    setNotes('');
-                    setRefundModalOpen(true);
-                  }}
-                  disabled={order.status === 'cancelled' || order.status === 'refunded' || order.status === 'pending'}
-                >
-                  Issue Refund
-                </Button>
+              <CardContent className="space-y-4">
+                {/* Pending Customer Issues */}
+                {pendingIssues.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-yellow-500">Customer Reported Issues:</p>
+                    {pendingIssues.map((issue) => (
+                      <div
+                        key={issue.id}
+                        className="bg-yellow-500/10 border border-yellow-500/50 rounded-lg p-3 space-y-2"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium text-yellow-500">
+                              {getReasonLabel(issue.reason)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Reported {new Date(issue.createdAt).toLocaleDateString('en-GB', {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                          <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/50">
+                            Awaiting Review
+                          </Badge>
+                        </div>
+                        {issue.notes && (
+                          <p className="text-sm text-muted-foreground italic">
+                            &quot;{issue.notes}&quot;
+                          </p>
+                        )}
+                        {/* Customer uploaded images */}
+                        {issue.imageUrls && issue.imageUrls.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">Customer Photos:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {issue.imageUrls.map((url, imgIndex) => (
+                                <a
+                                  key={imgIndex}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block w-16 h-16 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+                                >
+                                  <img
+                                    src={url}
+                                    alt={`Issue photo ${imgIndex + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-purple-500 hover:bg-purple-600"
+                            onClick={() => {
+                              setSelectedPendingIssue(issue);
+                              setProcessAction('REPRINT');
+                              setNotes('');
+                              setProcessIssueModalOpen(true);
+                            }}
+                          >
+                            Approve Reprint
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 border-orange-500/50 text-orange-500 hover:text-orange-600"
+                            onClick={() => {
+                              setSelectedPendingIssue(issue);
+                              setProcessAction('REFUND');
+                              setNotes('');
+                              setProcessIssueModalOpen(true);
+                            }}
+                            disabled={order.status === 'pending'}
+                          >
+                            Issue Refund
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    <Separator />
+                  </div>
+                )}
+
+                {/* Manual resolution options */}
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Or create a resolution manually:</p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setSelectedReason('');
+                      setNotes('');
+                      setReprintModalOpen(true);
+                    }}
+                    disabled={order.status === 'cancelled' || order.status === 'refunded'}
+                  >
+                    Create Reprint Order
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full text-orange-500 hover:text-orange-600 border-orange-500/50 hover:border-orange-600"
+                    onClick={() => {
+                      setSelectedReason('');
+                      setNotes('');
+                      setRefundModalOpen(true);
+                    }}
+                    disabled={order.status === 'cancelled' || order.status === 'refunded' || order.status === 'pending'}
+                  >
+                    Issue Refund
+                  </Button>
+                </div>
                 {order.status === 'refunded' && (
                   <p className="text-sm text-muted-foreground text-center py-2">
                     This order has been refunded.
@@ -709,6 +851,78 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
                 disabled={processingResolution || !selectedReason}
               >
                 {processingResolution ? 'Processing...' : 'Issue Refund'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Process Customer Issue Modal */}
+        <Dialog open={processIssueModalOpen} onOpenChange={setProcessIssueModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {processAction === 'REPRINT' ? 'Approve Reprint' : 'Issue Refund'}
+              </DialogTitle>
+              <DialogDescription>
+                Process the customer&apos;s reported issue.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedPendingIssue && (
+              <div className="space-y-4 py-4">
+                <div className="bg-muted/30 p-3 rounded-lg space-y-2">
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Issue Type:</span>{' '}
+                    <span className="font-medium">{getReasonLabel(selectedPendingIssue.reason)}</span>
+                  </p>
+                  {selectedPendingIssue.notes && (
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Customer Notes:</span>{' '}
+                      <span className="italic">&quot;{selectedPendingIssue.notes}&quot;</span>
+                    </p>
+                  )}
+                </div>
+
+                {processAction === 'REFUND' && (
+                  <div className="bg-orange-500/10 border border-orange-500/50 text-orange-600 px-4 py-3 rounded-lg text-sm">
+                    <strong>Warning:</strong> Refunds are processed via Stripe and cannot be reversed.
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="process-notes">Admin Notes (Optional)</Label>
+                  <Textarea
+                    id="process-notes"
+                    placeholder="Add any notes about the resolution..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
+
+                {processAction === 'REFUND' && (
+                  <div className="bg-muted/30 p-3 rounded-lg">
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Refund Amount:</span>{' '}
+                      <span className="font-bold text-lg">£{Number(order.totalPrice).toFixed(2)}</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setProcessIssueModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                className={processAction === 'REPRINT' ? 'bg-purple-500 hover:bg-purple-600' : ''}
+                variant={processAction === 'REFUND' ? 'destructive' : 'default'}
+                onClick={handleProcessPendingIssue}
+                disabled={processingResolution}
+              >
+                {processingResolution
+                  ? 'Processing...'
+                  : processAction === 'REPRINT'
+                  ? 'Approve Reprint'
+                  : 'Issue Refund'}
               </Button>
             </DialogFooter>
           </DialogContent>

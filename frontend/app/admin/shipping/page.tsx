@@ -102,6 +102,8 @@ function AdminShippingContent() {
         throw new Error(data.error || 'Failed to create shipment');
       }
 
+      // Open Click & Drop orders page automatically
+      window.open('https://business.parcel.royalmail.com/orders/', '_blank');
       setSuccess(`Shipment created for order #${order.id.slice(0, 8).toUpperCase()}. Pay and print label in Click & Drop.`);
       fetchData(); // Refresh to get updated order
     } catch (err: unknown) {
@@ -500,10 +502,11 @@ function AdminShippingContent() {
                               <div className="flex gap-2">
                                 <Button
                                   onClick={() => window.open('https://business.parcel.royalmail.com/orders/', '_blank')}
-                                  className="flex-1 btn-gradient"
+                                  className="flex-1"
+                                  variant="outline"
                                 >
                                   <ExternalLink className="h-4 w-4 mr-2" />
-                                  Pay & Print in Click & Drop
+                                  Open in Click & Drop
                                 </Button>
                                 <Button
                                   onClick={() => handleDeleteShipment(order)}

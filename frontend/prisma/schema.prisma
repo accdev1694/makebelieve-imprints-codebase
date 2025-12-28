@@ -238,6 +238,9 @@ model OrderItem {
   product       Product?        @relation(fields: [productId], references: [id])
   variant       ProductVariant? @relation(fields: [variantId], references: [id])
 
+  // Issue relation (one issue max per item)
+  issue         Issue?
+
   @@index([orderId])
   @@index([productId])
   @@index([variantId])
@@ -767,7 +770,7 @@ enum CampaignStatus {
 }
 
 // ============================================
-// RETURNS & RESOLUTIONS SYSTEM
+// RETURNS & RESOLUTIONS SYSTEM (LEGACY - kept for migration)
 // ============================================
 
 model Resolution {
@@ -817,4 +820,118 @@ enum ResolutionStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+// ============================================
+// ENHANCED ISSUE SYSTEM (per-item with correspondence)
+// ============================================
+
+model Issue {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderItemId     String           @unique @map("order_item_id") @db.Uuid
+  orderItem       OrderItem        @relation(fields: [orderItemId], references: [id])
+
+  // Issue details
+  reason          IssueReason
+  status          IssueStatus      @default(SUBMITTED)
+  carrierFault    CarrierFault     @default(UNKNOWN) @map("carrier_fault")
+
+  // Customer-provided evidence
+  initialNotes    String?          @map("initial_notes")
+  imageUrls       Json?            @map("image_urls") // String[]
+
+  // Resolution tracking
+  resolvedType    IssueResolutionType? @map("resolved_type")
+  reprintOrderId  String?          @map("reprint_order_id") @db.Uuid
+  reprintItemId   String?          @map("reprint_item_id") @db.Uuid
+  refundAmount    Decimal?         @map("refund_amount") @db.Decimal(10, 2)
+  stripeRefundId  String?          @map("stripe_refund_id") @db.VarChar(255)
+
+  // Reprint chain tracking (for reprints of reprints)
+  originalIssueId String?          @map("original_issue_id") @db.Uuid
+  originalIssue   Issue?           @relation("IssueChain", fields: [originalIssueId], references: [id])
+  childIssues     Issue[]          @relation("IssueChain")
+
+  // Rejection tracking
+  rejectionReason String?          @map("rejection_reason")
+  rejectionFinal  Boolean          @default(false) @map("rejection_final")
+
+  // Timestamps
+  createdBy       String           @map("created_by") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at")
+  reviewedAt      DateTime?        @map("reviewed_at")
+  processedAt     DateTime?        @map("processed_at")
+  closedAt        DateTime?        @map("closed_at")
+
+  // Correspondence
+  messages        IssueMessage[]
+
+  @@index([status])
+  @@index([carrierFault])
+  @@index([createdAt(sort: Desc)])
+  @@map("issues")
+}
+
+model IssueMessage {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  issueId     String        @map("issue_id") @db.Uuid
+  issue       Issue         @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  sender      MessageSender
+  senderId    String        @map("sender_id") @db.Uuid
+  content     String
+  imageUrls   Json?         @map("image_urls") // String[]
+
+  // Email notification tracking
+  emailSent   Boolean       @default(false) @map("email_sent")
+  emailSentAt DateTime?     @map("email_sent_at")
+  readAt      DateTime?     @map("read_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  @@index([issueId])
+  @@index([createdAt(sort: Desc)])
+  @@map("issue_messages")
+}
+
+// Enhanced Issue Status - reflects full lifecycle
+enum IssueStatus {
+  SUBMITTED           // Customer just submitted issue
+  AWAITING_REVIEW     // Ready for admin review
+  INFO_REQUESTED      // Admin requested more information
+  APPROVED_REPRINT    // Admin approved for reprint
+  APPROVED_REFUND     // Admin approved for refund
+  PROCESSING          // Reprint/refund in progress
+  COMPLETED           // Issue fully resolved
+  REJECTED            // Admin rejected the issue
+  CLOSED              // Final closure (after appeal or timeout)
+}
+
+// Who sent the message
+enum MessageSender {
+  CUSTOMER
+  ADMIN
+}
+
+// Carrier fault determination
+enum CarrierFault {
+  UNKNOWN             // Not yet determined
+  CARRIER_FAULT       // Carrier is at fault (for insurance claims)
+  NOT_CARRIER_FAULT   // Not carrier's fault
+}
+
+// Issue reasons (enhanced from ResolutionReason)
+enum IssueReason {
+  DAMAGED_IN_TRANSIT  // Auto-flags carrier fault
+  QUALITY_ISSUE
+  WRONG_ITEM
+  PRINTING_ERROR
+  NEVER_ARRIVED       // Different from damaged - item never received
+  OTHER
+}
+
+// Resolution type for approved issues
+enum IssueResolutionType {
+  REPRINT
+  FULL_REFUND
+  PARTIAL_REFUND
 }

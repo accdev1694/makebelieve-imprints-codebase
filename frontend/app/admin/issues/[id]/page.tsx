@@ -1,0 +1,822 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import apiClient from '@/lib/api/client';
+import Link from 'next/link';
+import { format, formatDistanceToNow } from 'date-fns';
+import { AlertCircle, Check, X, MessageSquare, Truck, RefreshCw, DollarSign, Info } from 'lucide-react';
+
+type IssueStatus =
+  | 'SUBMITTED'
+  | 'AWAITING_REVIEW'
+  | 'INFO_REQUESTED'
+  | 'APPROVED_REPRINT'
+  | 'APPROVED_REFUND'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'REJECTED'
+  | 'CLOSED';
+
+type MessageSender = 'CUSTOMER' | 'ADMIN';
+
+interface IssueMessage {
+  id: string;
+  sender: MessageSender;
+  senderId: string;
+  content: string;
+  imageUrls: string[] | null;
+  createdAt: string;
+  readAt: string | null;
+}
+
+interface Issue {
+  id: string;
+  reason: string;
+  status: IssueStatus;
+  carrierFault: 'UNKNOWN' | 'CARRIER_FAULT' | 'NOT_CARRIER_FAULT';
+  initialNotes: string | null;
+  imageUrls: string[] | null;
+  resolvedType: 'REPRINT' | 'FULL_REFUND' | 'PARTIAL_REFUND' | null;
+  reprintOrderId: string | null;
+  reprintItemId: string | null;
+  refundAmount: number | null;
+  stripeRefundId: string | null;
+  rejectionReason: string | null;
+  rejectionFinal: boolean;
+  createdAt: string;
+  reviewedAt: string | null;
+  processedAt: string | null;
+  closedAt: string | null;
+  orderItem: {
+    id: string;
+    quantity: number;
+    unitPrice: number | string;
+    totalPrice: number | string;
+    order: {
+      id: string;
+      status: string;
+      createdAt: string;
+      trackingNumber: string | null;
+      carrier: string | null;
+      totalPrice: number | string;
+      shippingAddress: {
+        name: string;
+        addressLine1: string;
+        addressLine2?: string;
+        city: string;
+        postcode: string;
+        country: string;
+      };
+      customer: {
+        id: string;
+        name: string;
+        email: string;
+      };
+      payment?: {
+        id: string;
+        stripePaymentId: string;
+        status: string;
+        refundedAt: string | null;
+      };
+    };
+    product: {
+      id: string;
+      name: string;
+      slug: string;
+    } | null;
+    variant: {
+      id: string;
+      name: string;
+      size: string | null;
+      color: string | null;
+    } | null;
+    design: {
+      id: string;
+      title: string | null;
+      previewUrl: string | null;
+      fileUrl: string | null;
+    } | null;
+  };
+  messages: IssueMessage[];
+}
+
+const REASON_LABELS: Record<string, string> = {
+  DAMAGED_IN_TRANSIT: 'Damaged in Transit',
+  QUALITY_ISSUE: 'Quality Issue',
+  WRONG_ITEM: 'Wrong Item Sent',
+  PRINTING_ERROR: 'Printing Error',
+  NEVER_ARRIVED: 'Never Arrived',
+  OTHER: 'Other',
+};
+
+const STATUS_LABELS: Record<IssueStatus, string> = {
+  SUBMITTED: 'Submitted',
+  AWAITING_REVIEW: 'Under Review',
+  INFO_REQUESTED: 'Info Requested',
+  APPROVED_REPRINT: 'Approved - Reprint',
+  APPROVED_REFUND: 'Approved - Refund',
+  PROCESSING: 'Processing',
+  COMPLETED: 'Resolved',
+  REJECTED: 'Rejected',
+  CLOSED: 'Closed',
+};
+
+const STATUS_COLORS: Record<IssueStatus, string> = {
+  SUBMITTED: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
+  AWAITING_REVIEW: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50',
+  INFO_REQUESTED: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
+  APPROVED_REPRINT: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
+  APPROVED_REFUND: 'bg-green-500/10 text-green-500 border-green-500/50',
+  PROCESSING: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
+  COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/50',
+  REJECTED: 'bg-red-500/10 text-red-500 border-red-500/50',
+  CLOSED: 'bg-gray-500/10 text-gray-500 border-gray-500/50',
+};
+
+function AdminIssueDetailContent() {
+  const params = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
+  const issueId = params.id as string;
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [issue, setIssue] = useState<Issue | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Actions
+  const [messageContent, setMessageContent] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Review modal
+  const [reviewAction, setReviewAction] = useState<'approve_reprint' | 'approve_refund' | 'reject' | 'request_info' | null>(null);
+  const [reviewNotes, setReviewNotes] = useState('');
+
+  // Process modal
+  const [processModalOpen, setProcessModalOpen] = useState(false);
+  const [refundType, setRefundType] = useState<'FULL_REFUND' | 'PARTIAL_REFUND'>('FULL_REFUND');
+  const [processNotes, setProcessNotes] = useState('');
+
+  useEffect(() => {
+    if (user && user.userType !== 'PRINTER_ADMIN') {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
+
+  useEffect(() => {
+    fetchIssue();
+  }, [issueId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [issue?.messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const fetchIssue = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get<{ issue: Issue }>(`/admin/issues/${issueId}`);
+      setIssue(response.data?.issue || null);
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      setError(error?.response?.data?.error || error?.message || 'Failed to load issue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!messageContent.trim() || sendingMessage) return;
+
+    try {
+      setSendingMessage(true);
+      await apiClient.post(`/admin/issues/${issueId}/messages`, {
+        content: messageContent.trim(),
+      });
+      setMessageContent('');
+      await fetchIssue();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      alert(error?.response?.data?.error || 'Failed to send message');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const handleReview = async () => {
+    if (!reviewAction || actionLoading) return;
+
+    try {
+      setActionLoading(true);
+      await apiClient.post(`/admin/issues/${issueId}/review`, {
+        action: reviewAction,
+        notes: reviewNotes || undefined,
+      });
+      setReviewAction(null);
+      setReviewNotes('');
+      await fetchIssue();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      alert(error?.response?.data?.error || 'Failed to process review');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleProcess = async () => {
+    if (actionLoading) return;
+
+    try {
+      setActionLoading(true);
+      await apiClient.post(`/admin/issues/${issueId}/process`, {
+        refundType: issue?.status === 'APPROVED_REFUND' ? refundType : undefined,
+        notes: processNotes || undefined,
+      });
+      setProcessModalOpen(false);
+      setProcessNotes('');
+      await fetchIssue();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      alert(error?.response?.data?.error || 'Failed to process issue');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCarrierFault = async (value: 'UNKNOWN' | 'CARRIER_FAULT' | 'NOT_CARRIER_FAULT') => {
+    try {
+      setActionLoading(true);
+      await apiClient.put(`/admin/issues/${issueId}/carrier-fault`, {
+        carrierFault: value,
+      });
+      await fetchIssue();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      alert(error?.response?.data?.error || 'Failed to update carrier fault');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const canReview = issue && ['SUBMITTED', 'AWAITING_REVIEW'].includes(issue.status);
+  const canProcess = issue && ['APPROVED_REPRINT', 'APPROVED_REFUND'].includes(issue.status);
+  const canMessage = issue && !['COMPLETED', 'CLOSED'].includes(issue.status);
+
+  if (user && user.userType !== 'PRINTER_ADMIN') {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-md h-8 w-8 border-t-2 border-b-2 border-primary mb-2"></div>
+          <p className="text-sm text-muted-foreground">Loading issue...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !issue) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+          <div className="container mx-auto px-4 py-4">
+            <Link href="/admin/returns">
+              <Button variant="ghost" size="sm">
+                ← Back to Issues
+              </Button>
+            </Link>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-8">
+          <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm">
+            {error || 'Issue not found'}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/admin/returns">
+              <Button variant="ghost" size="sm">
+                ← Back to Issues
+              </Button>
+            </Link>
+            <h1 className="text-xl font-bold">
+              <span className="text-neon-gradient">Issue Management</span>
+            </h1>
+          </div>
+          <Badge className={`${STATUS_COLORS[issue.status]} border`}>
+            {STATUS_LABELS[issue.status]}
+          </Badge>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Issue Details */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Issue Summary */}
+            <Card className="card-glow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      Issue #{issue.id.slice(0, 8).toUpperCase()}
+                      {issue.carrierFault === 'CARRIER_FAULT' && (
+                        <Badge className="bg-red-500/10 text-red-500 border-red-500/50 border">
+                          <Truck className="w-3 h-3 mr-1" />
+                          Carrier Fault
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    <CardDescription>
+                      Reported {formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Item Info */}
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <h4 className="font-medium mb-2">
+                    {issue.orderItem.product?.name || 'Product'}
+                    {issue.orderItem.variant && ` - ${issue.orderItem.variant.name}`}
+                  </h4>
+                  <div className="grid sm:grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Quantity:</span> {issue.orderItem.quantity}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Item Value:</span> £{Number(issue.orderItem.totalPrice).toFixed(2)}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Issue Reason:</span>{' '}
+                      <span className="font-medium">{REASON_LABELS[issue.reason] || issue.reason}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Order Total:</span> £{Number(issue.orderItem.order.totalPrice).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Customer Notes */}
+                {issue.initialNotes && (
+                  <div>
+                    <p className="text-sm font-medium mb-1">Customer Notes:</p>
+                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg italic">
+                      &quot;{issue.initialNotes}&quot;
+                    </p>
+                  </div>
+                )}
+
+                {/* Evidence Photos */}
+                {issue.imageUrls && issue.imageUrls.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Evidence Photos</p>
+                    <div className="flex flex-wrap gap-2">
+                      {issue.imageUrls.map((url, idx) => (
+                        <a
+                          key={idx}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-20 h-20 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+                        >
+                          <img
+                            src={url}
+                            alt={`Evidence ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Resolution Status */}
+                {issue.status === 'COMPLETED' && (
+                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <p className="font-medium text-green-500">Resolved</p>
+                    {issue.resolvedType === 'REPRINT' && (
+                      <p className="text-sm text-muted-foreground">
+                        Reprint order created:{' '}
+                        <Link href={`/admin/orders/${issue.reprintOrderId}`} className="text-primary hover:underline font-mono">
+                          {issue.reprintOrderId?.slice(0, 8).toUpperCase()}
+                        </Link>
+                      </p>
+                    )}
+                    {(issue.resolvedType === 'FULL_REFUND' || issue.resolvedType === 'PARTIAL_REFUND') && (
+                      <p className="text-sm text-muted-foreground">
+                        {issue.resolvedType === 'FULL_REFUND' ? 'Full' : 'Partial'} refund: £{Number(issue.refundAmount).toFixed(2)}
+                        {issue.stripeRefundId && (
+                          <span className="font-mono text-xs ml-2">({issue.stripeRefundId})</span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {issue.status === 'REJECTED' && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <p className="font-medium text-red-500">
+                      {issue.rejectionFinal ? 'Rejected (Final)' : 'Rejected'}
+                    </p>
+                    {issue.rejectionReason && (
+                      <p className="text-sm text-muted-foreground mt-1">{issue.rejectionReason}</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Messages Thread */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Correspondence
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {issue.messages.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <p>No messages yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                    {issue.messages.map((message) => (
+                      <MessageBubble key={message.id} message={message} />
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+
+                {canMessage && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <Textarea
+                      placeholder="Type your message to customer..."
+                      value={messageContent}
+                      onChange={(e) => setMessageContent(e.target.value)}
+                      rows={3}
+                      className="mb-3"
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={sendMessage}
+                        disabled={!messageContent.trim() || sendingMessage}
+                      >
+                        {sendingMessage ? 'Sending...' : 'Send Message'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Actions & Info */}
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            {(canReview || canProcess) && (
+              <Card className="card-glow">
+                <CardHeader>
+                  <CardTitle className="text-lg">Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {canReview && (
+                    <>
+                      <Button
+                        className="w-full bg-purple-500 hover:bg-purple-600"
+                        onClick={() => setReviewAction('approve_reprint')}
+                        disabled={actionLoading}
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Approve Reprint
+                      </Button>
+                      <Button
+                        className="w-full bg-green-500 hover:bg-green-600"
+                        onClick={() => setReviewAction('approve_refund')}
+                        disabled={actionLoading}
+                      >
+                        <DollarSign className="w-4 h-4 mr-2" />
+                        Approve Refund
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full border-orange-500/50 text-orange-500 hover:text-orange-600"
+                        onClick={() => setReviewAction('request_info')}
+                        disabled={actionLoading}
+                      >
+                        <Info className="w-4 h-4 mr-2" />
+                        Request More Info
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full border-red-500/50 text-red-500 hover:text-red-600"
+                        onClick={() => setReviewAction('reject')}
+                        disabled={actionLoading}
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Reject Issue
+                      </Button>
+                    </>
+                  )}
+
+                  {canProcess && (
+                    <Button
+                      className="w-full"
+                      onClick={() => setProcessModalOpen(true)}
+                      disabled={actionLoading}
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      {issue.status === 'APPROVED_REPRINT' ? 'Create Reprint Order' : 'Process Refund'}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Carrier Fault */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Truck className="w-5 h-5" />
+                  Carrier Fault
+                </CardTitle>
+                <CardDescription>
+                  Mark for insurance claims
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Select
+                  value={issue.carrierFault}
+                  onValueChange={(value: 'UNKNOWN' | 'CARRIER_FAULT' | 'NOT_CARRIER_FAULT') => handleCarrierFault(value)}
+                  disabled={actionLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UNKNOWN">Unknown</SelectItem>
+                    <SelectItem value="CARRIER_FAULT">Carrier Fault</SelectItem>
+                    <SelectItem value="NOT_CARRIER_FAULT">Not Carrier Fault</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+
+            {/* Order Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Order Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Order ID:</span>{' '}
+                  <Link href={`/admin/orders/${issue.orderItem.order.id}`} className="text-primary hover:underline font-mono">
+                    {issue.orderItem.order.id.slice(0, 8).toUpperCase()}
+                  </Link>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Order Status:</span>{' '}
+                  {issue.orderItem.order.status}
+                </div>
+                {issue.orderItem.order.trackingNumber && (
+                  <div>
+                    <span className="text-muted-foreground">Tracking:</span>{' '}
+                    <span className="font-mono text-xs">{issue.orderItem.order.trackingNumber}</span>
+                  </div>
+                )}
+                {issue.orderItem.order.carrier && (
+                  <div>
+                    <span className="text-muted-foreground">Carrier:</span>{' '}
+                    {issue.orderItem.order.carrier}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Customer Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Customer</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="font-medium">{issue.orderItem.order.customer.name}</div>
+                <div>
+                  <a
+                    href={`mailto:${issue.orderItem.order.customer.email}`}
+                    className="text-primary hover:underline"
+                  >
+                    {issue.orderItem.order.customer.email}
+                  </a>
+                </div>
+                <div className="pt-2 border-t border-border text-muted-foreground">
+                  <p>{issue.orderItem.order.shippingAddress.addressLine1}</p>
+                  {issue.orderItem.order.shippingAddress.addressLine2 && (
+                    <p>{issue.orderItem.order.shippingAddress.addressLine2}</p>
+                  )}
+                  <p>
+                    {issue.orderItem.order.shippingAddress.city}, {issue.orderItem.order.shippingAddress.postcode}
+                  </p>
+                  <p>{issue.orderItem.order.shippingAddress.country}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+
+      {/* Review Modal */}
+      <Dialog open={!!reviewAction} onOpenChange={() => setReviewAction(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {reviewAction === 'approve_reprint' && 'Approve for Reprint'}
+              {reviewAction === 'approve_refund' && 'Approve for Refund'}
+              {reviewAction === 'request_info' && 'Request More Information'}
+              {reviewAction === 'reject' && 'Reject Issue'}
+            </DialogTitle>
+            <DialogDescription>
+              {reviewAction === 'approve_reprint' && 'This will approve the issue for a free reprint.'}
+              {reviewAction === 'approve_refund' && 'This will approve the issue for a refund.'}
+              {reviewAction === 'request_info' && 'Ask the customer for additional information.'}
+              {reviewAction === 'reject' && 'Reject this issue request.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="review-notes">
+              {reviewAction === 'reject' ? 'Rejection Reason (required)' : 'Notes (optional)'}
+            </Label>
+            <Textarea
+              id="review-notes"
+              placeholder={
+                reviewAction === 'request_info'
+                  ? 'What information do you need from the customer?'
+                  : reviewAction === 'reject'
+                  ? 'Please explain why this issue is being rejected...'
+                  : 'Add any notes...'
+              }
+              value={reviewNotes}
+              onChange={(e) => setReviewNotes(e.target.value)}
+              rows={3}
+              className="mt-2"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReviewAction(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReview}
+              disabled={actionLoading || (reviewAction === 'reject' && !reviewNotes.trim())}
+              className={
+                reviewAction === 'reject'
+                  ? 'bg-red-500 hover:bg-red-600'
+                  : reviewAction === 'approve_reprint'
+                  ? 'bg-purple-500 hover:bg-purple-600'
+                  : reviewAction === 'approve_refund'
+                  ? 'bg-green-500 hover:bg-green-600'
+                  : ''
+              }
+            >
+              {actionLoading ? 'Processing...' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Process Modal */}
+      <Dialog open={processModalOpen} onOpenChange={setProcessModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {issue?.status === 'APPROVED_REPRINT' ? 'Create Reprint Order' : 'Process Refund'}
+            </DialogTitle>
+            <DialogDescription>
+              {issue?.status === 'APPROVED_REPRINT'
+                ? 'This will create a free reprint order for the customer.'
+                : 'This will process the refund through Stripe.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {issue?.status === 'APPROVED_REFUND' && (
+              <div>
+                <Label>Refund Type</Label>
+                <Select
+                  value={refundType}
+                  onValueChange={(value: 'FULL_REFUND' | 'PARTIAL_REFUND') => setRefundType(value)}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FULL_REFUND">
+                      Full Order Refund (£{Number(issue.orderItem.order.totalPrice).toFixed(2)})
+                    </SelectItem>
+                    <SelectItem value="PARTIAL_REFUND">
+                      Item Only (£{Number(issue.orderItem.totalPrice).toFixed(2)})
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div>
+              <Label htmlFor="process-notes">Message to Customer (optional)</Label>
+              <Textarea
+                id="process-notes"
+                placeholder="The customer will receive this message..."
+                value={processNotes}
+                onChange={(e) => setProcessNotes(e.target.value)}
+                rows={3}
+                className="mt-2"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProcessModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleProcess} disabled={actionLoading}>
+              {actionLoading ? 'Processing...' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function MessageBubble({ message }: { message: IssueMessage }) {
+  const isAdmin = message.sender === 'ADMIN';
+
+  return (
+    <div className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+      <div
+        className={`max-w-[80%] rounded-lg p-3 ${
+          isAdmin
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-muted'
+        }`}
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-medium">
+            {isAdmin ? 'Admin' : 'Customer'}
+          </span>
+          <span className={`text-xs ${isAdmin ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+            {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+          </span>
+        </div>
+        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        {message.imageUrls && message.imageUrls.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {message.imageUrls.map((url, index) => (
+              <a
+                key={index}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-12 h-12 rounded overflow-hidden border border-border/50 hover:border-border transition-colors"
+              >
+                <img
+                  src={url}
+                  alt={`Attachment ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function AdminIssueDetailPage() {
+  return (
+    <ProtectedRoute>
+      <AdminIssueDetailContent />
+    </ProtectedRoute>
+  );
+}

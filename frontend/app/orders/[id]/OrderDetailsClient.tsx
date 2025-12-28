@@ -17,13 +17,15 @@ import { storageService } from '@/lib/api/storage';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Upload, Camera } from 'lucide-react';
+import { X, Camera, AlertCircle, MessageSquare } from 'lucide-react';
 
+// Enhanced issue reasons with NEVER_ARRIVED
 const ISSUE_REASONS = [
   { value: 'DAMAGED_IN_TRANSIT', label: 'Damaged in Transit', description: 'Item arrived damaged or broken' },
   { value: 'QUALITY_ISSUE', label: 'Quality Issue', description: 'Print quality not as expected' },
   { value: 'WRONG_ITEM', label: 'Wrong Item', description: 'Received a different item than ordered' },
   { value: 'PRINTING_ERROR', label: 'Printing Error', description: 'Colors, alignment, or image printed incorrectly' },
+  { value: 'NEVER_ARRIVED', label: 'Never Arrived', description: 'Item was not received' },
   { value: 'OTHER', label: 'Other', description: 'Another issue not listed above' },
 ];
 
@@ -32,27 +34,59 @@ const REASON_LABELS: Record<string, string> = {
   QUALITY_ISSUE: 'Quality Issue',
   WRONG_ITEM: 'Wrong Item',
   PRINTING_ERROR: 'Printing Error',
+  NEVER_ARRIVED: 'Never Arrived',
   OTHER: 'Other',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Under Review',
+// Enhanced status labels for new issue system
+const ISSUE_STATUS_LABELS: Record<string, string> = {
+  SUBMITTED: 'Submitted',
+  AWAITING_REVIEW: 'Under Review',
+  INFO_REQUESTED: 'Info Requested',
+  APPROVED_REPRINT: 'Approved - Reprint',
+  APPROVED_REFUND: 'Approved - Refund',
   PROCESSING: 'Processing',
   COMPLETED: 'Resolved',
-  FAILED: 'Failed',
+  REJECTED: 'Rejected',
+  CLOSED: 'Closed',
 };
 
-interface Issue {
+const getIssueStatusColor = (status: string): string => {
+  const colors: Record<string, string> = {
+    SUBMITTED: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
+    AWAITING_REVIEW: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50',
+    INFO_REQUESTED: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
+    APPROVED_REPRINT: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
+    APPROVED_REFUND: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
+    PROCESSING: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
+    COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/50',
+    REJECTED: 'bg-red-500/10 text-red-500 border-red-500/50',
+    CLOSED: 'bg-gray-500/10 text-gray-500 border-gray-500/50',
+  };
+  return colors[status] || 'bg-gray-500/10 text-gray-500 border-gray-500/50';
+};
+
+// New per-item issue interface
+interface ItemIssue {
   id: string;
-  type: 'REPRINT' | 'REFUND';
+  orderItemId: string;
   reason: string;
-  notes: string | null;
+  status: string;
+  carrierFault: string;
+  initialNotes: string | null;
   imageUrls: string[] | null;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
-  createdAt: string;
-  processedAt: string | null;
+  resolvedType: string | null;
   reprintOrderId: string | null;
   refundAmount: number | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  processedAt: string | null;
+  unreadCount?: number;
+}
+
+// Extended OrderItem with issue
+interface OrderItemWithIssue extends OrderItem {
+  issue?: ItemIssue | null;
 }
 
 interface OrderDetailsClientProps {
@@ -66,10 +100,12 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Issue reporting state
+  // Per-item issue state
+  const [itemIssues, setItemIssues] = useState<Record<string, ItemIssue>>({});
+  const [selectedItem, setSelectedItem] = useState<OrderItemWithIssue | null>(null);
+
+  // Issue modal state
   const [issueModalOpen, setIssueModalOpen] = useState(false);
-  const [viewIssueModalOpen, setViewIssueModalOpen] = useState(false);
-  const [existingIssues, setExistingIssues] = useState<Issue[]>([]);
   const [issueReason, setIssueReason] = useState('');
   const [issueNotes, setIssueNotes] = useState('');
   const [issueImages, setIssueImages] = useState<string[]>([]);
@@ -100,19 +136,32 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
     loadOrder();
   }, [orderId]);
 
-  // Fetch existing issues for this order
+  // Fetch issues for all items in this order
   useEffect(() => {
     const loadIssues = async () => {
-      if (!orderId) return;
-      try {
-        const response = await apiClient.get<{ issues: Issue[] }>(`/orders/${orderId}/issues`);
-        setExistingIssues(response.data?.issues || []);
-      } catch {
-        // Silently fail - issues are supplementary
+      if (!order?.items?.length) return;
+
+      const issueMap: Record<string, ItemIssue> = {};
+
+      // Fetch issues for each item
+      for (const item of order.items) {
+        try {
+          const response = await apiClient.get<{ issue: ItemIssue }>(
+            `/orders/${orderId}/items/${item.id}/issue`
+          );
+          if (response.data?.issue) {
+            issueMap[item.id] = response.data.issue;
+          }
+        } catch {
+          // Item has no issue, that's fine
+        }
       }
+
+      setItemIssues(issueMap);
     };
+
     loadIssues();
-  }, [orderId, issueSuccess]); // Reload when a new issue is submitted
+  }, [order, orderId, issueSuccess]);
 
   const getStatusColor = (status: OrderStatus): string => {
     const colors: Record<OrderStatus, string> = {
@@ -142,11 +191,12 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
     return icons[status];
   };
 
+  const canReportIssue = order && ['shipped', 'delivered'].includes(order.status);
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Limit to 5 images total
     if (issueImages.length >= 5) {
       setIssueError('Maximum 5 images allowed');
       return;
@@ -154,14 +204,12 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
 
     const file = files[0];
 
-    // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!validTypes.includes(file.type)) {
       setIssueError('Please upload a valid image file (JPG, PNG, WebP, or GIF)');
       return;
     }
 
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       setIssueError('Image must be less than 10MB');
       return;
@@ -178,7 +226,6 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
       setIssueError(error?.message || 'Failed to upload image');
     } finally {
       setUploadingImage(false);
-      // Reset input
       e.target.value = '';
     }
   };
@@ -188,6 +235,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   };
 
   const handleReportIssue = async () => {
+    if (!selectedItem) return;
     if (!issueReason) {
       setIssueError('Please select a reason for your issue');
       return;
@@ -197,7 +245,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
     setIssueError('');
 
     try {
-      await apiClient.post(`/orders/${orderId}/report-issue`, {
+      await apiClient.post(`/orders/${orderId}/items/${selectedItem.id}/issue`, {
         reason: issueReason,
         notes: issueNotes,
         imageUrls: issueImages,
@@ -211,9 +259,19 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
     }
   };
 
-  const canReportIssue = order && ['shipped', 'delivered'].includes(order.status);
-  const hasExistingIssue = existingIssues.length > 0;
-  const latestIssue = hasExistingIssue ? existingIssues[0] : null;
+  const openIssueModal = (item: OrderItemWithIssue) => {
+    setSelectedItem(item);
+    setIssueReason('');
+    setIssueNotes('');
+    setIssueImages([]);
+    setIssueError('');
+    setIssueSuccess(false);
+    setIssueModalOpen(true);
+  };
+
+  const getItemIssue = (itemId: string): ItemIssue | null => {
+    return itemIssues[itemId] || null;
+  };
 
   if (loading) {
     return (
@@ -279,6 +337,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
           </Badge>
         </div>
 
+        {/* Order Status Timeline */}
         <Card className="card-glow mb-6">
           <CardHeader>
             <CardTitle>Order Status</CardTitle>
@@ -289,123 +348,71 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
               <div className="relative">
                 <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border"></div>
                 <div className="space-y-6">
-                  <div className="flex gap-4 relative">
-                    <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
-                      ['pending', 'payment_confirmed', 'printing', 'shipped', 'delivered'].includes(order.status)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    }`}>✓</div>
-                    <div className="flex-1">
-                      <p className="font-medium">Order Placed</p>
-                      <p className="text-sm text-muted-foreground">Your order has been received</p>
+                  {[
+                    { key: 'placed', label: 'Order Placed', desc: 'Your order has been received', check: true },
+                    { key: 'payment', label: 'Payment Confirmed', desc: 'Payment successfully processed', check: ['payment_confirmed', 'printing', 'shipped', 'delivered'].includes(order.status) },
+                    { key: 'printing', label: 'Printing', desc: 'Your design is being printed', check: ['printing', 'shipped', 'delivered'].includes(order.status) },
+                    { key: 'shipped', label: 'Shipped', desc: 'Your order is on its way', check: ['shipped', 'delivered'].includes(order.status), tracking: order.trackingNumber },
+                    { key: 'delivered', label: 'Delivered', desc: 'Order successfully delivered', check: order.status === 'delivered', isLast: true },
+                  ].map((step) => (
+                    <div key={step.key} className="flex gap-4 relative">
+                      <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
+                        step.check
+                          ? step.isLast ? 'bg-green-500 text-white' : 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'
+                      }`}>{step.check ? '✓' : '○'}</div>
+                      <div className="flex-1">
+                        <p className="font-medium">{step.label}</p>
+                        <p className="text-sm text-muted-foreground">{step.desc}</p>
+                        {step.tracking && (
+                          <div className="mt-2">
+                            <p className="text-xs text-muted-foreground">Tracking Number:</p>
+                            <p className="font-mono text-sm mb-2">{step.tracking}</p>
+                            <Link href={`/track?number=${step.tracking}`}>
+                              <Button size="sm" variant="outline" className="text-xs">Track Shipment →</Button>
+                            </Link>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex gap-4 relative">
-                    <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
-                      ['payment_confirmed', 'printing', 'shipped', 'delivered'].includes(order.status)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    }`}>{['payment_confirmed', 'printing', 'shipped', 'delivered'].includes(order.status) ? '✓' : '○'}</div>
-                    <div className="flex-1">
-                      <p className="font-medium">Payment Confirmed</p>
-                      <p className="text-sm text-muted-foreground">Payment successfully processed</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4 relative">
-                    <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
-                      ['printing', 'shipped', 'delivered'].includes(order.status)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    }`}>{['printing', 'shipped', 'delivered'].includes(order.status) ? '✓' : '○'}</div>
-                    <div className="flex-1">
-                      <p className="font-medium">Printing</p>
-                      <p className="text-sm text-muted-foreground">Your design is being printed</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4 relative">
-                    <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
-                      ['shipped', 'delivered'].includes(order.status)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    }`}>{['shipped', 'delivered'].includes(order.status) ? '✓' : '○'}</div>
-                    <div className="flex-1">
-                      <p className="font-medium">Shipped</p>
-                      <p className="text-sm text-muted-foreground">Your order is on its way</p>
-                      {order.trackingNumber && (
-                        <div className="mt-2">
-                          <p className="text-xs text-muted-foreground">Tracking Number:</p>
-                          <p className="font-mono text-sm mb-2">{order.trackingNumber}</p>
-                          <Link href={`/track?number=${order.trackingNumber}`}>
-                            <Button size="sm" variant="outline" className="text-xs">Track Shipment →</Button>
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4 relative">
-                    <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
-                      order.status === 'delivered' ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'
-                    }`}>{order.status === 'delivered' ? '✓' : '○'}</div>
-                    <div className="flex-1">
-                      <p className="font-medium">Delivered</p>
-                      <p className="text-sm text-muted-foreground">Order successfully delivered</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Order Items with Per-Item Issue Buttons */}
         <Card className="card-glow mb-6">
           <CardHeader>
             <CardTitle>Order Items</CardTitle>
+            {canReportIssue && (
+              <CardDescription>
+                Having an issue? Click &quot;Report Issue&quot; on any item below.
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
-            {order.design && (
-              <div className="flex gap-4 items-start">
-                <div className="w-32 h-32 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
+            {/* Legacy design-based order */}
+            {order.design && !order.items?.length && (
+              <div className="flex gap-4 items-start p-4 bg-card/30 rounded-lg">
+                <div className="w-24 h-24 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
                   <Image
                     src={order.previewUrl || order.design.previewUrl || order.design.imageUrl}
                     alt={order.design.name}
                     fill
-                    sizes="128px"
+                    sizes="96px"
                     className="object-contain"
                     unoptimized
                   />
                 </div>
                 <div className="flex-1 space-y-2">
-                  <h3 className="font-semibold text-lg">{order.design.name}</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {order.material && (
-                      <div>
-                        <p className="text-muted-foreground">Material:</p>
-                        <p className="font-medium">{MATERIAL_LABELS[order.material] || order.material}</p>
-                      </div>
-                    )}
-                    {order.printSize && (
-                      <div>
-                        <p className="text-muted-foreground">Size:</p>
-                        <p className="font-medium">{PRINT_SIZE_LABELS[order.printSize] || order.printSize}</p>
-                      </div>
-                    )}
-                    {order.printWidth && order.printHeight && (
-                      <div>
-                        <p className="text-muted-foreground">Dimensions:</p>
-                        <p className="font-medium">{order.printWidth} × {order.printHeight} cm</p>
-                      </div>
-                    )}
-                    {order.orientation && (
-                      <div>
-                        <p className="text-muted-foreground">Orientation:</p>
-                        <p className="font-medium capitalize">{order.orientation}</p>
-                      </div>
-                    )}
+                  <h3 className="font-semibold">{order.design.name}</h3>
+                  <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                    {order.material && <span>{MATERIAL_LABELS[order.material] || order.material}</span>}
+                    {order.printSize && <span>• {PRINT_SIZE_LABELS[order.printSize] || order.printSize}</span>}
                   </div>
+                  <p className="font-medium">£{Number(order.totalPrice).toFixed(2)}</p>
                 </div>
               </div>
             )}
@@ -413,39 +420,92 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
             {/* Cart-based order items */}
             {order.items && order.items.length > 0 && (
               <div className="space-y-4">
-                {order.items.map((item: OrderItem) => (
-                  <div key={item.id} className="flex gap-4 items-start">
-                    <div className="w-20 h-20 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
-                      {item.product?.images?.[0]?.imageUrl ? (
-                        <Image
-                          src={item.product.images[0].imageUrl}
-                          alt={item.product?.name || 'Product'}
-                          fill
-                          sizes="80px"
-                          className="object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="text-muted-foreground text-xs">No image</div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium">{item.product?.name || 'Product'}</h4>
-                      {item.variant?.name && (
-                        <p className="text-sm text-muted-foreground">{item.variant.name}</p>
-                      )}
-                      <div className="flex justify-between mt-1">
-                        <span className="text-sm text-muted-foreground">Qty: {item.quantity}</span>
-                        <span className="font-medium">£{Number(item.totalPrice).toFixed(2)}</span>
+                {order.items.map((item: OrderItem) => {
+                  const itemIssue = getItemIssue(item.id);
+                  const hasIssue = !!itemIssue;
+
+                  return (
+                    <div key={item.id} className="p-4 bg-card/30 rounded-lg">
+                      <div className="flex gap-4 items-start">
+                        <div className="w-20 h-20 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
+                          {item.product?.images?.[0]?.imageUrl ? (
+                            <Image
+                              src={item.product.images[0].imageUrl}
+                              alt={item.product?.name || 'Product'}
+                              fill
+                              sizes="80px"
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="text-muted-foreground text-xs">No image</div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-medium">{item.product?.name || 'Product'}</h4>
+                              {item.variant?.name && (
+                                <p className="text-sm text-muted-foreground">{item.variant.name}</p>
+                              )}
+                            </div>
+                            {/* Issue Status Badge */}
+                            {hasIssue && (
+                              <Badge className={`${getIssueStatusColor(itemIssue.status)} border text-xs`}>
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                {ISSUE_STATUS_LABELS[itemIssue.status] || itemIssue.status}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex justify-between mt-2">
+                            <span className="text-sm text-muted-foreground">Qty: {item.quantity}</span>
+                            <span className="font-medium">£{Number(item.totalPrice).toFixed(2)}</span>
+                          </div>
+
+                          {/* Per-Item Issue Actions */}
+                          {canReportIssue && (
+                            <div className="mt-3 pt-3 border-t border-border/50">
+                              {hasIssue ? (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-muted-foreground">
+                                    Issue reported {new Date(itemIssue.createdAt).toLocaleDateString('en-GB')}
+                                  </span>
+                                  <Link href={`/account/issues/${itemIssue.id}`}>
+                                    <Button size="sm" variant="outline" className="text-xs">
+                                      <MessageSquare className="w-3 h-3 mr-1" />
+                                      View Issue
+                                      {itemIssue.unreadCount && itemIssue.unreadCount > 0 && (
+                                        <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-1.5">
+                                          {itemIssue.unreadCount}
+                                        </span>
+                                      )}
+                                    </Button>
+                                  </Link>
+                                </div>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs border-orange-500/50 text-orange-500 hover:text-orange-600"
+                                  onClick={() => openIssueModal(item)}
+                                >
+                                  <AlertCircle className="w-3 h-3 mr-1" />
+                                  Report Issue
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
             <Separator />
 
+            {/* Shipping Address */}
             {order.shippingAddress && (
               <div>
                 <h4 className="font-semibold mb-3">Shipping Address</h4>
@@ -461,6 +521,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
 
             <Separator />
 
+            {/* Order Total */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal:</span>
@@ -479,6 +540,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
           </CardContent>
         </Card>
 
+        {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
           <Link href="/orders">
             <Button variant="outline" className="w-full sm:w-auto">Back to Orders</Button>
@@ -488,30 +550,12 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
               <Button variant="outline" className="w-full sm:w-auto">Track Shipment</Button>
             </Link>
           )}
-          {canReportIssue && !hasExistingIssue && (
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto border-orange-500/50 text-orange-500 hover:text-orange-600"
-              onClick={() => {
-                setIssueReason('');
-                setIssueNotes('');
-                setIssueImages([]);
-                setIssueError('');
-                setIssueSuccess(false);
-                setIssueModalOpen(true);
-              }}
-            >
-              Report an Issue
-            </Button>
-          )}
-          {hasExistingIssue && (
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto border-orange-500/50 text-orange-500 hover:text-orange-600"
-              onClick={() => setViewIssueModalOpen(true)}
-            >
-              View Issue
-            </Button>
+          {Object.keys(itemIssues).length > 0 && (
+            <Link href="/account/issues">
+              <Button variant="outline" className="w-full sm:w-auto border-orange-500/50 text-orange-500 hover:text-orange-600">
+                View All Issues
+              </Button>
+            </Link>
           )}
           <Link href="/products">
             <Button variant="outline" className="w-full sm:w-auto">Continue Shopping</Button>
@@ -527,7 +571,11 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
             <DialogHeader>
               <DialogTitle>Report an Issue</DialogTitle>
               <DialogDescription>
-                Let us know what went wrong with your order. We&apos;ll review your report and get back to you.
+                {selectedItem && (
+                  <span>
+                    Reporting issue for: <strong>{selectedItem.product?.name || 'Item'}</strong>
+                  </span>
+                )}
               </DialogDescription>
             </DialogHeader>
 
@@ -536,9 +584,16 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                 <div className="text-4xl mb-4">✓</div>
                 <h3 className="text-lg font-semibold text-green-500 mb-2">Issue Reported Successfully</h3>
                 <p className="text-muted-foreground mb-4">
-                  Our team will review your issue and contact you shortly. You&apos;ll receive an email when we have an update.
+                  Our team will review your issue and respond within 1-2 business days.
                 </p>
-                <Button onClick={() => setIssueModalOpen(false)}>Close</Button>
+                <div className="flex gap-2 justify-center">
+                  <Button variant="outline" onClick={() => setIssueModalOpen(false)}>Close</Button>
+                  {selectedItem && itemIssues[selectedItem.id] && (
+                    <Link href={`/account/issues/${itemIssues[selectedItem.id].id}`}>
+                      <Button>View Issue</Button>
+                    </Link>
+                  )}
+                </div>
               </div>
             ) : (
               <>
@@ -566,21 +621,20 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                     <Label htmlFor="issue-notes">Additional Details (optional)</Label>
                     <Textarea
                       id="issue-notes"
-                      placeholder="Please describe the issue in detail. Include any relevant information that might help us resolve it faster."
+                      placeholder="Please describe the issue in detail..."
                       value={issueNotes}
                       onChange={(e) => setIssueNotes(e.target.value)}
                       rows={3}
                     />
                   </div>
 
-                  {/* Image Upload Section */}
+                  {/* Image Upload */}
                   <div className="space-y-2">
                     <Label>Photos of the Issue (recommended)</Label>
                     <p className="text-xs text-muted-foreground">
-                      Upload up to 5 photos showing the damage or issue. This helps us process your request faster.
+                      Upload up to 5 photos showing the damage or issue.
                     </p>
 
-                    {/* Image Previews */}
                     {issueImages.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {issueImages.map((url, index) => (
@@ -604,7 +658,6 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                       </div>
                     )}
 
-                    {/* Upload Button */}
                     {issueImages.length < 5 && (
                       <div className="flex gap-2">
                         <label htmlFor="issue-image-upload" className="cursor-pointer">
@@ -657,119 +710,6 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                 </DialogFooter>
               </>
             )}
-          </DialogContent>
-        </Dialog>
-
-        {/* View Issue Modal */}
-        <Dialog open={viewIssueModalOpen} onOpenChange={setViewIssueModalOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Issue Details</DialogTitle>
-              <DialogDescription>
-                Your reported issue for this order
-              </DialogDescription>
-            </DialogHeader>
-
-            {latestIssue && (
-              <div className="space-y-4 py-4">
-                {/* Status Badge */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Status:</span>
-                  <Badge
-                    className={
-                      latestIssue.status === 'COMPLETED'
-                        ? 'bg-green-500/10 text-green-500 border-green-500/50'
-                        : latestIssue.status === 'FAILED'
-                        ? 'bg-red-500/10 text-red-500 border-red-500/50'
-                        : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50'
-                    }
-                  >
-                    {STATUS_LABELS[latestIssue.status] || latestIssue.status}
-                  </Badge>
-                </div>
-
-                {/* Issue Details */}
-                <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Issue Type</p>
-                    <p className="font-medium">{REASON_LABELS[latestIssue.reason] || latestIssue.reason}</p>
-                  </div>
-
-                  {latestIssue.notes && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">Your Description</p>
-                      <p className="text-sm">{latestIssue.notes}</p>
-                    </div>
-                  )}
-
-                  <div>
-                    <p className="text-xs text-muted-foreground">Reported On</p>
-                    <p className="text-sm">
-                      {new Date(latestIssue.createdAt).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  </div>
-
-                  {/* Uploaded Photos */}
-                  {latestIssue.imageUrls && latestIssue.imageUrls.length > 0 && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-2">Your Photos</p>
-                      <div className="flex flex-wrap gap-2">
-                        {latestIssue.imageUrls.map((url, index) => (
-                          <a
-                            key={index}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block w-16 h-16 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
-                          >
-                            <img
-                              src={url}
-                              alt={`Issue photo ${index + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Resolution Info */}
-                {latestIssue.status === 'COMPLETED' && (
-                  <div className="bg-green-500/10 border border-green-500/50 p-4 rounded-lg">
-                    <p className="font-medium text-green-600 mb-2">Issue Resolved</p>
-                    {latestIssue.type === 'REPRINT' && latestIssue.reprintOrderId && (
-                      <p className="text-sm text-muted-foreground">
-                        A replacement order has been created and will be shipped to you shortly.
-                      </p>
-                    )}
-                    {latestIssue.type === 'REFUND' && latestIssue.refundAmount && (
-                      <p className="text-sm text-muted-foreground">
-                        A refund of £{Number(latestIssue.refundAmount).toFixed(2)} has been processed to your original payment method.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {latestIssue.status === 'PENDING' && (
-                  <div className="bg-yellow-500/10 border border-yellow-500/50 p-4 rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      Our team is reviewing your issue. We&apos;ll contact you via email with an update soon.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button onClick={() => setViewIssueModalOpen(false)}>Close</Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
       </main>

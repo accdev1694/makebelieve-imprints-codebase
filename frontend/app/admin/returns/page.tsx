@@ -9,32 +9,75 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
+import { AlertCircle, MessageSquare, Truck } from 'lucide-react';
 
-interface Resolution {
+type IssueStatus =
+  | 'SUBMITTED'
+  | 'AWAITING_REVIEW'
+  | 'INFO_REQUESTED'
+  | 'APPROVED_REPRINT'
+  | 'APPROVED_REFUND'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'REJECTED'
+  | 'CLOSED';
+
+interface Issue {
   id: string;
-  orderId: string;
-  type: 'REPRINT' | 'REFUND';
   reason: string;
-  notes: string | null;
+  status: IssueStatus;
+  carrierFault: 'UNKNOWN' | 'CARRIER_FAULT' | 'NOT_CARRIER_FAULT';
+  initialNotes: string | null;
   imageUrls: string[] | null;
+  resolvedType: 'REPRINT' | 'FULL_REFUND' | 'PARTIAL_REFUND' | null;
   reprintOrderId: string | null;
   refundAmount: number | null;
-  stripeRefundId: string | null;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  rejectionReason: string | null;
   createdAt: string;
   processedAt: string | null;
-  order: {
+  orderItem: {
     id: string;
+    quantity: number;
     totalPrice: number | string;
-    status: string;
-    createdAt: string;
-    shippingAddress: { name: string };
-    customer: {
+    order: {
+      id: string;
+      status: string;
+      createdAt: string;
+      trackingNumber: string | null;
+      carrier: string | null;
+      shippingAddress: {
+        name: string;
+        city: string;
+        country: string;
+      };
+      customer: {
+        id: string;
+        name: string;
+        email: string;
+      };
+    };
+    product: {
       id: string;
       name: string;
-      email: string;
-    };
+    } | null;
+    variant: {
+      id: string;
+      name: string;
+    } | null;
   };
+  unreadCount: number;
+}
+
+interface IssueStats {
+  total: number;
+  pending: number;
+  infoRequested: number;
+  approved: number;
+  processing: number;
+  resolved: number;
+  rejected: number;
+  carrierFault: number;
 }
 
 const REASON_LABELS: Record<string, string> = {
@@ -42,16 +85,44 @@ const REASON_LABELS: Record<string, string> = {
   QUALITY_ISSUE: 'Quality Issue',
   WRONG_ITEM: 'Wrong Item Sent',
   PRINTING_ERROR: 'Printing Error',
+  NEVER_ARRIVED: 'Never Arrived',
   OTHER: 'Other',
 };
 
-function ReturnsContent() {
+const STATUS_LABELS: Record<IssueStatus, string> = {
+  SUBMITTED: 'New',
+  AWAITING_REVIEW: 'Pending Review',
+  INFO_REQUESTED: 'Info Requested',
+  APPROVED_REPRINT: 'Approved - Reprint',
+  APPROVED_REFUND: 'Approved - Refund',
+  PROCESSING: 'Processing',
+  COMPLETED: 'Resolved',
+  REJECTED: 'Rejected',
+  CLOSED: 'Closed',
+};
+
+const STATUS_COLORS: Record<IssueStatus, string> = {
+  SUBMITTED: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
+  AWAITING_REVIEW: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50',
+  INFO_REQUESTED: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
+  APPROVED_REPRINT: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
+  APPROVED_REFUND: 'bg-green-500/10 text-green-500 border-green-500/50',
+  PROCESSING: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
+  COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/50',
+  REJECTED: 'bg-red-500/10 text-red-500 border-red-500/50',
+  CLOSED: 'bg-gray-500/10 text-gray-500 border-gray-500/50',
+};
+
+type FilterTab = 'all' | 'pending' | 'info_requested' | 'approved' | 'processing' | 'resolved' | 'rejected' | 'carrier';
+
+function IssuesContent() {
   const router = useRouter();
   const { user } = useAuth();
-  const [resolutions, setResolutions] = useState<Resolution[]>([]);
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [stats, setStats] = useState<IssueStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState<'all' | 'REPRINT' | 'REFUND'>('all');
+  const [filter, setFilter] = useState<FilterTab>('pending');
 
   useEffect(() => {
     if (user && user.userType !== 'PRINTER_ADMIN') {
@@ -60,48 +131,48 @@ function ReturnsContent() {
   }, [user, router]);
 
   useEffect(() => {
-    fetchResolutions();
+    fetchIssues();
   }, []);
 
-  const fetchResolutions = async () => {
+  const fetchIssues = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get<{ resolutions: Resolution[] }>('/admin/resolutions');
-      setResolutions(response.data?.resolutions || []);
+      const response = await apiClient.get<{ issues: Issue[]; stats: IssueStats }>(
+        '/admin/issues'
+      );
+      setIssues(response.data?.issues || []);
+      setStats(response.data?.stats || null);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } }; message?: string };
-      setError(error?.response?.data?.error || error?.message || 'Failed to load resolutions');
+      setError(error?.response?.data?.error || error?.message || 'Failed to load issues');
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusColor = (status: Resolution['status']): string => {
-    const colors: Record<Resolution['status'], string> = {
-      PENDING: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50',
-      PROCESSING: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
-      COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/50',
-      FAILED: 'bg-red-500/10 text-red-500 border-red-500/50',
-    };
-    return colors[status];
+  const getFilteredIssues = () => {
+    switch (filter) {
+      case 'pending':
+        return issues.filter((i) => ['SUBMITTED', 'AWAITING_REVIEW'].includes(i.status));
+      case 'info_requested':
+        return issues.filter((i) => i.status === 'INFO_REQUESTED');
+      case 'approved':
+        return issues.filter((i) => ['APPROVED_REPRINT', 'APPROVED_REFUND'].includes(i.status));
+      case 'processing':
+        return issues.filter((i) => i.status === 'PROCESSING');
+      case 'resolved':
+        return issues.filter((i) => ['COMPLETED', 'CLOSED'].includes(i.status));
+      case 'rejected':
+        return issues.filter((i) => i.status === 'REJECTED');
+      case 'carrier':
+        return issues.filter((i) => i.carrierFault === 'CARRIER_FAULT');
+      default:
+        return issues;
+    }
   };
 
-  const getTypeColor = (type: Resolution['type']): string => {
-    return type === 'REPRINT'
-      ? 'bg-purple-500/10 text-purple-500 border-purple-500/50'
-      : 'bg-orange-500/10 text-orange-500 border-orange-500/50';
-  };
-
-  const filteredResolutions = filter === 'all'
-    ? resolutions
-    : resolutions.filter((r) => r.type === filter);
-
-  const stats = {
-    total: resolutions.length,
-    reprints: resolutions.filter((r) => r.type === 'REPRINT').length,
-    refunds: resolutions.filter((r) => r.type === 'REFUND').length,
-    pending: resolutions.filter((r) => r.status === 'PENDING' || r.status === 'PROCESSING').length,
-  };
+  const filteredIssues = getFilteredIssues();
+  const totalUnread = issues.reduce((sum, i) => sum + i.unreadCount, 0);
 
   if (user && user.userType !== 'PRINTER_ADMIN') {
     return null;
@@ -120,6 +191,11 @@ function ReturnsContent() {
             <h1 className="text-2xl font-bold">
               <span className="text-neon-gradient">Issues & Returns</span>
             </h1>
+            {totalUnread > 0 && (
+              <Badge variant="destructive" className="animate-pulse">
+                {totalUnread} new messages
+              </Badge>
+            )}
           </div>
         </div>
       </header>
@@ -131,44 +207,91 @@ function ReturnsContent() {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <Card className="card-glow">
-            <CardHeader className="pb-2">
-              <CardDescription>Total Resolutions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{stats.total}</p>
-            </CardContent>
-          </Card>
-          <Card className="card-glow">
-            <CardHeader className="pb-2">
-              <CardDescription>Reprints</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-purple-500">{stats.reprints}</p>
-            </CardContent>
-          </Card>
-          <Card className="card-glow">
-            <CardHeader className="pb-2">
-              <CardDescription>Refunds</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-orange-500">{stats.refunds}</p>
-            </CardContent>
-          </Card>
-          <Card className="card-glow">
-            <CardHeader className="pb-2">
-              <CardDescription>Pending</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-yellow-500">{stats.pending}</p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+            <Card
+              className={`card-glow cursor-pointer ${filter === 'all' ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => setFilter('all')}
+            >
+              <CardHeader className="pb-2">
+                <CardDescription>Total</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{stats.total}</p>
+              </CardContent>
+            </Card>
+            <Card
+              className={`card-glow cursor-pointer ${filter === 'pending' ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => setFilter('pending')}
+            >
+              <CardHeader className="pb-2">
+                <CardDescription>Pending</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-yellow-500">{stats.pending}</p>
+              </CardContent>
+            </Card>
+            <Card
+              className={`card-glow cursor-pointer ${filter === 'info_requested' ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => setFilter('info_requested')}
+            >
+              <CardHeader className="pb-2">
+                <CardDescription>Info Req</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-orange-500">{stats.infoRequested}</p>
+              </CardContent>
+            </Card>
+            <Card
+              className={`card-glow cursor-pointer ${filter === 'approved' ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => setFilter('approved')}
+            >
+              <CardHeader className="pb-2">
+                <CardDescription>Approved</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-green-500">{stats.approved}</p>
+              </CardContent>
+            </Card>
+            <Card
+              className={`card-glow cursor-pointer ${filter === 'processing' ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => setFilter('processing')}
+            >
+              <CardHeader className="pb-2">
+                <CardDescription>Processing</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-cyan-500">{stats.processing}</p>
+              </CardContent>
+            </Card>
+            <Card
+              className={`card-glow cursor-pointer ${filter === 'resolved' ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => setFilter('resolved')}
+            >
+              <CardHeader className="pb-2">
+                <CardDescription>Resolved</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-green-500">{stats.resolved}</p>
+              </CardContent>
+            </Card>
+            <Card
+              className={`card-glow cursor-pointer ${filter === 'carrier' ? 'ring-2 ring-primary' : ''}`}
+              onClick={() => setFilter('carrier')}
+            >
+              <CardHeader className="pb-2">
+                <CardDescription>Carrier Fault</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-red-500">{stats.carrierFault}</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-        {/* Filter Buttons */}
-        <div className="flex gap-2 mb-6">
+        {/* Filter Tabs */}
+        <div className="flex flex-wrap gap-2 mb-6">
           <Button
             variant={filter === 'all' ? 'default' : 'outline'}
             size="sm"
@@ -177,28 +300,80 @@ function ReturnsContent() {
             All
           </Button>
           <Button
-            variant={filter === 'REPRINT' ? 'default' : 'outline'}
+            variant={filter === 'pending' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setFilter('REPRINT')}
-            className={filter === 'REPRINT' ? '' : 'text-purple-500 border-purple-500/50'}
+            onClick={() => setFilter('pending')}
+            className={filter !== 'pending' ? 'text-yellow-500 border-yellow-500/50' : ''}
           >
-            Reprints
+            Pending {stats?.pending ? `(${stats.pending})` : ''}
           </Button>
           <Button
-            variant={filter === 'REFUND' ? 'default' : 'outline'}
+            variant={filter === 'info_requested' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setFilter('REFUND')}
-            className={filter === 'REFUND' ? '' : 'text-orange-500 border-orange-500/50'}
+            onClick={() => setFilter('info_requested')}
+            className={filter !== 'info_requested' ? 'text-orange-500 border-orange-500/50' : ''}
           >
-            Refunds
+            Awaiting Info
+          </Button>
+          <Button
+            variant={filter === 'approved' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('approved')}
+            className={filter !== 'approved' ? 'text-purple-500 border-purple-500/50' : ''}
+          >
+            Approved
+          </Button>
+          <Button
+            variant={filter === 'processing' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('processing')}
+            className={filter !== 'processing' ? 'text-cyan-500 border-cyan-500/50' : ''}
+          >
+            Processing
+          </Button>
+          <Button
+            variant={filter === 'resolved' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('resolved')}
+            className={filter !== 'resolved' ? 'text-green-500 border-green-500/50' : ''}
+          >
+            Resolved
+          </Button>
+          <Button
+            variant={filter === 'rejected' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('rejected')}
+            className={filter !== 'rejected' ? 'text-red-500 border-red-500/50' : ''}
+          >
+            Rejected
+          </Button>
+          <Button
+            variant={filter === 'carrier' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('carrier')}
+            className={filter !== 'carrier' ? 'text-red-500 border-red-500/50' : ''}
+          >
+            <Truck className="w-4 h-4 mr-1" />
+            Carrier Claims
           </Button>
         </div>
 
-        {/* Resolutions List */}
+        {/* Issues List */}
         <Card className="card-glow">
           <CardHeader>
-            <CardTitle>Resolution History</CardTitle>
-            <CardDescription>All reprints and refunds issued</CardDescription>
+            <CardTitle>
+              {filter === 'all' && 'All Issues'}
+              {filter === 'pending' && 'Pending Review'}
+              {filter === 'info_requested' && 'Awaiting Customer Information'}
+              {filter === 'approved' && 'Approved - Ready to Process'}
+              {filter === 'processing' && 'Currently Processing'}
+              {filter === 'resolved' && 'Resolved Issues'}
+              {filter === 'rejected' && 'Rejected Issues'}
+              {filter === 'carrier' && 'Carrier Fault Claims'}
+            </CardTitle>
+            <CardDescription>
+              {filteredIssues.length} {filteredIssues.length === 1 ? 'issue' : 'issues'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -208,126 +383,128 @@ function ReturnsContent() {
                   <p className="text-sm text-muted-foreground">Loading...</p>
                 </div>
               </div>
-            ) : filteredResolutions.length === 0 ? (
+            ) : filteredIssues.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No resolutions found</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Resolutions are created from the order details page when handling customer issues.
-                </p>
+                <p className="text-muted-foreground">No issues found</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredResolutions.map((resolution) => (
-                  <div
-                    key={resolution.id}
-                    className="p-4 bg-card/30 rounded-lg hover:bg-card/50 transition-colors"
+                {filteredIssues.map((issue) => (
+                  <Link
+                    key={issue.id}
+                    href={`/admin/issues/${issue.id}`}
+                    className="block p-4 bg-card/30 rounded-lg hover:bg-card/50 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge className={`${getTypeColor(resolution.type)} border`}>
-                            {resolution.type}
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <Badge className={`${STATUS_COLORS[issue.status]} border`}>
+                            {STATUS_LABELS[issue.status]}
                           </Badge>
-                          <Badge className={`${getStatusColor(resolution.status)} border`}>
-                            {resolution.status}
-                          </Badge>
+                          {issue.carrierFault === 'CARRIER_FAULT' && (
+                            <Badge className="bg-red-500/10 text-red-500 border-red-500/50 border">
+                              <Truck className="w-3 h-3 mr-1" />
+                              Carrier Fault
+                            </Badge>
+                          )}
+                          {issue.unreadCount > 0 && (
+                            <Badge variant="destructive" className="animate-pulse">
+                              <MessageSquare className="w-3 h-3 mr-1" />
+                              {issue.unreadCount} unread
+                            </Badge>
+                          )}
                           <span className="text-sm text-muted-foreground">
-                            {new Date(resolution.createdAt).toLocaleDateString('en-GB', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })}
                           </span>
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-4">
                           <div>
+                            <p className="text-sm font-medium">
+                              {issue.orderItem.product?.name || 'Product'}
+                              {issue.orderItem.variant && ` - ${issue.orderItem.variant.name}`}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {REASON_LABELS[issue.reason] || issue.reason}
+                            </p>
                             <p className="text-sm">
                               <span className="text-muted-foreground">Customer:</span>{' '}
-                              <span className="font-medium">{resolution.order.customer.name}</span>
-                            </p>
-                            <p className="text-sm">
-                              <span className="text-muted-foreground">Email:</span>{' '}
-                              {resolution.order.customer.email}
-                            </p>
-                            <p className="text-sm">
-                              <span className="text-muted-foreground">Reason:</span>{' '}
-                              {REASON_LABELS[resolution.reason] || resolution.reason}
+                              <span className="font-medium">{issue.orderItem.order.customer.name}</span>
                             </p>
                           </div>
                           <div>
                             <p className="text-sm">
-                              <span className="text-muted-foreground">Original Order:</span>{' '}
-                              <Link
-                                href={`/admin/orders/${resolution.orderId}`}
-                                className="text-primary hover:underline font-mono"
-                              >
-                                {resolution.orderId.slice(0, 8).toUpperCase()}
-                              </Link>
-                              {' '}(£{Number(resolution.order.totalPrice).toFixed(2)})
+                              <span className="text-muted-foreground">Order:</span>{' '}
+                              <span className="font-mono">
+                                {issue.orderItem.order.id.slice(0, 8).toUpperCase()}
+                              </span>
                             </p>
-                            {resolution.reprintOrderId && (
+                            <p className="text-sm">
+                              <span className="text-muted-foreground">Item Value:</span>{' '}
+                              £{Number(issue.orderItem.totalPrice).toFixed(2)}
+                            </p>
+                            {issue.orderItem.order.trackingNumber && (
                               <p className="text-sm">
-                                <span className="text-muted-foreground">Reprint Order:</span>{' '}
-                                <Link
-                                  href={`/admin/orders/${resolution.reprintOrderId}`}
-                                  className="text-primary hover:underline font-mono"
-                                >
-                                  {resolution.reprintOrderId.slice(0, 8).toUpperCase()}
-                                </Link>
-                              </p>
-                            )}
-                            {resolution.refundAmount && (
-                              <p className="text-sm">
-                                <span className="text-muted-foreground">Refund Amount:</span>{' '}
-                                <span className="font-medium text-green-500">
-                                  £{Number(resolution.refundAmount).toFixed(2)}
+                                <span className="text-muted-foreground">Tracking:</span>{' '}
+                                <span className="font-mono text-xs">
+                                  {issue.orderItem.order.trackingNumber}
                                 </span>
                               </p>
                             )}
                           </div>
                         </div>
 
-                        {resolution.notes && (
-                          <p className="text-sm mt-2 text-muted-foreground italic">
-                            Notes: {resolution.notes}
+                        {issue.initialNotes && (
+                          <p className="text-sm mt-2 text-muted-foreground italic truncate">
+                            &quot;{issue.initialNotes}&quot;
                           </p>
                         )}
 
-                        {/* Customer uploaded images */}
-                        {resolution.imageUrls && resolution.imageUrls.length > 0 && (
-                          <div className="mt-2">
-                            <p className="text-xs font-medium text-muted-foreground mb-1">Customer Photos:</p>
-                            <div className="flex flex-wrap gap-2">
-                              {resolution.imageUrls.map((url, imgIndex) => (
-                                <a
-                                  key={imgIndex}
-                                  href={url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="block w-12 h-12 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
-                                >
-                                  <img
-                                    src={url}
-                                    alt={`Issue photo ${imgIndex + 1}`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </a>
-                              ))}
-                            </div>
+                        {/* Customer photos preview */}
+                        {issue.imageUrls && issue.imageUrls.length > 0 && (
+                          <div className="mt-2 flex gap-2">
+                            {issue.imageUrls.slice(0, 3).map((url, idx) => (
+                              <div
+                                key={idx}
+                                className="w-10 h-10 rounded overflow-hidden border border-border"
+                              >
+                                <img
+                                  src={url}
+                                  alt={`Evidence ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ))}
+                            {issue.imageUrls.length > 3 && (
+                              <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                                +{issue.imageUrls.length - 3}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Resolution info */}
+                        {issue.status === 'COMPLETED' && (
+                          <div className="mt-2 text-sm text-green-500">
+                            {issue.resolvedType === 'REPRINT' && 'Resolved with reprint'}
+                            {issue.resolvedType === 'FULL_REFUND' && issue.refundAmount && (
+                              <>Refunded £{Number(issue.refundAmount).toFixed(2)}</>
+                            )}
+                            {issue.resolvedType === 'PARTIAL_REFUND' && issue.refundAmount && (
+                              <>Partial refund: £{Number(issue.refundAmount).toFixed(2)}</>
+                            )}
                           </div>
                         )}
                       </div>
 
-                      <Link href={`/admin/orders/${resolution.orderId}`}>
+                      <div className="flex-shrink-0">
                         <Button variant="outline" size="sm">
-                          View Order
+                          <AlertCircle className="w-4 h-4 mr-1" />
+                          Manage
                         </Button>
-                      </Link>
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -338,10 +515,10 @@ function ReturnsContent() {
   );
 }
 
-export default function ReturnsPage() {
+export default function IssuesPage() {
   return (
     <ProtectedRoute>
-      <ReturnsContent />
+      <IssuesContent />
     </ProtectedRoute>
   );
 }

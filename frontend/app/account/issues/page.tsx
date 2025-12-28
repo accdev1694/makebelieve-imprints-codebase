@@ -7,24 +7,56 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import apiClient from '@/lib/api/client';
+import { formatDistanceToNow } from 'date-fns';
+
+type IssueStatus =
+  | 'SUBMITTED'
+  | 'AWAITING_REVIEW'
+  | 'INFO_REQUESTED'
+  | 'APPROVED_REPRINT'
+  | 'APPROVED_REFUND'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'REJECTED'
+  | 'CLOSED';
 
 interface Issue {
   id: string;
-  type: 'REPRINT' | 'REFUND';
   reason: string;
-  notes: string | null;
+  status: IssueStatus;
+  initialNotes: string | null;
   imageUrls: string[] | null;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
-  createdAt: string;
-  processedAt: string | null;
+  resolvedType: 'REPRINT' | 'FULL_REFUND' | 'PARTIAL_REFUND' | null;
   reprintOrderId: string | null;
   refundAmount: number | null;
-  order: {
+  createdAt: string;
+  processedAt: string | null;
+  unreadCount: number;
+  latestMessage: {
     id: string;
-    totalPrice: number | string;
-    status: string;
+    sender: 'CUSTOMER' | 'ADMIN';
+    content: string;
     createdAt: string;
-    previewUrl: string | null;
+  } | null;
+  orderItem: {
+    id: string;
+    quantity: number;
+    totalPrice: number | string;
+    order: {
+      id: string;
+      status: string;
+      createdAt: string;
+      trackingNumber: string | null;
+    };
+    product: {
+      id: string;
+      name: string;
+      slug: string;
+    } | null;
+    variant: {
+      id: string;
+      name: string;
+    } | null;
     design: {
       id: string;
       title: string | null;
@@ -39,20 +71,41 @@ const REASON_LABELS: Record<string, string> = {
   QUALITY_ISSUE: 'Quality Issue',
   WRONG_ITEM: 'Wrong Item Sent',
   PRINTING_ERROR: 'Printing Error',
+  NEVER_ARRIVED: 'Never Arrived',
   OTHER: 'Other',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Under Review',
+const STATUS_LABELS: Record<IssueStatus, string> = {
+  SUBMITTED: 'Submitted',
+  AWAITING_REVIEW: 'Under Review',
+  INFO_REQUESTED: 'Info Requested',
+  APPROVED_REPRINT: 'Approved - Reprint',
+  APPROVED_REFUND: 'Approved - Refund',
   PROCESSING: 'Processing',
   COMPLETED: 'Resolved',
-  FAILED: 'Failed',
+  REJECTED: 'Rejected',
+  CLOSED: 'Closed',
 };
+
+const STATUS_COLORS: Record<IssueStatus, string> = {
+  SUBMITTED: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
+  AWAITING_REVIEW: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50',
+  INFO_REQUESTED: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
+  APPROVED_REPRINT: 'bg-green-500/10 text-green-500 border-green-500/50',
+  APPROVED_REFUND: 'bg-green-500/10 text-green-500 border-green-500/50',
+  PROCESSING: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
+  COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/50',
+  REJECTED: 'bg-red-500/10 text-red-500 border-red-500/50',
+  CLOSED: 'bg-gray-500/10 text-gray-500 border-gray-500/50',
+};
+
+type FilterStatus = 'all' | 'active' | 'resolved';
 
 function IssuesContent() {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filter, setFilter] = useState<FilterStatus>('all');
 
   useEffect(() => {
     fetchIssues();
@@ -71,19 +124,35 @@ function IssuesContent() {
     }
   };
 
-  const getStatusColor = (status: Issue['status']): string => {
-    const colors: Record<Issue['status'], string> = {
-      PENDING: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50',
-      PROCESSING: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
-      COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/50',
-      FAILED: 'bg-red-500/10 text-red-500 border-red-500/50',
-    };
-    return colors[status];
+  const getItemImage = (issue: Issue): string | null => {
+    return issue.orderItem.design?.previewUrl || issue.orderItem.design?.fileUrl || null;
   };
 
-  const getOrderImage = (issue: Issue): string | null => {
-    return issue.order.previewUrl || issue.order.design?.previewUrl || issue.order.design?.fileUrl || null;
-  };
+  const filteredIssues = issues.filter((issue) => {
+    if (filter === 'active') {
+      return !['COMPLETED', 'CLOSED'].includes(issue.status);
+    }
+    if (filter === 'resolved') {
+      return ['COMPLETED', 'CLOSED'].includes(issue.status);
+    }
+    return true;
+  });
+
+  const activeCount = issues.filter((i) => !['COMPLETED', 'CLOSED'].includes(i.status)).length;
+  const totalUnread = issues.reduce((sum, i) => sum + i.unreadCount, 0);
+
+  // Group issues by order
+  const issuesByOrder = filteredIssues.reduce((acc, issue) => {
+    const orderId = issue.orderItem.order.id;
+    if (!acc[orderId]) {
+      acc[orderId] = {
+        order: issue.orderItem.order,
+        issues: [],
+      };
+    }
+    acc[orderId].issues.push(issue);
+    return acc;
+  }, {} as Record<string, { order: Issue['orderItem']['order']; issues: Issue[] }>);
 
   return (
     <div className="min-h-screen bg-background">
@@ -98,6 +167,11 @@ function IssuesContent() {
             <h1 className="text-2xl font-bold">
               <span className="text-neon-gradient">My Issues</span>
             </h1>
+            {totalUnread > 0 && (
+              <Badge variant="destructive" className="animate-pulse">
+                {totalUnread} unread
+              </Badge>
+            )}
           </div>
         </div>
       </header>
@@ -108,6 +182,37 @@ function IssuesContent() {
             {error}
           </div>
         )}
+
+        {/* Stats & Filters */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>{issues.length} total issues</span>
+            <span>{activeCount} active</span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={filter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('all')}
+            >
+              All
+            </Button>
+            <Button
+              variant={filter === 'active' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('active')}
+            >
+              Active
+            </Button>
+            <Button
+              variant={filter === 'resolved' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('resolved')}
+            >
+              Resolved
+            </Button>
+          </div>
+        </div>
 
         <Card className="card-glow">
           <CardHeader>
@@ -124,131 +229,138 @@ function IssuesContent() {
                   <p className="text-sm text-muted-foreground">Loading...</p>
                 </div>
               </div>
-            ) : issues.length === 0 ? (
+            ) : filteredIssues.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No issues reported</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  If you have any problems with an order, you can report an issue from the order details page.
+                <p className="text-muted-foreground">
+                  {filter === 'all'
+                    ? 'No issues reported'
+                    : filter === 'active'
+                    ? 'No active issues'
+                    : 'No resolved issues'}
                 </p>
-                <Link href="/orders">
-                  <Button variant="outline" className="mt-4">
-                    View My Orders
-                  </Button>
-                </Link>
+                {filter === 'all' && (
+                  <>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      If you have any problems with an order, you can report an issue from the order details page.
+                    </p>
+                    <Link href="/orders">
+                      <Button variant="outline" className="mt-4">
+                        View My Orders
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             ) : (
-              <div className="space-y-4">
-                {issues.map((issue) => (
-                  <div
-                    key={issue.id}
-                    className="p-4 bg-card/30 rounded-lg hover:bg-card/50 transition-colors"
-                  >
-                    <div className="flex items-start gap-4">
-                      {/* Order Image */}
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                        {getOrderImage(issue) ? (
-                          <img
-                            src={getOrderImage(issue)!}
-                            alt="Order"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                            No image
-                          </div>
-                        )}
+              <div className="space-y-6">
+                {Object.entries(issuesByOrder).map(([orderId, { order, issues: orderIssues }]) => (
+                  <div key={orderId} className="space-y-3">
+                    {/* Order Header */}
+                    <div className="flex items-center justify-between text-sm border-b border-border pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Order</span>
+                        <Link
+                          href={`/orders/${orderId}`}
+                          className="font-mono text-primary hover:underline"
+                        >
+                          {orderId.slice(0, 8).toUpperCase()}
+                        </Link>
+                        <span className="text-muted-foreground">
+                          {formatDistanceToNow(new Date(order.createdAt), { addSuffix: true })}
+                        </span>
                       </div>
-
-                      {/* Issue Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <Badge className={`${getStatusColor(issue.status)} border`}>
-                            {STATUS_LABELS[issue.status]}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">
-                            Reported {new Date(issue.createdAt).toLocaleDateString('en-GB', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
-                          </span>
-                        </div>
-
-                        <p className="text-sm mb-1">
-                          <span className="text-muted-foreground">Order:</span>{' '}
-                          <Link
-                            href={`/orders/${issue.order.id}`}
-                            className="text-primary hover:underline font-mono"
-                          >
-                            {issue.order.id.slice(0, 8).toUpperCase()}
-                          </Link>
-                        </p>
-
-                        <p className="text-sm mb-1">
-                          <span className="text-muted-foreground">Issue:</span>{' '}
-                          {REASON_LABELS[issue.reason] || issue.reason}
-                        </p>
-
-                        {issue.notes && (
-                          <p className="text-sm text-muted-foreground italic mt-1">
-                            &quot;{issue.notes}&quot;
-                          </p>
-                        )}
-
-                        {/* Resolution Info */}
-                        {issue.status === 'COMPLETED' && (
-                          <div className="mt-3 p-2 bg-green-500/10 border border-green-500/30 rounded-md">
-                            {issue.type === 'REPRINT' && issue.reprintOrderId && (
-                              <p className="text-sm text-green-500">
-                                Resolved with reprint:{' '}
-                                <Link
-                                  href={`/orders/${issue.reprintOrderId}`}
-                                  className="underline hover:text-green-400"
-                                >
-                                  View Reprint Order
-                                </Link>
-                              </p>
-                            )}
-                            {issue.type === 'REFUND' && issue.refundAmount && (
-                              <p className="text-sm text-green-500">
-                                Refunded: £{Number(issue.refundAmount).toFixed(2)}
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Customer Uploaded Images */}
-                        {issue.imageUrls && issue.imageUrls.length > 0 && (
-                          <div className="mt-3">
-                            <p className="text-xs text-muted-foreground mb-1">Your photos:</p>
-                            <div className="flex flex-wrap gap-2">
-                              {issue.imageUrls.map((url, imgIndex) => (
-                                <a
-                                  key={imgIndex}
-                                  href={url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="block w-12 h-12 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
-                                >
-                                  <img
-                                    src={url}
-                                    alt={`Issue photo ${imgIndex + 1}`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </a>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* View Order Button */}
-                      <Link href={`/orders/${issue.order.id}`} className="flex-shrink-0">
-                        <Button variant="outline" size="sm">
-                          View Order
-                        </Button>
-                      </Link>
+                      <span className="text-muted-foreground">
+                        {orderIssues.length} {orderIssues.length === 1 ? 'issue' : 'issues'}
+                      </span>
                     </div>
+
+                    {/* Issues for this order */}
+                    {orderIssues.map((issue) => (
+                      <Link
+                        key={issue.id}
+                        href={`/account/issues/${issue.id}`}
+                        className="block p-4 bg-card/30 rounded-lg hover:bg-card/50 transition-colors"
+                      >
+                        <div className="flex items-start gap-4">
+                          {/* Item Image */}
+                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                            {getItemImage(issue) ? (
+                              <img
+                                src={getItemImage(issue)!}
+                                alt="Item"
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                                No image
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Issue Details */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <Badge className={`${STATUS_COLORS[issue.status]} border`}>
+                                {STATUS_LABELS[issue.status]}
+                              </Badge>
+                              {issue.unreadCount > 0 && (
+                                <Badge variant="destructive" className="animate-pulse">
+                                  {issue.unreadCount} new
+                                </Badge>
+                              )}
+                              {issue.status === 'INFO_REQUESTED' && (
+                                <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/50 border">
+                                  Action Required
+                                </Badge>
+                              )}
+                            </div>
+
+                            <p className="font-medium">
+                              {issue.orderItem.product?.name || 'Custom Product'}
+                              {issue.orderItem.variant && (
+                                <span className="text-muted-foreground font-normal">
+                                  {' '}- {issue.orderItem.variant.name}
+                                </span>
+                              )}
+                            </p>
+
+                            <p className="text-sm text-muted-foreground">
+                              {REASON_LABELS[issue.reason] || issue.reason}
+                              <span className="mx-2">·</span>
+                              Reported {formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })}
+                            </p>
+
+                            {/* Latest message preview */}
+                            {issue.latestMessage && (
+                              <p className="text-sm text-muted-foreground mt-2 truncate">
+                                <span className="font-medium">
+                                  {issue.latestMessage.sender === 'ADMIN' ? 'Support: ' : 'You: '}
+                                </span>
+                                {issue.latestMessage.content}
+                              </p>
+                            )}
+
+                            {/* Resolution Info */}
+                            {issue.status === 'COMPLETED' && (
+                              <div className="mt-2 text-sm text-green-500">
+                                {issue.resolvedType === 'REPRINT' && 'Resolved with reprint'}
+                                {issue.resolvedType === 'FULL_REFUND' && issue.refundAmount && (
+                                  <>Refunded £{Number(issue.refundAmount).toFixed(2)}</>
+                                )}
+                                {issue.resolvedType === 'PARTIAL_REFUND' && issue.refundAmount && (
+                                  <>Partial refund: £{Number(issue.refundAmount).toFixed(2)}</>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Arrow indicator */}
+                          <div className="flex-shrink-0 text-muted-foreground">
+                            →
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
                   </div>
                 ))}
               </div>

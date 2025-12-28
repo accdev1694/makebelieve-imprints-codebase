@@ -4,28 +4,46 @@ import { requireAuth, handleApiError } from '@/lib/server/auth';
 
 /**
  * GET /api/issues
- * Get all issues for the current user
+ * Get all issues for the current customer (new per-item issue system)
  */
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth(request);
 
-    // Get all issues for orders belonging to this customer
-    const issues = await prisma.resolution.findMany({
+    // Get all issues for order items belonging to this customer
+    const issues = await prisma.issue.findMany({
       where: {
-        order: {
-          customerId: user.userId,
+        orderItem: {
+          order: {
+            customerId: user.userId,
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
       include: {
-        order: {
-          select: {
-            id: true,
-            totalPrice: true,
-            status: true,
-            createdAt: true,
-            previewUrl: true,
+        orderItem: {
+          include: {
+            order: {
+              select: {
+                id: true,
+                status: true,
+                createdAt: true,
+                trackingNumber: true,
+              },
+            },
+            product: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+            variant: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
             design: {
               select: {
                 id: true,
@@ -36,10 +54,40 @@ export async function GET(request: NextRequest) {
             },
           },
         },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1, // Just get the latest message for preview
+          select: {
+            id: true,
+            sender: true,
+            content: true,
+            createdAt: true,
+            readAt: true,
+          },
+        },
+        _count: {
+          select: {
+            messages: {
+              where: {
+                sender: 'ADMIN',
+                readAt: null,
+              },
+            },
+          },
+        },
       },
     });
 
-    return NextResponse.json({ issues });
+    // Transform to add unread count
+    const issuesWithUnread = issues.map(issue => ({
+      ...issue,
+      unreadCount: issue._count.messages,
+      latestMessage: issue.messages[0] || null,
+      messages: undefined, // Remove messages array from response
+      _count: undefined,
+    }));
+
+    return NextResponse.json({ issues: issuesWithUnread });
   } catch (error) {
     console.error('Get user issues error:', error);
     return handleApiError(error);

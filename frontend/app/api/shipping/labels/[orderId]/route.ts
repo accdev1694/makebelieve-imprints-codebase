@@ -53,7 +53,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           {
             error: 'Label download requires payment in Click & Drop',
             code: 'PAYMENT_REQUIRED',
-            clickAndDropUrl: 'https://business.parcel.royalmail.com/',
+            clickAndDropUrl: 'https://business.parcel.royalmail.com/orders/',
             message: 'Please pay for postage in Royal Mail Click & Drop to download the label.',
           },
           { status: 402 } // Payment Required

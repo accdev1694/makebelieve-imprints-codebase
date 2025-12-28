@@ -87,7 +87,7 @@ export function ProductInfo({ product, selectedVariantPrice }: ProductInfoProps)
           </div>
           <div>
             <div className="font-semibold text-sm">Easy Returns</div>
-            <div className="text-xs text-muted-foreground">30-day policy</div>
+            <div className="text-xs text-muted-foreground">14-day policy</div>
           </div>
         </div>
       </div>

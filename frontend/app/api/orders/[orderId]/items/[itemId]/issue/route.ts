@@ -8,7 +8,7 @@ interface RouteParams {
   params: Promise<{ orderId: string; itemId: string }>;
 }
 
-const ISSUE_REPORTING_WINDOW_DAYS = 30;
+const ISSUE_REPORTING_WINDOW_DAYS = 14;
 
 /**
  * POST /api/orders/[orderId]/items/[itemId]/issue
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check time window (30 days from order update which typically is when status changed)
+    // Check time window (14 days from order update which typically is when status changed)
     const orderDate = orderItem.order.updatedAt;
     const daysSinceOrder = differenceInDays(new Date(), orderDate);
     if (daysSinceOrder > ISSUE_REPORTING_WINDOW_DAYS) {

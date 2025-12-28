@@ -269,14 +269,25 @@ model Order {
   carrier          String?          @db.VarChar(50)
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at")
-  inventoryUsages  InventoryUsage[]
-  invoice          Invoice?
-  items            OrderItem[]
-  customer         User             @relation(fields: [customerId], references: [id])
-  design           Design?          @relation(fields: [designId], references: [id])
-  payment          Payment?
-  resolutions      Resolution[]
-  review           Review?
+
+  // Cancellation fields
+  cancelledAt          DateTime?           @map("cancelled_at")
+  cancelledBy          CancelledBy?        @map("cancelled_by")
+  cancellationReason   CancellationReason? @map("cancellation_reason")
+  cancellationNotes    String?             @map("cancellation_notes")
+  stripeRefundId       String?             @map("stripe_refund_id") @db.VarChar(255)
+  refundAmount         Decimal?            @map("refund_amount") @db.Decimal(10, 2)
+
+  // Relations
+  inventoryUsages      InventoryUsage[]
+  invoice              Invoice?
+  items                OrderItem[]
+  customer             User             @relation(fields: [customerId], references: [id])
+  design               Design?          @relation(fields: [designId], references: [id])
+  payment              Payment?
+  resolutions          Resolution[]
+  review               Review?
+  cancellationRequest  CancellationRequest?
 
   @@index([customerId])
   @@index([status])
@@ -284,6 +295,35 @@ model Order {
   @@index([trackingNumber])
   @@index([promoCode])
   @@map("orders")
+}
+
+// ============================================
+// CANCELLATION REQUEST SYSTEM
+// For buyer-initiated cancellation requests that need admin approval
+// ============================================
+
+model CancellationRequest {
+  id            String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId       String                    @unique @map("order_id") @db.Uuid
+  order         Order                     @relation(fields: [orderId], references: [id])
+
+  // Request details
+  reason        CancellationReason
+  notes         String?
+
+  // Status tracking
+  status        CancellationRequestStatus @default(PENDING)
+  createdAt     DateTime                  @default(now()) @map("created_at")
+
+  // Review information
+  reviewedAt    DateTime?                 @map("reviewed_at")
+  reviewedBy    String?                   @map("reviewed_by") @db.Uuid
+  reviewNotes   String?                   @map("review_notes")
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("cancellation_requests")
 }
 
 model Review {
@@ -483,12 +523,35 @@ enum UserType {
 
 enum OrderStatus {
   pending
+  payment_confirmed
   confirmed
   printing
   shipped
   delivered
+  cancellation_requested
   cancelled
   refunded
+}
+
+enum CancelledBy {
+  ADMIN
+  CUSTOMER
+}
+
+enum CancellationReason {
+  OUT_OF_STOCK
+  BUYER_REQUEST
+  FRAUD_SUSPECTED
+  PAYMENT_ISSUE
+  PRODUCTION_ISSUE
+  DUPLICATE_ORDER
+  OTHER
+}
+
+enum CancellationRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum PrintSize {

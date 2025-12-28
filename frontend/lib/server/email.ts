@@ -1086,3 +1086,473 @@ ${APP_NAME} Admin Alert
 
   return sendEmail({ to: adminEmail, subject, html, text });
 }
+
+// ============================================
+// Order Cancellation Email Templates
+// ============================================
+
+const CANCELLATION_REASON_LABELS: Record<string, string> = {
+  OUT_OF_STOCK: 'Item out of stock',
+  BUYER_REQUEST: 'Customer request',
+  FRAUD_SUSPECTED: 'Payment verification issue',
+  PAYMENT_ISSUE: 'Payment processing issue',
+  PRODUCTION_ISSUE: 'Production issue',
+  DUPLICATE_ORDER: 'Duplicate order',
+  OTHER: 'Other',
+};
+
+/**
+ * Send order cancelled email to customer (when admin cancels)
+ */
+export async function sendOrderCancelledBySellerEmail(
+  email: string,
+  customerName: string,
+  orderId: string,
+  reason: string,
+  notes: string | null,
+  refundAmount: number | null
+): Promise<boolean> {
+  const reasonText = CANCELLATION_REASON_LABELS[reason] || reason;
+  const formattedRefund = refundAmount
+    ? new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(refundAmount)
+    : null;
+
+  const subject = `Your order has been cancelled - ${APP_NAME}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
+      </div>
+
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0;">Order Cancelled</h2>
+
+        <p>Hi ${customerName},</p>
+
+        <p>We're sorry to inform you that your order has been cancelled.</p>
+
+        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0; color: #6b7280; font-size: 14px;">Order: <strong>#${orderId.slice(0, 8).toUpperCase()}</strong></p>
+          <p style="margin: 10px 0 0; color: #6b7280; font-size: 14px;">Reason: <strong>${reasonText}</strong></p>
+          ${notes ? `<p style="margin: 10px 0 0; color: #6b7280; font-size: 14px;">Notes: ${notes}</p>` : ''}
+        </div>
+
+        ${formattedRefund ? `
+        <div style="background: #d1fae5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0; color: #065f46; font-size: 14px;">Refund Amount:</p>
+          <p style="margin: 5px 0 0; font-size: 24px; font-weight: bold; color: #059669;">${formattedRefund}</p>
+          <p style="margin: 10px 0 0; color: #6b7280; font-size: 12px;">Will be credited to your original payment method within 5-10 business days</p>
+        </div>
+        ` : ''}
+
+        <p>We sincerely apologise for any inconvenience this may have caused. If you have any questions, please don't hesitate to contact us.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${APP_URL}/products" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            Continue Shopping
+          </a>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+        <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">
+          If you have any questions, please contact us at admin@makebelieveimprints.co.uk
+        </p>
+      </div>
+
+      <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+        <p>&copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Order Cancelled
+
+Hi ${customerName},
+
+We're sorry to inform you that your order has been cancelled.
+
+Order: #${orderId.slice(0, 8).toUpperCase()}
+Reason: ${reasonText}
+${notes ? `Notes: ${notes}` : ''}
+
+${formattedRefund ? `Refund Amount: ${formattedRefund}\nWill be credited to your original payment method within 5-10 business days.` : ''}
+
+We sincerely apologise for any inconvenience this may have caused. If you have any questions, please don't hesitate to contact us.
+
+Continue shopping: ${APP_URL}/products
+
+If you have any questions, please contact us at admin@makebelieveimprints.co.uk
+
+---
+${APP_NAME}
+  `.trim();
+
+  return sendEmail({ to: email, subject, html, text });
+}
+
+/**
+ * Send cancellation request received email to customer
+ */
+export async function sendCancellationRequestReceivedEmail(
+  email: string,
+  customerName: string,
+  orderId: string,
+  reason: string
+): Promise<boolean> {
+  const orderUrl = `${APP_URL}/orders/${orderId}`;
+  const reasonText = CANCELLATION_REASON_LABELS[reason] || reason;
+
+  const subject = `Cancellation request received - ${APP_NAME}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
+      </div>
+
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0;">Cancellation Request Received</h2>
+
+        <p>Hi ${customerName},</p>
+
+        <p>We've received your request to cancel your order.</p>
+
+        <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+          <p style="margin: 0; color: #92400e; font-size: 14px;">Order: <strong>#${orderId.slice(0, 8).toUpperCase()}</strong></p>
+          <p style="margin: 10px 0 0; color: #92400e; font-size: 14px;">Reason: <strong>${reasonText}</strong></p>
+          <p style="margin: 10px 0 0; color: #92400e; font-size: 14px;">Status: <strong>Pending Review</strong></p>
+        </div>
+
+        <p><strong>What happens next?</strong></p>
+        <ul style="color: #6b7280;">
+          <li>Our team will review your request within 24 hours</li>
+          <li>If your order hasn't started production, we'll approve the cancellation</li>
+          <li>If production has begun, we may not be able to cancel</li>
+          <li>You'll receive an email with our decision</li>
+        </ul>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${orderUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            View Order Status
+          </a>
+        </div>
+      </div>
+
+      <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+        <p>&copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Cancellation Request Received
+
+Hi ${customerName},
+
+We've received your request to cancel your order.
+
+Order: #${orderId.slice(0, 8).toUpperCase()}
+Reason: ${reasonText}
+Status: Pending Review
+
+What happens next?
+- Our team will review your request within 24 hours
+- If your order hasn't started production, we'll approve the cancellation
+- If production has begun, we may not be able to cancel
+- You'll receive an email with our decision
+
+View order status: ${orderUrl}
+
+---
+${APP_NAME}
+  `.trim();
+
+  return sendEmail({ to: email, subject, html, text });
+}
+
+/**
+ * Send cancellation request approved email to customer
+ */
+export async function sendCancellationRequestApprovedEmail(
+  email: string,
+  customerName: string,
+  orderId: string,
+  refundAmount: number | null,
+  reviewNotes: string | null
+): Promise<boolean> {
+  const formattedRefund = refundAmount
+    ? new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(refundAmount)
+    : null;
+
+  const subject = `Cancellation approved - Order #${orderId.slice(0, 8).toUpperCase()}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
+      </div>
+
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0;">Cancellation Approved</h2>
+
+        <p>Hi ${customerName},</p>
+
+        <p>Your cancellation request for order #${orderId.slice(0, 8).toUpperCase()} has been approved.</p>
+
+        ${formattedRefund ? `
+        <div style="background: #d1fae5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0; color: #065f46; font-size: 14px;">Refund Amount:</p>
+          <p style="margin: 5px 0 0; font-size: 28px; font-weight: bold; color: #059669;">${formattedRefund}</p>
+          <p style="margin: 10px 0 0; color: #6b7280; font-size: 12px;">Will be credited within 5-10 business days</p>
+        </div>
+        ` : ''}
+
+        ${reviewNotes ? `
+        <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0; color: #6b7280; font-size: 14px;"><strong>Note from our team:</strong> ${reviewNotes}</p>
+        </div>
+        ` : ''}
+
+        <p>We're sorry to see this order go. We hope to serve you again in the future!</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${APP_URL}/products" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            Continue Shopping
+          </a>
+        </div>
+      </div>
+
+      <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+        <p>&copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Cancellation Approved
+
+Hi ${customerName},
+
+Your cancellation request for order #${orderId.slice(0, 8).toUpperCase()} has been approved.
+
+${formattedRefund ? `Refund Amount: ${formattedRefund}\nWill be credited within 5-10 business days.` : ''}
+
+${reviewNotes ? `Note from our team: ${reviewNotes}` : ''}
+
+We're sorry to see this order go. We hope to serve you again in the future!
+
+Continue shopping: ${APP_URL}/products
+
+---
+${APP_NAME}
+  `.trim();
+
+  return sendEmail({ to: email, subject, html, text });
+}
+
+/**
+ * Send cancellation request rejected email to customer
+ */
+export async function sendCancellationRequestRejectedEmail(
+  email: string,
+  customerName: string,
+  orderId: string,
+  reviewNotes: string | null
+): Promise<boolean> {
+  const orderUrl = `${APP_URL}/orders/${orderId}`;
+
+  const subject = `Cancellation request update - Order #${orderId.slice(0, 8).toUpperCase()}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
+      </div>
+
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0;">Cancellation Request Update</h2>
+
+        <p>Hi ${customerName},</p>
+
+        <p>We've reviewed your cancellation request for order #${orderId.slice(0, 8).toUpperCase()}, and unfortunately we're unable to cancel this order at this time.</p>
+
+        <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ef4444;">
+          <p style="margin: 0; color: #991b1b; font-size: 14px; font-weight: bold;">Reason:</p>
+          <p style="margin: 10px 0 0; color: #991b1b;">${reviewNotes || 'Your order has already entered production and cannot be cancelled.'}</p>
+        </div>
+
+        <p>Your order will continue to be processed and shipped as normal. Once you receive your order, if there are any issues with it, you can submit a return or exchange request.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${orderUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            View Order Status
+          </a>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+        <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0;">
+          If you have any questions, please contact us at admin@makebelieveimprints.co.uk
+        </p>
+      </div>
+
+      <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+        <p>&copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Cancellation Request Update
+
+Hi ${customerName},
+
+We've reviewed your cancellation request for order #${orderId.slice(0, 8).toUpperCase()}, and unfortunately we're unable to cancel this order at this time.
+
+Reason: ${reviewNotes || 'Your order has already entered production and cannot be cancelled.'}
+
+Your order will continue to be processed and shipped as normal. Once you receive your order, if there are any issues with it, you can submit a return or exchange request.
+
+View order status: ${orderUrl}
+
+If you have any questions, please contact us at admin@makebelieveimprints.co.uk
+
+---
+${APP_NAME}
+  `.trim();
+
+  return sendEmail({ to: email, subject, html, text });
+}
+
+/**
+ * Send admin alert for new cancellation request
+ */
+export async function sendAdminCancellationRequestAlert(
+  adminEmail: string,
+  orderId: string,
+  customerName: string,
+  customerEmail: string,
+  reason: string,
+  notes: string | null,
+  orderTotal: number
+): Promise<boolean> {
+  const orderUrl = `${APP_URL}/admin/orders/${orderId}`;
+  const reasonText = CANCELLATION_REASON_LABELS[reason] || reason;
+  const formattedTotal = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(orderTotal);
+
+  const subject = `[ACTION REQUIRED] Cancellation Request - Order #${orderId.slice(0, 8).toUpperCase()}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">Cancellation Request</h1>
+      </div>
+
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0;">Customer Wants to Cancel</h2>
+
+        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 5px 0; color: #6b7280;">Order:</td>
+              <td style="padding: 5px 0; font-weight: bold;">#${orderId.slice(0, 8).toUpperCase()}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px 0; color: #6b7280;">Customer:</td>
+              <td style="padding: 5px 0; font-weight: bold;">${customerName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px 0; color: #6b7280;">Email:</td>
+              <td style="padding: 5px 0;">${customerEmail}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px 0; color: #6b7280;">Order Total:</td>
+              <td style="padding: 5px 0; font-weight: bold; color: #059669;">${formattedTotal}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px 0; color: #6b7280;">Reason:</td>
+              <td style="padding: 5px 0; font-weight: bold; color: #f59e0b;">${reasonText}</td>
+            </tr>
+          </table>
+        </div>
+
+        ${notes ? `
+        <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+          <p style="margin: 0; color: #92400e; font-size: 14px;"><strong>Customer's notes:</strong></p>
+          <p style="margin: 10px 0 0; color: #92400e;">${notes}</p>
+        </div>
+        ` : ''}
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${orderUrl}" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            Review & Respond
+          </a>
+        </div>
+      </div>
+
+      <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+        <p>${APP_NAME} Admin Alert</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Cancellation Request
+
+Order: #${orderId.slice(0, 8).toUpperCase()}
+Customer: ${customerName} (${customerEmail})
+Order Total: ${formattedTotal}
+Reason: ${reasonText}
+${notes ? `Customer's notes: ${notes}` : ''}
+
+Review and respond: ${orderUrl}
+
+---
+${APP_NAME} Admin Alert
+  `.trim();
+
+  return sendEmail({ to: adminEmail, subject, html, text });
+}

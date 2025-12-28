@@ -7,7 +7,33 @@ import {
 
 // Frontend uses slightly different order statuses (payment_confirmed vs confirmed)
 // We extend the shared type for backward compatibility
-export type OrderStatus = SharedOrderStatus | 'payment_confirmed';
+export type OrderStatus = SharedOrderStatus | 'payment_confirmed' | 'cancellation_requested';
+
+// Cancellation types
+export type CancelledBy = 'ADMIN' | 'CUSTOMER';
+
+export type CancellationReason =
+  | 'OUT_OF_STOCK'
+  | 'BUYER_REQUEST'
+  | 'FRAUD_SUSPECTED'
+  | 'PAYMENT_ISSUE'
+  | 'PRODUCTION_ISSUE'
+  | 'DUPLICATE_ORDER'
+  | 'OTHER';
+
+export type CancellationRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface CancellationRequest {
+  id: string;
+  orderId: string;
+  reason: CancellationReason;
+  notes?: string | null;
+  status: CancellationRequestStatus;
+  createdAt: string;
+  reviewedAt?: string | null;
+  reviewedBy?: string | null;
+  reviewNotes?: string | null;
+}
 
 // Re-export shipping address from shared
 export type ShippingAddress = SharedShippingAddress;
@@ -47,6 +73,14 @@ export interface Order {
   carrier?: string | null;
   createdAt: string;
   updatedAt: string;
+  // Cancellation fields
+  cancelledAt?: string | null;
+  cancelledBy?: CancelledBy | null;
+  cancellationReason?: CancellationReason | null;
+  cancellationNotes?: string | null;
+  stripeRefundId?: string | null;
+  refundAmount?: number | string | null;
+  cancellationRequest?: CancellationRequest | null;
   design?: {
     id: string;
     name: string;
@@ -209,6 +243,145 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   printing: 'Printing',
   shipped: 'Shipped',
   delivered: 'Delivered',
+  cancellation_requested: 'Cancellation Requested',
   cancelled: 'Cancelled',
   refunded: 'Refunded',
+};
+
+export const CANCELLATION_REASON_LABELS: Record<CancellationReason, string> = {
+  OUT_OF_STOCK: 'Item out of stock',
+  BUYER_REQUEST: 'Changed my mind',
+  FRAUD_SUSPECTED: 'Payment verification issue',
+  PAYMENT_ISSUE: 'Payment processing issue',
+  PRODUCTION_ISSUE: 'Production issue',
+  DUPLICATE_ORDER: 'Duplicate order',
+  OTHER: 'Other reason',
+};
+
+// Customer-facing cancellation reasons (subset of all reasons)
+export const CUSTOMER_CANCELLATION_REASONS: CancellationReason[] = [
+  'BUYER_REQUEST',
+  'DUPLICATE_ORDER',
+  'OTHER',
+];
+
+// Admin cancellation reasons (all reasons)
+export const ADMIN_CANCELLATION_REASONS: CancellationReason[] = [
+  'OUT_OF_STOCK',
+  'BUYER_REQUEST',
+  'FRAUD_SUSPECTED',
+  'PAYMENT_ISSUE',
+  'PRODUCTION_ISSUE',
+  'DUPLICATE_ORDER',
+  'OTHER',
+];
+
+/**
+ * Cancellation Service
+ * Handles all cancellation-related API calls
+ */
+export const cancellationService = {
+  /**
+   * Cancel an order (admin only)
+   */
+  async cancelOrder(
+    orderId: string,
+    reason: CancellationReason,
+    notes?: string,
+    processRefund = true
+  ): Promise<{
+    orderId: string;
+    status: string;
+    refundId?: string;
+    refundAmount?: number;
+    cancelledAt: string;
+  }> {
+    const response = await apiClient.post<{
+      success: boolean;
+      message: string;
+      data: {
+        orderId: string;
+        status: string;
+        refundId?: string;
+        refundAmount?: number;
+        cancelledAt: string;
+      };
+    }>(`/orders/${orderId}/cancel`, {
+      reason,
+      notes,
+      processRefund,
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Request cancellation (customer)
+   */
+  async requestCancellation(
+    orderId: string,
+    reason: CancellationReason,
+    notes?: string
+  ): Promise<{
+    requestId: string;
+    orderId: string;
+    status: CancellationRequestStatus;
+    createdAt: string;
+  }> {
+    const response = await apiClient.post<{
+      success: boolean;
+      message: string;
+      data: {
+        requestId: string;
+        orderId: string;
+        status: CancellationRequestStatus;
+        createdAt: string;
+      };
+    }>(`/orders/${orderId}/cancel-request`, {
+      reason,
+      notes,
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Get cancellation request status
+   */
+  async getCancellationRequest(orderId: string): Promise<CancellationRequest | null> {
+    const response = await apiClient.get<{
+      success: boolean;
+      data: CancellationRequest | null;
+    }>(`/orders/${orderId}/cancel-request`);
+    return response.data.data;
+  },
+
+  /**
+   * Review cancellation request (admin only)
+   */
+  async reviewCancellationRequest(
+    orderId: string,
+    action: 'APPROVE' | 'REJECT',
+    notes?: string,
+    processRefund = true
+  ): Promise<{
+    orderId: string;
+    status: string;
+    refundId?: string;
+    refundAmount?: number;
+  }> {
+    const response = await apiClient.post<{
+      success: boolean;
+      message: string;
+      data: {
+        orderId: string;
+        status: string;
+        refundId?: string;
+        refundAmount?: number;
+      };
+    }>(`/orders/${orderId}/cancel-request/review`, {
+      action,
+      notes,
+      processRefund,
+    });
+    return response.data.data;
+  },
 };

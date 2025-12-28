@@ -25,7 +25,17 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ordersService, Order, OrderItem, ORDER_STATUS_LABELS, OrderStatus } from '@/lib/api/orders';
+import {
+  ordersService,
+  Order,
+  OrderItem,
+  ORDER_STATUS_LABELS,
+  OrderStatus,
+  CancellationReason,
+  ADMIN_CANCELLATION_REASONS,
+  CANCELLATION_REASON_LABELS,
+  cancellationService,
+} from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
@@ -78,6 +88,18 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
   const [processIssueModalOpen, setProcessIssueModalOpen] = useState(false);
   const [selectedPendingIssue, setSelectedPendingIssue] = useState<Resolution | null>(null);
   const [processAction, setProcessAction] = useState<'REPRINT' | 'REFUND'>('REPRINT');
+
+  // Cancellation modal states
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState<CancellationReason | ''>('');
+  const [cancellationNotes, setCancellationNotes] = useState('');
+  const [processRefund, setProcessRefund] = useState(true);
+  const [processingCancellation, setProcessingCancellation] = useState(false);
+
+  // Cancellation request review modal
+  const [reviewCancelRequestModal, setReviewCancelRequestModal] = useState(false);
+  const [reviewAction, setReviewAction] = useState<'APPROVE' | 'REJECT'>('APPROVE');
+  const [reviewNotes, setReviewNotes] = useState('');
 
   useEffect(() => {
     if (user && user.userType !== 'PRINTER_ADMIN') {
@@ -237,6 +259,79 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
     }
   };
 
+  const handleCancelOrder = async () => {
+    if (!cancellationReason) {
+      setError('Please select a cancellation reason');
+      return;
+    }
+
+    setProcessingCancellation(true);
+    setError('');
+
+    try {
+      const result = await cancellationService.cancelOrder(
+        orderId,
+        cancellationReason,
+        cancellationNotes || undefined,
+        processRefund
+      );
+
+      setSuccess(
+        result.refundAmount
+          ? `Order cancelled and £${result.refundAmount.toFixed(2)} refunded successfully`
+          : 'Order cancelled successfully'
+      );
+      setCancelModalOpen(false);
+      setCancellationReason('');
+      setCancellationNotes('');
+      setProcessRefund(true);
+
+      // Reload order to get updated status
+      const orderData = await ordersService.get(orderId);
+      setOrder(orderData);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.message || 'Failed to cancel order');
+    } finally {
+      setProcessingCancellation(false);
+    }
+  };
+
+  const handleReviewCancellationRequest = async () => {
+    setProcessingCancellation(true);
+    setError('');
+
+    try {
+      const result = await cancellationService.reviewCancellationRequest(
+        orderId,
+        reviewAction,
+        reviewNotes || undefined,
+        processRefund
+      );
+
+      if (reviewAction === 'APPROVE') {
+        setSuccess(
+          result.refundAmount
+            ? `Cancellation approved and £${result.refundAmount.toFixed(2)} refunded`
+            : 'Cancellation approved'
+        );
+      } else {
+        setSuccess('Cancellation request rejected. Order will continue processing.');
+      }
+
+      setReviewCancelRequestModal(false);
+      setReviewNotes('');
+      setProcessRefund(true);
+
+      // Reload order to get updated status
+      const orderData = await ordersService.get(orderId);
+      setOrder(orderData);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.message || 'Failed to review cancellation request');
+    } finally {
+      setProcessingCancellation(false);
+    }
+  };
+
   // Find pending customer issues
   const pendingIssues = resolutions.filter((r) => r.status === 'PENDING');
 
@@ -248,6 +343,7 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
       printing: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
       shipped: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
       delivered: 'bg-green-500/10 text-green-500 border-green-500/50',
+      cancellation_requested: 'bg-amber-500/10 text-amber-500 border-amber-500/50',
       cancelled: 'bg-red-500/10 text-red-500 border-red-500/50',
       refunded: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
     };
@@ -534,21 +630,91 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
                     </Button>
                   )}
 
-                  {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                    <>
+                  {/* Cancellation Request Pending - Admin Review */}
+                  {order.status === 'cancellation_requested' && (
+                    <div className="space-y-3">
                       <Separator />
-                      <Button
-                        variant="destructive"
-                        className="w-full"
-                        onClick={() => handleUpdateStatus('cancelled')}
-                        disabled={updating}
-                      >
-                        Cancel Order
-                      </Button>
-                    </>
+                      <div className="bg-amber-500/10 border border-amber-500/50 rounded-lg p-3">
+                        <p className="text-sm font-medium text-amber-500 mb-2">
+                          Customer Requested Cancellation
+                        </p>
+                        {order.cancellationRequest && (
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            <p>
+                              <span className="font-medium">Reason:</span>{' '}
+                              {CANCELLATION_REASON_LABELS[order.cancellationRequest.reason]}
+                            </p>
+                            {order.cancellationRequest.notes && (
+                              <p>
+                                <span className="font-medium">Notes:</span>{' '}
+                                {order.cancellationRequest.notes}
+                              </p>
+                            )}
+                            <p>
+                              <span className="font-medium">Requested:</span>{' '}
+                              {new Date(order.cancellationRequest.createdAt).toLocaleDateString('en-GB', {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          onClick={() => {
+                            setReviewAction('APPROVE');
+                            setReviewNotes('');
+                            setProcessRefund(true);
+                            setReviewCancelRequestModal(true);
+                          }}
+                          disabled={processingCancellation}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => {
+                            setReviewAction('REJECT');
+                            setReviewNotes('');
+                            setReviewCancelRequestModal(true);
+                          }}
+                          disabled={processingCancellation}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
                   )}
 
-                  {(order.status === 'delivered' || order.status === 'cancelled') && (
+                  {order.status !== 'cancelled' &&
+                    order.status !== 'refunded' &&
+                    order.status !== 'delivered' &&
+                    order.status !== 'shipped' &&
+                    order.status !== 'cancellation_requested' && (
+                      <>
+                        <Separator />
+                        <Button
+                          variant="destructive"
+                          className="w-full"
+                          onClick={() => {
+                            setCancellationReason('');
+                            setCancellationNotes('');
+                            setProcessRefund(true);
+                            setCancelModalOpen(true);
+                          }}
+                          disabled={updating}
+                        >
+                          Cancel Order
+                        </Button>
+                      </>
+                    )}
+
+                  {(order.status === 'delivered' || order.status === 'cancelled' || order.status === 'refunded') && (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       This order is {order.status}. No further actions available.
                     </p>
@@ -920,6 +1086,163 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
                 loading={processingResolution}
               >
                 {processAction === 'REPRINT' ? 'Approve Reprint' : 'Issue Refund'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Cancel Order Modal */}
+        <Dialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel Order</DialogTitle>
+              <DialogDescription>
+                Cancel this order and optionally issue a refund to the customer.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="bg-red-500/10 border border-red-500/50 text-red-600 px-4 py-3 rounded-lg text-sm">
+                <strong>Warning:</strong> This action cannot be undone. The customer will be notified via email.
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cancel-reason">Cancellation Reason</Label>
+                <Select
+                  value={cancellationReason}
+                  onValueChange={(value) => setCancellationReason(value as CancellationReason)}
+                >
+                  <SelectTrigger id="cancel-reason">
+                    <SelectValue placeholder="Select reason..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ADMIN_CANCELLATION_REASONS.map((reason) => (
+                      <SelectItem key={reason} value={reason}>
+                        {CANCELLATION_REASON_LABELS[reason]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cancel-notes">Notes for Customer (Optional)</Label>
+                <Textarea
+                  id="cancel-notes"
+                  placeholder="Add any notes to include in the cancellation email..."
+                  value={cancellationNotes}
+                  onChange={(e) => setCancellationNotes(e.target.value)}
+                />
+              </div>
+
+              {/* Refund toggle */}
+              <div className="flex items-center justify-between bg-muted/30 p-3 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">Issue Refund</p>
+                  <p className="text-xs text-muted-foreground">
+                    Refund £{Number(order.totalPrice).toFixed(2)} to customer
+                  </p>
+                </div>
+                <Button
+                  variant={processRefund ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setProcessRefund(!processRefund)}
+                >
+                  {processRefund ? 'Yes' : 'No'}
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCancelModalOpen(false)}>
+                Close
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleCancelOrder}
+                disabled={!cancellationReason}
+                loading={processingCancellation}
+              >
+                {processRefund ? 'Cancel & Refund' : 'Cancel Order'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Review Cancellation Request Modal */}
+        <Dialog open={reviewCancelRequestModal} onOpenChange={setReviewCancelRequestModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {reviewAction === 'APPROVE' ? 'Approve Cancellation' : 'Reject Cancellation'}
+              </DialogTitle>
+              <DialogDescription>
+                {reviewAction === 'APPROVE'
+                  ? 'Cancel the order and issue a refund to the customer.'
+                  : 'Reject the cancellation request. The order will continue processing.'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {order.cancellationRequest && (
+                <div className="bg-muted/30 p-3 rounded-lg space-y-2">
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Customer Reason:</span>{' '}
+                    <span className="font-medium">
+                      {CANCELLATION_REASON_LABELS[order.cancellationRequest.reason]}
+                    </span>
+                  </p>
+                  {order.cancellationRequest.notes && (
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Customer Notes:</span>{' '}
+                      <span className="italic">&quot;{order.cancellationRequest.notes}&quot;</span>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {reviewAction === 'APPROVE' && (
+                <div className="flex items-center justify-between bg-muted/30 p-3 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium">Issue Refund</p>
+                    <p className="text-xs text-muted-foreground">
+                      Refund £{Number(order.totalPrice).toFixed(2)} to customer
+                    </p>
+                  </div>
+                  <Button
+                    variant={processRefund ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setProcessRefund(!processRefund)}
+                  >
+                    {processRefund ? 'Yes' : 'No'}
+                  </Button>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="review-notes">
+                  {reviewAction === 'APPROVE' ? 'Notes (Optional)' : 'Rejection Reason'}
+                </Label>
+                <Textarea
+                  id="review-notes"
+                  placeholder={
+                    reviewAction === 'APPROVE'
+                      ? 'Add any notes for the customer...'
+                      : 'Explain why the cancellation was rejected...'
+                  }
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setReviewCancelRequestModal(false)}>
+                Close
+              </Button>
+              <Button
+                variant={reviewAction === 'APPROVE' ? 'default' : 'destructive'}
+                className={reviewAction === 'APPROVE' ? 'bg-green-600 hover:bg-green-700' : ''}
+                onClick={handleReviewCancellationRequest}
+                loading={processingCancellation}
+              >
+                {reviewAction === 'APPROVE' ? 'Approve Cancellation' : 'Reject Request'}
               </Button>
             </DialogFooter>
           </DialogContent>

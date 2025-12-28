@@ -856,6 +856,14 @@ model Issue {
   rejectionReason String?          @map("rejection_reason")
   rejectionFinal  Boolean          @default(false) @map("rejection_final")
 
+  // Carrier claim tracking (for Royal Mail insurance claims)
+  claimReference    String?        @map("claim_reference") @db.VarChar(100)
+  claimStatus       ClaimStatus    @default(NOT_FILED) @map("claim_status")
+  claimSubmittedAt  DateTime?      @map("claim_submitted_at")
+  claimPayoutAmount Decimal?       @map("claim_payout_amount") @db.Decimal(10, 2)
+  claimPaidAt       DateTime?      @map("claim_paid_at")
+  claimNotes        String?        @map("claim_notes")
+
   // Timestamps
   createdBy       String           @map("created_by") @db.Uuid
   createdAt       DateTime         @default(now()) @map("created_at")
@@ -917,6 +925,16 @@ enum CarrierFault {
   UNKNOWN             // Not yet determined
   CARRIER_FAULT       // Carrier is at fault (for insurance claims)
   NOT_CARRIER_FAULT   // Not carrier's fault
+}
+
+// Carrier insurance claim status
+enum ClaimStatus {
+  NOT_FILED           // No claim filed yet
+  SUBMITTED           // Claim submitted to carrier
+  UNDER_REVIEW        // Carrier reviewing claim
+  APPROVED            // Claim approved, awaiting payment
+  REJECTED            // Claim rejected by carrier
+  PAID                // Compensation received
 }
 
 // Issue reasons (enhanced from ResolutionReason)

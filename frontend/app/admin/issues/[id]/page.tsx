@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 import { format, formatDistanceToNow } from 'date-fns';
-import { AlertCircle, Check, X, MessageSquare, Truck, RefreshCw, DollarSign, Info } from 'lucide-react';
+import { AlertCircle, Check, X, MessageSquare, Truck, RefreshCw, DollarSign, Info, FileText, Download } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 type IssueStatus =
   | 'SUBMITTED'
@@ -53,6 +54,13 @@ interface Issue {
   stripeRefundId: string | null;
   rejectionReason: string | null;
   rejectionFinal: boolean;
+  // Claim tracking
+  claimReference: string | null;
+  claimStatus: 'NOT_FILED' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'PAID';
+  claimSubmittedAt: string | null;
+  claimPayoutAmount: number | null;
+  claimPaidAt: string | null;
+  claimNotes: string | null;
   createdAt: string;
   reviewedAt: string | null;
   processedAt: string | null;
@@ -168,6 +176,14 @@ function AdminIssueDetailContent() {
   const [refundType, setRefundType] = useState<'FULL_REFUND' | 'PARTIAL_REFUND'>('FULL_REFUND');
   const [processNotes, setProcessNotes] = useState('');
 
+  // Claim management
+  const [claimReference, setClaimReference] = useState('');
+  const [claimStatus, setClaimStatus] = useState<string>('NOT_FILED');
+  const [claimPayoutAmount, setClaimPayoutAmount] = useState('');
+  const [claimNotes, setClaimNotes] = useState('');
+  const [claimSaving, setClaimSaving] = useState(false);
+  const [downloadingReport, setDownloadingReport] = useState(false);
+
   useEffect(() => {
     if (user && user.userType !== 'PRINTER_ADMIN') {
       router.push('/dashboard');
@@ -181,6 +197,16 @@ function AdminIssueDetailContent() {
   useEffect(() => {
     scrollToBottom();
   }, [issue?.messages]);
+
+  // Sync claim fields when issue loads
+  useEffect(() => {
+    if (issue) {
+      setClaimReference(issue.claimReference || '');
+      setClaimStatus(issue.claimStatus || 'NOT_FILED');
+      setClaimPayoutAmount(issue.claimPayoutAmount ? String(issue.claimPayoutAmount) : '');
+      setClaimNotes(issue.claimNotes || '');
+    }
+  }, [issue]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -269,6 +295,58 @@ function AdminIssueDetailContent() {
       alert(error?.response?.data?.error || 'Failed to update carrier fault');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleSaveClaim = async () => {
+    if (claimSaving) return;
+
+    try {
+      setClaimSaving(true);
+      await apiClient.put(`/admin/issues/${issueId}/claim`, {
+        claimReference: claimReference || undefined,
+        claimStatus: claimStatus,
+        claimPayoutAmount: claimPayoutAmount ? parseFloat(claimPayoutAmount) : undefined,
+        claimNotes: claimNotes || undefined,
+      });
+      await fetchIssue();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      alert(error?.response?.data?.error || 'Failed to update claim');
+    } finally {
+      setClaimSaving(false);
+    }
+  };
+
+  const handleDownloadClaimReport = async () => {
+    if (downloadingReport) return;
+
+    try {
+      setDownloadingReport(true);
+      const response = await fetch(`/api/admin/issues/${issueId}/claim-report`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to download report');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `claim-report-${issue?.orderItem.order.trackingNumber || issueId.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      alert(error?.message || 'Failed to download claim report');
+    } finally {
+      setDownloadingReport(false);
     }
   };
 
@@ -585,6 +663,113 @@ function AdminIssueDetailContent() {
                 </Select>
               </CardContent>
             </Card>
+
+            {/* Insurance Claim - Only show for carrier fault issues */}
+            {issue.carrierFault === 'CARRIER_FAULT' && (
+              <Card className="border-red-500/30">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Insurance Claim
+                  </CardTitle>
+                  <CardDescription>
+                    Royal Mail compensation claim tracking
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Download Report Button */}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleDownloadClaimReport}
+                    disabled={downloadingReport}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    {downloadingReport ? 'Generating...' : 'Download Claim Report PDF'}
+                  </Button>
+
+                  {/* Claim Status */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Claim Status</Label>
+                    <Select
+                      value={claimStatus}
+                      onValueChange={setClaimStatus}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NOT_FILED">Not Filed</SelectItem>
+                        <SelectItem value="SUBMITTED">Submitted</SelectItem>
+                        <SelectItem value="UNDER_REVIEW">Under Review</SelectItem>
+                        <SelectItem value="APPROVED">Approved</SelectItem>
+                        <SelectItem value="REJECTED">Rejected</SelectItem>
+                        <SelectItem value="PAID">Paid</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Claim Reference */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Claim Reference</Label>
+                    <Input
+                      placeholder="e.g., RM-12345678"
+                      value={claimReference}
+                      onChange={(e) => setClaimReference(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  {/* Payout Amount - show if approved or paid */}
+                  {(claimStatus === 'APPROVED' || claimStatus === 'PAID') && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Payout Amount (£)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={claimPayoutAmount}
+                        onChange={(e) => setClaimPayoutAmount(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Notes</Label>
+                    <Textarea
+                      placeholder="Any notes about this claim..."
+                      value={claimNotes}
+                      onChange={(e) => setClaimNotes(e.target.value)}
+                      rows={2}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  {/* Save Button */}
+                  <Button
+                    onClick={handleSaveClaim}
+                    disabled={claimSaving}
+                    className="w-full"
+                  >
+                    {claimSaving ? 'Saving...' : 'Save Claim Details'}
+                  </Button>
+
+                  {/* Show submitted date if available */}
+                  {issue.claimSubmittedAt && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Submitted: {format(new Date(issue.claimSubmittedAt), 'dd MMM yyyy')}
+                    </p>
+                  )}
+                  {issue.claimPaidAt && (
+                    <p className="text-xs text-green-500 text-center">
+                      Paid: {format(new Date(issue.claimPaidAt), 'dd MMM yyyy')} - £{issue.claimPayoutAmount?.toFixed(2)}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Order Info */}
             <Card>

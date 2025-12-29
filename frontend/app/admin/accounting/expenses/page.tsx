@@ -174,6 +174,9 @@ function ExpensesContent() {
   // Receipt scanner
   const [showScanner, setShowScanner] = useState(false);
 
+  // Auto-calculate VAT
+  const [autoCalculateVat, setAutoCalculateVat] = useState(true);
+
   const availableTaxYears = getAvailableTaxYears();
 
   // Redirect if not admin
@@ -276,7 +279,21 @@ function ExpensesContent() {
   };
 
   const handleFormChange = (field: keyof ExpenseFormData, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+
+      // Auto-calculate VAT when amount or vatRate changes
+      if (autoCalculateVat && (field === 'amount' || field === 'vatRate')) {
+        const amount = parseFloat(field === 'amount' ? String(value) : updated.amount);
+        const vatRate = parseFloat(field === 'vatRate' ? String(value) : updated.vatRate) || 20;
+        if (amount > 0) {
+          const vatAmount = (amount * vatRate) / (100 + vatRate);
+          updated.vatAmount = vatAmount.toFixed(2);
+        }
+      }
+
+      return updated;
+    });
   };
 
   const calculateVAT = () => {
@@ -746,7 +763,21 @@ function ExpensesContent() {
             )}
 
             <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">VAT Details</h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium">VAT Details</h4>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="autoCalculateVat" className="text-xs text-muted-foreground cursor-pointer">
+                    Auto-calculate
+                  </Label>
+                  <input
+                    type="checkbox"
+                    id="autoCalculateVat"
+                    checked={autoCalculateVat}
+                    onChange={(e) => setAutoCalculateVat(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="vatRate">VAT Rate (%)</Label>
@@ -768,15 +799,17 @@ function ExpensesContent() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="vatAmount">VAT Amount</Label>
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="sm"
-                      className="h-auto p-0 text-xs"
-                      onClick={calculateVAT}
-                    >
-                      Calculate
-                    </Button>
+                    {!autoCalculateVat && (
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 text-xs"
+                        onClick={calculateVAT}
+                      >
+                        Calculate
+                      </Button>
+                    )}
                   </div>
                   <Input
                     id="vatAmount"
@@ -786,6 +819,7 @@ function ExpensesContent() {
                     value={formData.vatAmount}
                     onChange={(e) => handleFormChange('vatAmount', e.target.value)}
                     placeholder="0.00"
+                    disabled={autoCalculateVat}
                   />
                 </div>
               </div>

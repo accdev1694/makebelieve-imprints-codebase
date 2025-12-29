@@ -132,6 +132,9 @@ function IncomeManagementContent() {
   // Receipt scanner
   const [showScanner, setShowScanner] = useState(false);
 
+  // Auto-calculate VAT
+  const [autoCalculateVat, setAutoCalculateVat] = useState(true);
+
   // Redirect if not admin
   useEffect(() => {
     if (user && user.userType !== 'PRINTER_ADMIN') {
@@ -608,7 +611,17 @@ function IncomeManagementContent() {
                   type="number"
                   step="0.01"
                   value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  onChange={(e) => {
+                    const newAmount = e.target.value;
+                    if (autoCalculateVat) {
+                      const amount = parseFloat(newAmount);
+                      const vatRate = parseFloat(formData.vatRate) || 20;
+                      const vatAmount = amount > 0 ? (amount * vatRate) / (100 + vatRate) : 0;
+                      setFormData({ ...formData, amount: newAmount, vatAmount: vatAmount.toFixed(2) });
+                    } else {
+                      setFormData({ ...formData, amount: newAmount });
+                    }
+                  }}
                   placeholder="0.00"
                 />
               </div>
@@ -665,28 +678,56 @@ function IncomeManagementContent() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="vatAmount">VAT Amount</Label>
-                <Input
-                  id="vatAmount"
-                  type="number"
-                  step="0.01"
-                  value={formData.vatAmount}
-                  onChange={(e) => setFormData({ ...formData, vatAmount: e.target.value })}
-                  placeholder="0.00"
-                />
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-sm">VAT Details</h4>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="autoCalculateVatIncome" className="text-xs text-muted-foreground cursor-pointer">
+                    Auto-calculate
+                  </Label>
+                  <input
+                    type="checkbox"
+                    id="autoCalculateVatIncome"
+                    checked={autoCalculateVat}
+                    onChange={(e) => setAutoCalculateVat(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="vatRate">VAT Rate (%)</Label>
-                <Input
-                  id="vatRate"
-                  type="number"
-                  step="0.1"
-                  value={formData.vatRate}
-                  onChange={(e) => setFormData({ ...formData, vatRate: e.target.value })}
-                  placeholder="20"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="vatRate">VAT Rate (%)</Label>
+                  <Input
+                    id="vatRate"
+                    type="number"
+                    step="0.1"
+                    value={formData.vatRate}
+                    onChange={(e) => {
+                      const newRate = e.target.value;
+                      if (autoCalculateVat && formData.amount) {
+                        const amount = parseFloat(formData.amount);
+                        const vatRate = parseFloat(newRate) || 20;
+                        const vatAmount = amount > 0 ? (amount * vatRate) / (100 + vatRate) : 0;
+                        setFormData({ ...formData, vatRate: newRate, vatAmount: vatAmount.toFixed(2) });
+                      } else {
+                        setFormData({ ...formData, vatRate: newRate });
+                      }
+                    }}
+                    placeholder="20"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="vatAmount">VAT Amount</Label>
+                  <Input
+                    id="vatAmount"
+                    type="number"
+                    step="0.01"
+                    value={formData.vatAmount}
+                    onChange={(e) => setFormData({ ...formData, vatAmount: e.target.value })}
+                    placeholder="0.00"
+                    disabled={autoCalculateVat}
+                  />
+                </div>
               </div>
             </div>
 

@@ -913,7 +913,6 @@ function ExpensesContent() {
           <ReceiptScanner
             mode="expense"
             onDataExtracted={handleReceiptData}
-            onClose={() => setShowScanner(false)}
           />
         </DialogContent>
       </Dialog>

@@ -803,7 +803,6 @@ function IncomeManagementContent() {
           <ReceiptScanner
             mode="income"
             onDataExtracted={handleReceiptData}
-            onClose={() => setShowScanner(false)}
           />
         </DialogContent>
       </Dialog>

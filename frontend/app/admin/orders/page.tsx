@@ -79,6 +79,7 @@ function AdminOrdersContent() {
       printing: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
       shipped: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
       delivered: 'bg-green-500/10 text-green-500 border-green-500/50',
+      cancellation_requested: 'bg-amber-500/10 text-amber-500 border-amber-500/50',
       cancelled: 'bg-red-500/10 text-red-500 border-red-500/50',
       refunded: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
     };
@@ -93,6 +94,7 @@ function AdminOrdersContent() {
       printing: 'shipped',
       shipped: 'delivered',
       delivered: null,
+      cancellation_requested: null,
       cancelled: null,
       refunded: null,
     };

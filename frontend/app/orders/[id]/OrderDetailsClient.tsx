@@ -951,7 +951,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
 
                   <div className="space-y-2">
                     <Label htmlFor="cancel-reason">Why do you want to cancel? <span className="text-destructive">*</span></Label>
-                    <Select value={cancelReason} onValueChange={(value) => setCancelReason(value as CancellationReason)}>
+                    <Select value={cancelReason} onValueChange={(value: string) => setCancelReason(value as CancellationReason)}>
                       <SelectTrigger id="cancel-reason">
                         <SelectValue placeholder="Select reason..." />
                       </SelectTrigger>

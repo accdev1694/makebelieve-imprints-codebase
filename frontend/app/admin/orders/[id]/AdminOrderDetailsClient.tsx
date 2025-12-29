@@ -1109,7 +1109,7 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
                 <Label htmlFor="cancel-reason">Cancellation Reason</Label>
                 <Select
                   value={cancellationReason}
-                  onValueChange={(value) => setCancellationReason(value as CancellationReason)}
+                  onValueChange={(value: string) => setCancellationReason(value as CancellationReason)}
                 >
                   <SelectTrigger id="cancel-reason">
                     <SelectValue placeholder="Select reason..." />

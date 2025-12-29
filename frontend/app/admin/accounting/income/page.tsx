@@ -102,19 +102,55 @@ function formatDate(dateString: string): string {
   });
 }
 
-function getAvailableMonths(): { value: string; label: string }[] {
-  const months: { value: string; label: string }[] = [];
-  const now = new Date();
+// Simple month list for filtering within a tax year (ordered by UK tax year: Apr-Mar)
+const MONTHS = [
+  { value: '4', label: 'April' },
+  { value: '5', label: 'May' },
+  { value: '6', label: 'June' },
+  { value: '7', label: 'July' },
+  { value: '8', label: 'August' },
+  { value: '9', label: 'September' },
+  { value: '10', label: 'October' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'December' },
+  { value: '1', label: 'January' },
+  { value: '2', label: 'February' },
+  { value: '3', label: 'March' },
+];
 
-  // Generate last 24 months
-  for (let i = 0; i < 24; i++) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const label = date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-    months.push({ value, label });
+// Calculate date range for a month within a UK tax year
+function getMonthDateRange(taxYear: string, month: string): { startDate: string; endDate: string } {
+  const [startYear] = taxYear.split('-').map(Number);
+  const monthNum = parseInt(month);
+
+  // UK tax year: April-December are in startYear, January-March are in startYear+1
+  const year = monthNum >= 4 ? startYear : startYear + 1;
+
+  const startDate = new Date(year, monthNum - 1, 1);
+  const endDate = new Date(year, monthNum, 0); // Last day of month
+
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0],
+  };
+}
+
+function getAvailableTaxYears(): string[] {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const day = now.getDate();
+
+  let currentStartYear = year;
+  if (month < 3 || (month === 3 && day < 6)) {
+    currentStartYear = year - 1;
   }
 
-  return months;
+  const years: string[] = [];
+  for (let y = 2020; y <= currentStartYear; y++) {
+    years.push(`${y}-${y + 1}`);
+  }
+  return years.reverse();
 }
 
 function IncomeManagementContent() {
@@ -130,10 +166,11 @@ function IncomeManagementContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [sourceFilter, setSourceFilter] = useState('');
+  const [filterTaxYear, setFilterTaxYear] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const availableMonths = getAvailableMonths();
+  const availableTaxYears = getAvailableTaxYears();
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -175,12 +212,12 @@ function IncomeManagementContent() {
       if (searchQuery) params.set('search', searchQuery);
       if (categoryFilter) params.set('category', categoryFilter);
       if (sourceFilter) params.set('source', sourceFilter);
-      if (filterMonth) {
-        const [year, month] = filterMonth.split('-');
-        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-        const endDate = new Date(parseInt(year), parseInt(month), 0);
-        params.set('startDate', startDate.toISOString().split('T')[0]);
-        params.set('endDate', endDate.toISOString().split('T')[0]);
+      if (filterTaxYear) params.set('taxYear', filterTaxYear);
+      // Month filter only works when tax year is selected
+      if (filterMonth && filterTaxYear) {
+        const { startDate, endDate } = getMonthDateRange(filterTaxYear, filterMonth);
+        params.set('startDate', startDate);
+        params.set('endDate', endDate);
       }
 
       const response = await apiClient.get<{
@@ -209,7 +246,7 @@ function IncomeManagementContent() {
 
   useEffect(() => {
     fetchIncome();
-  }, [page, searchQuery, categoryFilter, sourceFilter, filterMonth, sortOrder]);
+  }, [page, searchQuery, categoryFilter, sourceFilter, filterTaxYear, filterMonth, sortOrder]);
 
   const handleAddIncome = async () => {
     setFormError('');
@@ -444,7 +481,30 @@ function IncomeManagementContent() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="w-[180px]">
+              <div className="w-[160px]">
+                <Label className="text-sm text-muted-foreground mb-2 block">Tax Year</Label>
+                <Select
+                  value={filterTaxYear || 'all'}
+                  onValueChange={(value: string) => {
+                    setFilterTaxYear(value === 'all' ? '' : value);
+                    setFilterMonth(''); // Clear month when tax year changes
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Years" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Years</SelectItem>
+                    {availableTaxYears.map((year) => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-[140px]">
                 <Label className="text-sm text-muted-foreground mb-2 block">Month</Label>
                 <Select
                   value={filterMonth || 'all'}
@@ -452,13 +512,14 @@ function IncomeManagementContent() {
                     setFilterMonth(value === 'all' ? '' : value);
                     setPage(1);
                   }}
+                  disabled={!filterTaxYear}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="All Months" />
+                    <SelectValue placeholder={filterTaxYear ? "All Months" : "Select year first"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Months</SelectItem>
-                    {availableMonths.map((month) => (
+                    {MONTHS.map((month) => (
                       <SelectItem key={month.value} value={month.value}>
                         {month.label}
                       </SelectItem>
@@ -466,7 +527,7 @@ function IncomeManagementContent() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="w-[160px]">
+              <div className="w-[140px]">
                 <Label className="text-sm text-muted-foreground mb-2 block">Source</Label>
                 <Input
                   placeholder="Filter by source..."
@@ -491,13 +552,14 @@ function IncomeManagementContent() {
                   )}
                 </Button>
               </div>
-              {(searchQuery || categoryFilter || sourceFilter || filterMonth) && (
+              {(searchQuery || categoryFilter || sourceFilter || filterTaxYear || filterMonth) && (
                 <Button
                   variant="ghost"
                   onClick={() => {
                     setSearchQuery('');
                     setCategoryFilter('');
                     setSourceFilter('');
+                    setFilterTaxYear('');
                     setFilterMonth('');
                     setPage(1);
                   }}

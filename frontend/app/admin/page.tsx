@@ -238,9 +238,11 @@ function AdminDashboardContent() {
             <Link href="/admin/campaigns">
               <Button variant="outline">Email Campaigns</Button>
             </Link>
-            <Button variant="outline" disabled>
-              Reports (Coming Soon)
-            </Button>
+            <Link href="/admin/accounting">
+              <Button variant="outline" className="border-green-500/50 text-green-500 hover:text-green-600">
+                Accounting
+              </Button>
+            </Link>
             <Button variant="outline" disabled>
               Settings (Coming Soon)
             </Button>

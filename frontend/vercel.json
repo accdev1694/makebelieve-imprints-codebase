@@ -6,5 +6,11 @@
     "app/api/orders/[id]/items/[itemId]/issue/route.ts": {
       "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/weekly-financial-report",
+      "schedule": "0 9 * * 1"
+    }
+  ]
 }

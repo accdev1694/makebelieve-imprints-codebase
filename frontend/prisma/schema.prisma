@@ -415,12 +415,29 @@ model Expense {
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
   notes              String?
+
+  // VAT tracking for expense deductions
+  vatAmount          Decimal?            @map("vat_amount") @db.Decimal(10, 2)
+  vatRate            Decimal?            @map("vat_rate") @db.Decimal(5, 2)
+  isVatReclaimable   Boolean             @default(false) @map("is_vat_reclaimable")
+
+  // Import source tracking
+  importSource       ExpenseImportSource @default(MANUAL) @map("import_source")
+  importBatchId      String?             @map("import_batch_id") @db.Uuid
+  externalReference  String?             @map("external_reference") @db.VarChar(255)
+
+  // Tax year tracking
+  taxYear            String?             @map("tax_year") @db.VarChar(9)
+
   supplier           Supplier?           @relation(fields: [supplierId], references: [id])
+  importBatch        ExpenseImportBatch? @relation(fields: [importBatchId], references: [id])
   inventoryAdditions InventoryAddition[]
 
   @@index([category])
   @@index([supplierId])
   @@index([purchaseDate(sort: Desc)])
+  @@index([taxYear])
+  @@index([importBatchId])
   @@map("expenses")
 }
 
@@ -510,10 +527,54 @@ model FinancialReport {
   pdfUrl        String?      @map("pdf_url") @db.VarChar(500)
   createdAt     DateTime     @default(now()) @map("created_at")
 
+  // Enhanced UK tax compliance fields
+  vatReclaimable     Decimal?            @map("vat_reclaimable") @db.Decimal(10, 2)
+  costOfGoodsSold    Decimal?            @map("cost_of_goods_sold") @db.Decimal(10, 2)
+  grossProfit        Decimal?            @map("gross_profit") @db.Decimal(10, 2)
+  expensesByCategory Json?               @map("expenses_by_category")
+  reportType         FinancialReportType @default(SUMMARY) @map("report_type")
+  taxYear            String?             @map("tax_year") @db.VarChar(9)
+
   @@index([period])
   @@index([startDate, endDate])
   @@index([createdAt(sort: Desc)])
+  @@index([reportType])
+  @@index([taxYear])
   @@map("financial_reports")
+}
+
+model ExpenseImportBatch {
+  id           String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  source       ExpenseImportSource
+  fileName     String?             @map("file_name") @db.VarChar(255)
+  recordCount  Int                 @map("record_count")
+  successCount Int                 @default(0) @map("success_count")
+  errorCount   Int                 @default(0) @map("error_count")
+  errors       Json?
+  status       ImportBatchStatus   @default(PENDING)
+  importedBy   String              @map("imported_by") @db.Uuid
+  createdAt    DateTime            @default(now()) @map("created_at")
+  completedAt  DateTime?           @map("completed_at")
+
+  expenses     Expense[]
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("expense_import_batches")
+}
+
+model WeeklyEmailReport {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  weekStartDate DateTime @map("week_start_date")
+  weekEndDate   DateTime @map("week_end_date")
+  emailSentTo   String   @map("email_sent_to") @db.VarChar(255)
+  emailSentAt   DateTime @map("email_sent_at")
+  reportData    Json     @map("report_data")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([weekStartDate, weekEndDate])
+  @@index([weekStartDate(sort: Desc)])
+  @@map("weekly_email_reports")
 }
 
 enum UserType {
@@ -659,6 +720,28 @@ enum ReportPeriod {
   WEEKLY
   MONTHLY
   YEARLY
+}
+
+enum ExpenseImportSource {
+  MANUAL
+  CSV_IMPORT
+  AMAZON_API
+  EBAY_API
+  SUPPLIER_INTEGRATION
+}
+
+enum ImportBatchStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum FinancialReportType {
+  SUMMARY
+  PROFIT_LOSS
+  VAT_RETURN
+  TAX_YEAR_END
 }
 
 // ============================================

@@ -248,9 +248,11 @@ export function ReceiptScanner({ onDataExtracted, onClose, mode }: ReceiptScanne
           <Upload className="h-4 w-4 mr-2" />
           Choose File
         </Button>
+        {/* Hide camera button on desktop - only useful on mobile/tablet */}
         <Button
           variant="outline"
           onClick={() => cameraInputRef.current?.click()}
+          className="lg:hidden"
         >
           <Camera className="h-4 w-4 mr-2" />
           Take Photo

@@ -114,11 +114,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check if issue is still open for messages
-    const closedStatuses = ['COMPLETED', 'CLOSED'];
-    if (closedStatuses.includes(issue.status)) {
+    // Check if issue is concluded (no further actions allowed)
+    if (issue.isConcluded) {
       return NextResponse.json(
-        { error: 'This issue has been closed and no longer accepts messages' },
+        { error: 'This issue has been concluded and no longer accepts messages' },
         { status: 400 }
       );
     }

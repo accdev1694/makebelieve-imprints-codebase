@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import apiClient from '@/lib/api/client';
 import { formatDistanceToNow } from 'date-fns';
+import { Lock } from 'lucide-react';
 
 type IssueStatus =
   | 'SUBMITTED'
@@ -29,6 +30,7 @@ interface Issue {
   resolvedType: 'REPRINT' | 'FULL_REFUND' | 'PARTIAL_REFUND' | null;
   reprintOrderId: string | null;
   refundAmount: number | null;
+  isConcluded: boolean;
   createdAt: string;
   processedAt: string | null;
   unreadCount: number;
@@ -130,15 +132,15 @@ function IssuesContent() {
 
   const filteredIssues = issues.filter((issue) => {
     if (filter === 'active') {
-      return !['COMPLETED', 'CLOSED'].includes(issue.status);
+      return !issue.isConcluded;
     }
     if (filter === 'resolved') {
-      return ['COMPLETED', 'CLOSED'].includes(issue.status);
+      return issue.isConcluded;
     }
     return true;
   });
 
-  const activeCount = issues.filter((i) => !['COMPLETED', 'CLOSED'].includes(i.status)).length;
+  const activeCount = issues.filter((i) => !i.isConcluded).length;
   const totalUnread = issues.reduce((sum, i) => sum + i.unreadCount, 0);
 
   // Group issues by order
@@ -303,12 +305,18 @@ function IssuesContent() {
                               <Badge className={`${STATUS_COLORS[issue.status]} border`}>
                                 {STATUS_LABELS[issue.status]}
                               </Badge>
+                              {issue.isConcluded && (
+                                <Badge className="bg-gray-500/10 text-gray-500 border-gray-500/50 border">
+                                  <Lock className="w-3 h-3 mr-1" />
+                                  Concluded
+                                </Badge>
+                              )}
                               {issue.unreadCount > 0 && (
                                 <Badge variant="destructive" className="animate-pulse">
                                   {issue.unreadCount} new
                                 </Badge>
                               )}
-                              {issue.status === 'INFO_REQUESTED' && (
+                              {issue.status === 'INFO_REQUESTED' && !issue.isConcluded && (
                                 <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/50 border">
                                   Action Required
                                 </Badge>

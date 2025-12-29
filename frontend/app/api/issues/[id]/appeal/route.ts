@@ -53,6 +53,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Check if issue is concluded (no further actions allowed)
+    if (issue.isConcluded) {
+      return NextResponse.json(
+        { error: 'This issue has been concluded and cannot be appealed' },
+        { status: 400 }
+      );
+    }
+
     // Check if issue is in REJECTED status
     if (issue.status !== 'REJECTED') {
       return NextResponse.json(

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import apiClient from '@/lib/api/client';
 import { storageService } from '@/lib/api/storage';
 import { format, formatDistanceToNow } from 'date-fns';
-import { X, Camera } from 'lucide-react';
+import { X, Camera, Lock } from 'lucide-react';
 
 type IssueStatus =
   | 'SUBMITTED'
@@ -49,6 +49,10 @@ interface Issue {
   refundAmount: number | null;
   rejectionReason: string | null;
   rejectionFinal: boolean;
+  isConcluded: boolean;
+  concludedAt: string | null;
+  concludedBy: string | null;
+  concludedReason: string | null;
   createdAt: string;
   reviewedAt: string | null;
   processedAt: string | null;
@@ -271,9 +275,9 @@ function IssueDetailContent() {
     return issue.orderItem.design?.previewUrl || issue.orderItem.design?.fileUrl || null;
   };
 
-  const canSendMessage = issue && !['COMPLETED', 'CLOSED'].includes(issue.status);
-  const canWithdraw = issue && ['SUBMITTED', 'AWAITING_REVIEW'].includes(issue.status);
-  const canAppeal = issue && issue.status === 'REJECTED' && !issue.rejectionFinal;
+  const canSendMessage = issue && !issue.isConcluded;
+  const canWithdraw = issue && !issue.isConcluded && ['SUBMITTED', 'AWAITING_REVIEW'].includes(issue.status);
+  const canAppeal = issue && !issue.isConcluded && issue.status === 'REJECTED' && !issue.rejectionFinal;
 
   if (loading) {
     return (
@@ -321,9 +325,17 @@ function IssueDetailContent() {
               <span className="text-neon-gradient">Issue Details</span>
             </h1>
           </div>
-          <Badge className={`${STATUS_COLORS[issue.status]} border`}>
-            {STATUS_LABELS[issue.status]}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge className={`${STATUS_COLORS[issue.status]} border`}>
+              {STATUS_LABELS[issue.status]}
+            </Badge>
+            {issue.isConcluded && (
+              <Badge className="bg-gray-600/10 text-gray-600 border-gray-600/50 border">
+                <Lock className="w-3 h-3 mr-1" />
+                Concluded
+              </Badge>
+            )}
+          </div>
         </div>
       </header>
 
@@ -484,6 +496,31 @@ function IssueDetailContent() {
                   <p className="text-sm text-muted-foreground mt-1">
                     Please review the latest message from our team and provide the requested information.
                   </p>
+                </div>
+              )}
+
+              {/* Issue Concluded Notice */}
+              {issue.isConcluded && (
+                <div className="mt-4 p-3 bg-gray-500/10 border border-gray-500/30 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <Lock className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-gray-500">Issue Concluded</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        This issue has been concluded and no further actions are possible.
+                        {issue.concludedAt && (
+                          <span className="block mt-1">
+                            Concluded on {format(new Date(issue.concludedAt), 'PPP')}
+                          </span>
+                        )}
+                        {issue.concludedReason && (
+                          <span className="block mt-1 italic">
+                            &quot;{issue.concludedReason}&quot;
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -672,9 +709,10 @@ function IssueDetailContent() {
                 </div>
               )}
 
-              {!canSendMessage && (
+              {!canSendMessage && issue.isConcluded && (
                 <div className="mt-4 pt-4 border-t border-border text-center text-sm text-muted-foreground">
-                  This issue has been closed and no longer accepts messages.
+                  <Lock className="w-4 h-4 inline mr-1" />
+                  This issue has been concluded. The correspondence history is preserved for your records.
                 </div>
               )}
             </CardContent>

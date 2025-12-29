@@ -118,7 +118,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           },
         });
 
-        // Update issue
+        // Update issue and auto-conclude
         const updatedIssue = await tx.issue.update({
           where: { id: issueId },
           data: {
@@ -127,6 +127,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             reprintOrderId: reprintOrder.id,
             reprintItemId: reprintItem.id,
             processedAt: new Date(),
+            // Auto-conclude on completion
+            isConcluded: true,
+            concludedAt: new Date(),
+            concludedBy: admin.userId,
           },
         });
 
@@ -225,7 +229,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       // Refund succeeded - update everything
       const result = await prisma.$transaction(async (tx) => {
-        // Update issue
+        // Update issue and auto-conclude
         const updatedIssue = await tx.issue.update({
           where: { id: issueId },
           data: {
@@ -234,6 +238,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             refundAmount: refundResult.amount || refundAmount,
             stripeRefundId: refundResult.refundId,
             processedAt: new Date(),
+            // Auto-conclude on completion
+            isConcluded: true,
+            concludedAt: new Date(),
+            concludedBy: admin.userId,
           },
         });
 

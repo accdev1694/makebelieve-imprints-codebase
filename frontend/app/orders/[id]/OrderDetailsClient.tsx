@@ -27,7 +27,7 @@ import { storageService } from '@/lib/api/storage';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Camera, AlertCircle, MessageSquare } from 'lucide-react';
+import { X, Camera, AlertCircle, MessageSquare, Lock } from 'lucide-react';
 
 // Enhanced issue reasons with NEVER_ARRIVED
 const ISSUE_REASONS = [
@@ -89,6 +89,7 @@ interface ItemIssue {
   reprintOrderId: string | null;
   refundAmount: number | null;
   rejectionReason: string | null;
+  isConcluded: boolean;
   createdAt: string;
   processedAt: string | null;
   unreadCount?: number;
@@ -516,10 +517,17 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                             </div>
                             {/* Issue Status Badge */}
                             {hasIssue && (
-                              <Badge className={`${getIssueStatusColor(itemIssue.status)} border text-xs`}>
-                                <AlertCircle className="w-3 h-3 mr-1" />
-                                {ISSUE_STATUS_LABELS[itemIssue.status] || itemIssue.status}
-                              </Badge>
+                              <div className="flex items-center gap-1">
+                                <Badge className={`${getIssueStatusColor(itemIssue.status)} border text-xs`}>
+                                  <AlertCircle className="w-3 h-3 mr-1" />
+                                  {ISSUE_STATUS_LABELS[itemIssue.status] || itemIssue.status}
+                                </Badge>
+                                {itemIssue.isConcluded && (
+                                  <Badge className="bg-gray-500/10 text-gray-500 border-gray-500/50 border text-xs">
+                                    <Lock className="w-3 h-3" />
+                                  </Badge>
+                                )}
+                              </div>
                             )}
                           </div>
                           <div className="flex justify-between mt-2">

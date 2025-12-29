@@ -78,12 +78,17 @@ export async function POST(request: NextRequest) {
 
     for (const issue of issuesToClose) {
       await prisma.$transaction(async (tx) => {
-        // Update issue status to CLOSED
+        // Update issue status to CLOSED and auto-conclude
         await tx.issue.update({
           where: { id: issue.id },
           data: {
             status: 'CLOSED',
             closedAt: new Date(),
+            // Auto-conclude on closure
+            isConcluded: true,
+            concludedAt: new Date(),
+            concludedBy: null, // System action
+            concludedReason: 'Auto-closed due to no response',
           },
         });
 

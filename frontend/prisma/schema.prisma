@@ -934,11 +934,18 @@ model Issue {
   processedAt     DateTime?        @map("processed_at")
   closedAt        DateTime?        @map("closed_at")
 
+  // Conclusion tracking (prevents further customer actions)
+  isConcluded     Boolean          @default(false) @map("is_concluded")
+  concludedAt     DateTime?        @map("concluded_at")
+  concludedBy     String?          @map("concluded_by") @db.Uuid
+  concludedReason String?          @map("concluded_reason")
+
   // Correspondence
   messages        IssueMessage[]
 
   @@index([status])
   @@index([carrierFault])
+  @@index([isConcluded])
   @@index([createdAt(sort: Desc)])
   @@map("issues")
 }

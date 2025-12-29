@@ -133,6 +133,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         );
     }
 
+    // Determine if this action should auto-conclude the issue
+    const shouldAutoConclude = action === 'REJECT' && isFinalRejection;
+
     // Update issue and create message in transaction
     const result = await prisma.$transaction(async (tx) => {
       // Update issue
@@ -144,6 +147,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           reviewedAt: new Date(),
           rejectionReason: action === 'REJECT' ? message : undefined,
           rejectionFinal: action === 'REJECT' && isFinalRejection ? true : undefined,
+          // Auto-conclude on final rejection
+          ...(shouldAutoConclude && {
+            isConcluded: true,
+            concludedAt: new Date(),
+            concludedBy: admin.userId,
+          }),
         },
       });
 

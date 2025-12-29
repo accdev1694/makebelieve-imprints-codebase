@@ -15,7 +15,7 @@ import apiClient from '@/lib/api/client';
 import { storageService } from '@/lib/api/storage';
 import Link from 'next/link';
 import { format, formatDistanceToNow } from 'date-fns';
-import { AlertCircle, Check, X, MessageSquare, Truck, RefreshCw, DollarSign, Info, FileText, Download, Camera } from 'lucide-react';
+import { AlertCircle, Check, X, MessageSquare, Truck, RefreshCw, DollarSign, Info, FileText, Download, Camera, Lock, Unlock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 type IssueStatus =
@@ -55,6 +55,11 @@ interface Issue {
   stripeRefundId: string | null;
   rejectionReason: string | null;
   rejectionFinal: boolean;
+  // Conclusion tracking
+  isConcluded: boolean;
+  concludedAt: string | null;
+  concludedBy: string | null;
+  concludedReason: string | null;
   // Claim tracking
   claimReference: string | null;
   claimStatus: 'NOT_FILED' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'PAID';
@@ -186,6 +191,10 @@ function AdminIssueDetailContent() {
   const [claimNotes, setClaimNotes] = useState('');
   const [claimSaving, setClaimSaving] = useState(false);
   const [downloadingReport, setDownloadingReport] = useState(false);
+
+  // Conclude modal
+  const [concludeModalOpen, setConcludeModalOpen] = useState(false);
+  const [concludeReason, setConcludeReason] = useState('');
 
   useEffect(() => {
     if (user && user.userType !== 'PRINTER_ADMIN') {
@@ -395,9 +404,46 @@ function AdminIssueDetailContent() {
     }
   };
 
-  const canReview = issue && ['AWAITING_REVIEW', 'INFO_REQUESTED'].includes(issue.status);
-  const canProcess = issue && ['APPROVED_REPRINT', 'APPROVED_REFUND'].includes(issue.status);
-  const canMessage = issue && !['COMPLETED', 'CLOSED'].includes(issue.status);
+  const handleConclude = async () => {
+    if (actionLoading) return;
+
+    try {
+      setActionLoading(true);
+      await apiClient.post(`/admin/issues/${issueId}/conclude`, {
+        reason: concludeReason || undefined,
+      });
+      setConcludeModalOpen(false);
+      setConcludeReason('');
+      await fetchIssue();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      alert(error?.response?.data?.error || 'Failed to conclude issue');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReopen = async () => {
+    if (actionLoading) return;
+    if (!confirm('Are you sure you want to reopen this concluded issue?')) return;
+
+    try {
+      setActionLoading(true);
+      await apiClient.delete(`/admin/issues/${issueId}/conclude`);
+      await fetchIssue();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      alert(error?.response?.data?.error || 'Failed to reopen issue');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const canReview = issue && !issue.isConcluded && ['AWAITING_REVIEW', 'INFO_REQUESTED'].includes(issue.status);
+  const canProcess = issue && !issue.isConcluded && ['APPROVED_REPRINT', 'APPROVED_REFUND'].includes(issue.status);
+  const canMessage = issue && !issue.isConcluded;
+  const canConclude = issue && !issue.isConcluded;
+  const canReopen = issue && issue.isConcluded;
 
   if (user && user.userType !== 'PRINTER_ADMIN') {
     return null;
@@ -449,9 +495,17 @@ function AdminIssueDetailContent() {
               <span className="text-neon-gradient">Issue Management</span>
             </h1>
           </div>
-          <Badge className={`${STATUS_COLORS[issue.status]} border`}>
-            {STATUS_LABELS[issue.status]}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge className={`${STATUS_COLORS[issue.status]} border`}>
+              {STATUS_LABELS[issue.status]}
+            </Badge>
+            {issue.isConcluded && (
+              <Badge className="bg-gray-600/10 text-gray-600 border-gray-600/50 border">
+                <Lock className="w-3 h-3 mr-1" />
+                Concluded
+              </Badge>
+            )}
+          </div>
         </div>
       </header>
 
@@ -675,8 +729,35 @@ function AdminIssueDetailContent() {
 
           {/* Right Column - Actions & Info */}
           <div className="space-y-6">
+            {/* Concluded Status Indicator */}
+            {issue.isConcluded && (
+              <Card className="border-gray-500/30 bg-gray-500/5">
+                <CardContent className="py-4">
+                  <div className="flex items-start gap-3">
+                    <Lock className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-gray-500">Issue Concluded</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        This issue has been concluded. No further actions by the customer are possible.
+                      </p>
+                      {issue.concludedAt && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Concluded {format(new Date(issue.concludedAt), 'PPP')} at {format(new Date(issue.concludedAt), 'p')}
+                        </p>
+                      )}
+                      {issue.concludedReason && (
+                        <p className="text-xs text-muted-foreground mt-1 italic">
+                          &quot;{issue.concludedReason}&quot;
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Quick Actions */}
-            {(canReview || canProcess) && (
+            {(canReview || canProcess || canConclude || canReopen) && (
               <Card className="card-glow">
                 <CardHeader>
                   <CardTitle className="text-lg">Actions</CardTitle>
@@ -729,6 +810,35 @@ function AdminIssueDetailContent() {
                     >
                       <Check className="w-4 h-4 mr-2" />
                       {issue.status === 'APPROVED_REPRINT' ? 'Create Reprint Order' : 'Process Refund'}
+                    </Button>
+                  )}
+
+                  {/* Conclude/Reopen Actions */}
+                  {(canReview || canProcess) && canConclude && (
+                    <div className="pt-2 border-t border-border" />
+                  )}
+
+                  {canConclude && (
+                    <Button
+                      variant="outline"
+                      className="w-full border-gray-500/50 text-gray-500 hover:text-gray-600"
+                      onClick={() => setConcludeModalOpen(true)}
+                      disabled={actionLoading}
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      Conclude Issue
+                    </Button>
+                  )}
+
+                  {canReopen && (
+                    <Button
+                      variant="outline"
+                      className="w-full border-green-500/50 text-green-500 hover:text-green-600"
+                      onClick={handleReopen}
+                      disabled={actionLoading}
+                    >
+                      <Unlock className="w-4 h-4 mr-2" />
+                      Reopen Issue
                     </Button>
                   )}
                 </CardContent>
@@ -1050,6 +1160,43 @@ function AdminIssueDetailContent() {
             </Button>
             <Button onClick={handleProcess} loading={actionLoading}>
               Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Conclude Modal */}
+      <Dialog open={concludeModalOpen} onOpenChange={setConcludeModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Conclude Issue</DialogTitle>
+            <DialogDescription>
+              Concluding an issue will prevent any further actions by the customer.
+              The correspondence history will be preserved.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="conclude-reason">Reason (optional)</Label>
+            <Textarea
+              id="conclude-reason"
+              placeholder="Why is this issue being concluded?"
+              value={concludeReason}
+              onChange={(e) => setConcludeReason(e.target.value)}
+              rows={3}
+              className="mt-2"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConcludeModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConclude}
+              loading={actionLoading}
+              className="bg-gray-600 hover:bg-gray-700"
+            >
+              <Lock className="w-4 h-4 mr-2" />
+              Conclude Issue
             </Button>
           </DialogFooter>
         </DialogContent>

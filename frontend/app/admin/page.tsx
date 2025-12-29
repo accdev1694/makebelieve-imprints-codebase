@@ -122,12 +122,7 @@ function AdminDashboardContent() {
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-sm text-right">
-              <p className="text-foreground font-medium">{user?.name}</p>
-              <Badge variant="destructive" className="text-xs">
-                Admin
-              </Badge>
-            </div>
+            <Badge variant="destructive">Admin</Badge>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               Logout
             </Button>

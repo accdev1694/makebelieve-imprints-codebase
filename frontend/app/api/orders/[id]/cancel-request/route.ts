@@ -200,7 +200,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if user owns this order or is admin
-    if (order.customerId !== user.userId && user.userType !== 'admin') {
+    if (order.customerId !== user.userId && user.type !== 'admin') {
       return NextResponse.json(
         { error: 'You do not have permission to view this order' },
         { status: 403 }

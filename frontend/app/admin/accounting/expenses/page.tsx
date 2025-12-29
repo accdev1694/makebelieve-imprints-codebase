@@ -230,7 +230,7 @@ function ExpensesContent() {
 
       const params = new URLSearchParams();
       params.set('page', page.toString());
-      params.set('limit', '20');
+      params.set('limit', '7');
       params.set('sortOrder', sortOrder);
       if (filterCategory) params.set('category', filterCategory);
       if (filterTaxYear) params.set('taxYear', filterTaxYear);

@@ -45,7 +45,8 @@ export async function GET(request: NextRequest) {
     await requireAdmin(request);
 
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category') as IncomeCategory | null;
+    const categoryParam = searchParams.get('category');
+    const category = categoryParam && categoryParam !== 'all' ? categoryParam as IncomeCategory : null;
     const source = searchParams.get('source');
     const taxYear = searchParams.get('taxYear');
     const startDate = searchParams.get('startDate');
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {};
 
-    if (category && category !== 'all') {
+    if (category) {
       where.category = category;
     }
 

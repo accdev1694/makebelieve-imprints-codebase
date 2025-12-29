@@ -30,6 +30,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ReceiptScanner, ExtractedReceiptData } from '@/components/admin/accounting/ReceiptScanner';
+import { DateInputUK } from '@/components/ui/date-input-uk';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 import { Camera } from 'lucide-react';
@@ -659,11 +660,10 @@ function IncomeManagementContent() {
               </div>
               <div>
                 <Label htmlFor="incomeDate">Date *</Label>
-                <Input
+                <DateInputUK
                   id="incomeDate"
-                  type="date"
                   value={formData.incomeDate}
-                  onChange={(e) => setFormData({ ...formData, incomeDate: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, incomeDate: value })}
                 />
               </div>
             </div>

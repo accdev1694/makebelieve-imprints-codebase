@@ -36,6 +36,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ReceiptScanner, ExtractedReceiptData } from '@/components/admin/accounting/ReceiptScanner';
+import { DateInputUK } from '@/components/ui/date-input-uk';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 import { Camera } from 'lucide-react';
@@ -712,11 +713,10 @@ function ExpensesContent() {
 
               <div className="space-y-2">
                 <Label htmlFor="purchaseDate">Purchase Date *</Label>
-                <Input
+                <DateInputUK
                   id="purchaseDate"
-                  type="date"
                   value={formData.purchaseDate}
-                  onChange={(e) => handleFormChange('purchaseDate', e.target.value)}
+                  onChange={(value) => handleFormChange('purchaseDate', value)}
                 />
               </div>
             </div>

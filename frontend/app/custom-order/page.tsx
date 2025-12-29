@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DateInputUK } from '@/components/ui/date-input-uk';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -291,11 +292,9 @@ export default function CustomOrderPage() {
                       <div className="grid sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium mb-2">Deadline</label>
-                          <Input
-                            name="deadline"
-                            type="date"
+                          <DateInputUK
                             value={formData.deadline}
-                            onChange={handleInputChange}
+                            onChange={(value) => setFormData((prev) => ({ ...prev, deadline: value }))}
                           />
                         </div>
                         <div>

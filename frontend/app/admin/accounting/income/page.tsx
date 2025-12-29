@@ -33,7 +33,7 @@ import { ReceiptScanner, ExtractedReceiptData } from '@/components/admin/account
 import { DateInputUK } from '@/components/ui/date-input-uk';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import { Camera } from 'lucide-react';
+import { Camera, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface Category {
   value: string;
@@ -102,6 +102,21 @@ function formatDate(dateString: string): string {
   });
 }
 
+function getAvailableMonths(): { value: string; label: string }[] {
+  const months: { value: string; label: string }[] = [];
+  const now = new Date();
+
+  // Generate last 24 months
+  for (let i = 0; i < 24; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const label = date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    months.push({ value, label });
+  }
+
+  return months;
+}
+
 function IncomeManagementContent() {
   const router = useRouter();
   const { user } = useAuth();
@@ -115,6 +130,10 @@ function IncomeManagementContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [sourceFilter, setSourceFilter] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  const availableMonths = getAvailableMonths();
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -152,9 +171,17 @@ function IncomeManagementContent() {
       const params = new URLSearchParams();
       params.set('page', page.toString());
       params.set('limit', '20');
+      params.set('sortOrder', sortOrder);
       if (searchQuery) params.set('search', searchQuery);
       if (categoryFilter) params.set('category', categoryFilter);
       if (sourceFilter) params.set('source', sourceFilter);
+      if (filterMonth) {
+        const [year, month] = filterMonth.split('-');
+        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+        const endDate = new Date(parseInt(year), parseInt(month), 0);
+        params.set('startDate', startDate.toISOString().split('T')[0]);
+        params.set('endDate', endDate.toISOString().split('T')[0]);
+      }
 
       const response = await apiClient.get<{
         success: boolean;
@@ -182,7 +209,7 @@ function IncomeManagementContent() {
 
   useEffect(() => {
     fetchIncome();
-  }, [page, searchQuery, categoryFilter, sourceFilter]);
+  }, [page, searchQuery, categoryFilter, sourceFilter, filterMonth, sortOrder]);
 
   const handleAddIncome = async () => {
     setFormError('');
@@ -381,8 +408,9 @@ function IncomeManagementContent() {
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-4 items-end">
               <div className="flex-1 min-w-[200px]">
+                <Label className="text-sm text-muted-foreground mb-2 block">Search</Label>
                 <Input
                   placeholder="Search income..."
                   value={searchQuery}
@@ -392,28 +420,54 @@ function IncomeManagementContent() {
                   }}
                 />
               </div>
-              <Select
-                value={categoryFilter || 'all'}
-                onValueChange={(value: string) => {
-                  setCategoryFilter(value === 'all' ? '' : value);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.length > 0 ? categories.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  )) : (
-                    <SelectItem value="loading" disabled>Loading...</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              <div className="w-[200px]">
+              <div className="w-[180px]">
+                <Label className="text-sm text-muted-foreground mb-2 block">Category</Label>
+                <Select
+                  value={categoryFilter || 'all'}
+                  onValueChange={(value: string) => {
+                    setCategoryFilter(value === 'all' ? '' : value);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.length > 0 ? categories.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </SelectItem>
+                    )) : (
+                      <SelectItem value="loading" disabled>Loading...</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-[180px]">
+                <Label className="text-sm text-muted-foreground mb-2 block">Month</Label>
+                <Select
+                  value={filterMonth || 'all'}
+                  onValueChange={(value: string) => {
+                    setFilterMonth(value === 'all' ? '' : value);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Months" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Months</SelectItem>
+                    {availableMonths.map((month) => (
+                      <SelectItem key={month.value} value={month.value}>
+                        {month.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-[160px]">
+                <Label className="text-sm text-muted-foreground mb-2 block">Source</Label>
                 <Input
                   placeholder="Filter by source..."
                   value={sourceFilter}
@@ -423,6 +477,34 @@ function IncomeManagementContent() {
                   }}
                 />
               </div>
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                  className="h-10"
+                >
+                  {sortOrder === 'desc' ? (
+                    <><ArrowDown className="h-4 w-4 mr-1" /> Newest</>
+                  ) : (
+                    <><ArrowUp className="h-4 w-4 mr-1" /> Oldest</>
+                  )}
+                </Button>
+              </div>
+              {(searchQuery || categoryFilter || sourceFilter || filterMonth) && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setCategoryFilter('');
+                    setSourceFilter('');
+                    setFilterMonth('');
+                    setPage(1);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

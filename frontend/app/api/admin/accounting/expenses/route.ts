@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
 
     // Build where clause
     const where: Record<string, unknown> = {};
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: { purchaseDate: 'desc' },
+        orderBy: { purchaseDate: sortOrder },
         skip,
         take: limit,
       }),

@@ -39,7 +39,7 @@ import { ReceiptScanner, ExtractedReceiptData } from '@/components/admin/account
 import { DateInputUK } from '@/components/ui/date-input-uk';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import { Camera } from 'lucide-react';
+import { Camera, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface Expense {
   id: string;
@@ -106,14 +106,6 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
 function getAvailableTaxYears(): string[] {
   const now = new Date();
   const year = now.getFullYear();
@@ -130,6 +122,21 @@ function getAvailableTaxYears(): string[] {
     years.push(`${y}-${y + 1}`);
   }
   return years.reverse();
+}
+
+function getAvailableMonths(): { value: string; label: string }[] {
+  const months: { value: string; label: string }[] = [];
+  const now = new Date();
+
+  // Generate last 24 months
+  for (let i = 0; i < 24; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const label = date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    months.push({ value, label });
+  }
+
+  return months;
 }
 
 function ExpensesContent() {
@@ -161,6 +168,8 @@ function ExpensesContent() {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterTaxYear, setFilterTaxYear] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -179,6 +188,7 @@ function ExpensesContent() {
   const [autoCalculateVat, setAutoCalculateVat] = useState(true);
 
   const availableTaxYears = getAvailableTaxYears();
+  const availableMonths = getAvailableMonths();
 
   // Redirect if not admin
   useEffect(() => {
@@ -204,9 +214,17 @@ function ExpensesContent() {
       const params = new URLSearchParams();
       params.set('page', page.toString());
       params.set('limit', '20');
+      params.set('sortOrder', sortOrder);
       if (filterCategory) params.set('category', filterCategory);
       if (filterTaxYear) params.set('taxYear', filterTaxYear);
       if (filterSearch) params.set('search', filterSearch);
+      if (filterMonth) {
+        const [year, month] = filterMonth.split('-');
+        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+        const endDate = new Date(parseInt(year), parseInt(month), 0);
+        params.set('startDate', startDate.toISOString().split('T')[0]);
+        params.set('endDate', endDate.toISOString().split('T')[0]);
+      }
 
       const response = await apiClient.get<{
         success: boolean;
@@ -231,7 +249,7 @@ function ExpensesContent() {
     } finally {
       setLoading(false);
     }
-  }, [page, filterCategory, filterTaxYear, filterSearch]);
+  }, [page, filterCategory, filterTaxYear, filterSearch, filterMonth, sortOrder]);
 
   const fetchSuppliers = useCallback(async () => {
     try {
@@ -533,13 +551,52 @@ function ExpensesContent() {
                 </Select>
               </div>
 
-              {(filterCategory || filterTaxYear || filterSearch) && (
+              <div className="w-[180px]">
+                <Label className="text-sm text-muted-foreground mb-2 block">Month</Label>
+                <Select
+                  value={filterMonth}
+                  onValueChange={(value: string) => {
+                    setFilterMonth(value === 'all' ? '' : value);
+                    handleFilterChange();
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Months" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Months</SelectItem>
+                    {availableMonths.map((month) => (
+                      <SelectItem key={month.value} value={month.value}>
+                        {month.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                  className="h-10"
+                >
+                  {sortOrder === 'desc' ? (
+                    <><ArrowDown className="h-4 w-4 mr-1" /> Newest</>
+                  ) : (
+                    <><ArrowUp className="h-4 w-4 mr-1" /> Oldest</>
+                  )}
+                </Button>
+              </div>
+
+              {(filterCategory || filterTaxYear || filterSearch || filterMonth) && (
                 <Button
                   variant="ghost"
                   onClick={() => {
                     setFilterCategory('');
                     setFilterTaxYear('');
                     setFilterSearch('');
+                    setFilterMonth('');
                     handleFilterChange();
                   }}
                 >
@@ -586,7 +643,16 @@ function ExpensesContent() {
                     className="p-4 bg-card/30 rounded-lg hover:bg-card/50 transition-colors cursor-pointer"
                     onClick={() => openEditModal(expense)}
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                      <div className="text-center min-w-[70px]">
+                        <p className="text-lg font-bold">{new Date(expense.purchaseDate).getDate()}</p>
+                        <p className="text-xs text-muted-foreground uppercase">
+                          {new Date(expense.purchaseDate).toLocaleDateString('en-GB', { month: 'short' })}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(expense.purchaseDate).getFullYear()}
+                        </p>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-semibold truncate">{expense.description}</h4>
@@ -597,7 +663,6 @@ function ExpensesContent() {
                           )}
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{formatDate(expense.purchaseDate)}</span>
                           <Badge variant="secondary" className="text-xs">
                             {expense.categoryLabel}
                           </Badge>

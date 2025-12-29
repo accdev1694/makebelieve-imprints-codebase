@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const search = searchParams.get('search');
+    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
 
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
     const [income, total] = await Promise.all([
       prisma.income.findMany({
         where,
-        orderBy: { incomeDate: 'desc' },
+        orderBy: { incomeDate: sortOrder },
         skip: (page - 1) * limit,
         take: limit,
       }),

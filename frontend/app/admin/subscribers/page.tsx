@@ -312,10 +312,10 @@ function AdminSubscribersContent() {
                       )}
                       <p className="text-xs text-muted-foreground mt-1">
                         {subscriber.status === 'ACTIVE' && subscriber.subscribedAt
-                          ? `Subscribed ${new Date(subscriber.subscribedAt).toLocaleDateString('en-GB')}`
+                          ? `Subscribed ${new Date(subscriber.subscribedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
                           : subscriber.status === 'UNSUBSCRIBED' && subscriber.unsubscribedAt
-                          ? `Unsubscribed ${new Date(subscriber.unsubscribedAt).toLocaleDateString('en-GB')}`
-                          : `Added ${new Date(subscriber.createdAt).toLocaleDateString('en-GB')}`}
+                          ? `Unsubscribed ${new Date(subscriber.unsubscribedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                          : `Added ${new Date(subscriber.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                       </p>
                     </div>
                   </div>

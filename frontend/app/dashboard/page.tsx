@@ -183,7 +183,7 @@ function DashboardContent() {
               <div>
                 <p className="text-sm text-muted-foreground">Member Since</p>
                 <p className="font-medium">
-                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
                 </p>
               </div>
               <div>

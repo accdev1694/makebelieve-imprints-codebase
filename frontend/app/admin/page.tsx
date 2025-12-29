@@ -302,7 +302,7 @@ function AdminDashboardContent() {
                         {order.shippingAddress.name} • £{Number(order.totalPrice).toFixed(2)}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                        {new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </p>
                     </div>
 

@@ -60,7 +60,8 @@
     "resend": "^6.6.0",
     "stripe": "^20.1.0",
     "tailwind-merge": "^3.4.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

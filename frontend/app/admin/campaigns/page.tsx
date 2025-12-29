@@ -443,13 +443,13 @@ function AdminCampaignsContent() {
                           </span>
                         )}
                         {campaign.sentAt && (
-                          <span>Sent {new Date(campaign.sentAt).toLocaleDateString('en-GB')}</span>
+                          <span>Sent {new Date(campaign.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         )}
                         {campaign.scheduledAt && campaign.status === 'SCHEDULED' && (
                           <span>Scheduled for {new Date(campaign.scheduledAt).toLocaleString('en-GB')}</span>
                         )}
                         {!campaign.sentAt && !campaign.scheduledAt && (
-                          <span>Created {new Date(campaign.createdAt).toLocaleDateString('en-GB')}</span>
+                          <span>Created {new Date(campaign.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         )}
                       </div>
                     </div>

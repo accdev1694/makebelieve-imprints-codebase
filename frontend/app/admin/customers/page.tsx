@@ -182,7 +182,7 @@ function AdminCustomersContent() {
                       </div>
                       <p className="text-sm text-muted-foreground">{customer.email}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Member since {new Date(customer.createdAt).toLocaleDateString('en-GB')}
+                        Member since {new Date(customer.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </p>
                     </div>
 

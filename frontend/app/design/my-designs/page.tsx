@@ -177,7 +177,7 @@ function MyDesignsContent() {
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
-                    <span>Created {new Date(design.createdAt).toLocaleDateString()}</span>
+                    <span>Created {new Date(design.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                   </div>
                 </CardContent>
               </Card>

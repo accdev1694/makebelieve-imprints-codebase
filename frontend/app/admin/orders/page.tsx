@@ -272,7 +272,7 @@ function AdminOrdersContent() {
                             <div>
                               <p className="text-muted-foreground">Order Date</p>
                               <p className="font-medium">
-                                {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                                {new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                               </p>
                             </div>
                           </div>

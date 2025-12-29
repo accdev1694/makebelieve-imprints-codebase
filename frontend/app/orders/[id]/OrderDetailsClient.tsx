@@ -541,7 +541,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                               {hasIssue ? (
                                 <div className="flex items-center justify-between">
                                   <span className="text-xs text-muted-foreground">
-                                    Issue reported {new Date(itemIssue.createdAt).toLocaleDateString('en-GB')}
+                                    Issue reported {new Date(itemIssue.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                                   </span>
                                   <Link href={`/account/issues/${itemIssue.id}`}>
                                     <Button size="sm" variant="outline" className="text-xs">

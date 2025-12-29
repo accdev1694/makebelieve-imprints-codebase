@@ -35,8 +35,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { ReceiptScanner, ExtractedReceiptData } from '@/components/admin/accounting/ReceiptScanner';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { Camera } from 'lucide-react';
 
 interface Expense {
   id: string;
@@ -169,6 +171,9 @@ function ExpensesContent() {
   const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Receipt scanner
+  const [showScanner, setShowScanner] = useState(false);
+
   const availableTaxYears = getAvailableTaxYears();
 
   // Redirect if not admin
@@ -284,6 +289,20 @@ function ExpensesContent() {
         vatAmount: vatAmount.toFixed(2),
       }));
     }
+  };
+
+  const handleReceiptData = (data: Partial<ExtractedReceiptData>) => {
+    setFormData((prev) => ({
+      ...prev,
+      description: data.description || data.vendor || prev.description,
+      amount: data.amount?.toString() || prev.amount,
+      purchaseDate: data.date
+        ? new Date(data.date).toISOString().split('T')[0]
+        : prev.purchaseDate,
+      vatAmount: data.vatAmount?.toString() || prev.vatAmount,
+      vatRate: data.vatRate?.toString() || prev.vatRate,
+    }));
+    setShowScanner(false);
   };
 
   const handleSubmit = async () => {
@@ -626,6 +645,30 @@ function ExpensesContent() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Scan Receipt Button */}
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowScanner(true)}
+                className="w-full"
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                Scan Receipt to Auto-Fill
+              </Button>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  or enter manually
+                </span>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="description">Description *</Label>
               <Input
@@ -829,6 +872,17 @@ function ExpensesContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Receipt Scanner Dialog */}
+      <Dialog open={showScanner} onOpenChange={setShowScanner}>
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          <ReceiptScanner
+            mode="expense"
+            onDataExtracted={handleReceiptData}
+            onClose={() => setShowScanner(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

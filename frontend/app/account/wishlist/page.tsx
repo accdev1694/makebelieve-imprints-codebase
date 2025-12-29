@@ -199,7 +199,7 @@ export default function WishlistPage() {
                   </Link>
                   <p className="text-lg font-bold mt-2">£{item.price.toFixed(2)}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Added {new Date(item.addedAt).toLocaleDateString()}
+                    Added {new Date(item.addedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                   <Button
                     className="w-full mt-4 gap-2"

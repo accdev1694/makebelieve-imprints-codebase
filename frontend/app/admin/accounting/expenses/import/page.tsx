@@ -379,7 +379,7 @@ function CSVImportContent() {
                         <div>
                           <p className="font-medium">{batch.fileName || 'CSV Import'}</p>
                           <p className="text-sm text-muted-foreground">
-                            {new Date(batch.createdAt).toLocaleDateString('en-GB')} •{' '}
+                            {new Date(batch.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} •{' '}
                             {batch.successCount}/{batch.recordCount} imported
                           </p>
                         </div>

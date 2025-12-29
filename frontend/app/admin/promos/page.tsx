@@ -367,7 +367,7 @@ function AdminPromosContent() {
                         </span>
                         {promo.expiresAt && (
                           <span>
-                            Expires: {new Date(promo.expiresAt).toLocaleDateString('en-GB')}
+                            Expires: {new Date(promo.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </span>
                         )}
                       </div>

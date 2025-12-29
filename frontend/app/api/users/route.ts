@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
+        where: { type: 'customer' },
         select: {
           id: true,
           email: true,
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
       }),
-      prisma.user.count(),
+      prisma.user.count({ where: { type: 'customer' } }),
     ]);
 
     return NextResponse.json({

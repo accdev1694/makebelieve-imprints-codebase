@@ -150,7 +150,11 @@ function AdminDashboardContent() {
               <CardDescription>All time</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-primary">{stats.totalOrders}</p>
+              {loading ? (
+                <div className="h-10 w-16 bg-primary/20 rounded animate-pulse" />
+              ) : (
+                <p className="text-4xl font-bold text-primary">{stats.totalOrders}</p>
+              )}
             </CardContent>
           </Card>
 
@@ -160,7 +164,11 @@ function AdminDashboardContent() {
               <CardDescription>Awaiting processing</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-yellow-500">{stats.pendingOrders}</p>
+              {loading ? (
+                <div className="h-10 w-12 bg-yellow-500/20 rounded animate-pulse" />
+              ) : (
+                <p className="text-4xl font-bold text-yellow-500">{stats.pendingOrders}</p>
+              )}
             </CardContent>
           </Card>
 
@@ -170,7 +178,11 @@ function AdminDashboardContent() {
               <CardDescription>In production</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-purple-500">{stats.printingOrders}</p>
+              {loading ? (
+                <div className="h-10 w-12 bg-purple-500/20 rounded animate-pulse" />
+              ) : (
+                <p className="text-4xl font-bold text-purple-500">{stats.printingOrders}</p>
+              )}
             </CardContent>
           </Card>
 
@@ -180,7 +192,11 @@ function AdminDashboardContent() {
               <CardDescription>Delivered or in transit</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-green-500">{stats.shippedOrders}</p>
+              {loading ? (
+                <div className="h-10 w-12 bg-green-500/20 rounded animate-pulse" />
+              ) : (
+                <p className="text-4xl font-bold text-green-500">{stats.shippedOrders}</p>
+              )}
             </CardContent>
           </Card>
         </div>

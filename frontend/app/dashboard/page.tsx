@@ -88,9 +88,11 @@ function DashboardContent() {
               <CardDescription>All time</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-primary">
-                {loading ? '...' : totalOrders}
-              </p>
+              {loading ? (
+                <div className="h-10 w-16 bg-primary/20 rounded animate-pulse" />
+              ) : (
+                <p className="text-4xl font-bold text-primary">{totalOrders}</p>
+              )}
             </CardContent>
           </Card>
 
@@ -100,9 +102,11 @@ function DashboardContent() {
               <CardDescription>Ready to print</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-secondary">
-                {loading ? '...' : activeDesigns}
-              </p>
+              {loading ? (
+                <div className="h-10 w-12 bg-secondary/20 rounded animate-pulse" />
+              ) : (
+                <p className="text-4xl font-bold text-secondary">{activeDesigns}</p>
+              )}
             </CardContent>
           </Card>
 
@@ -112,9 +116,11 @@ function DashboardContent() {
               <CardDescription>In progress</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-accent">
-                {loading ? '...' : pendingOrders}
-              </p>
+              {loading ? (
+                <div className="h-10 w-12 bg-accent/20 rounded animate-pulse" />
+              ) : (
+                <p className="text-4xl font-bold text-accent">{pendingOrders}</p>
+              )}
             </CardContent>
           </Card>
         </div>

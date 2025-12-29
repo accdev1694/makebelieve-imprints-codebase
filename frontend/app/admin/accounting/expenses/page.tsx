@@ -369,6 +369,7 @@ function ExpensesContent() {
       await apiClient.delete(`/admin/accounting/expenses/${deleteExpense.id}`);
       setSuccessMessage('Expense deleted successfully');
       setDeleteExpense(null);
+      setShowModal(false);
       fetchExpenses();
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err: unknown) {

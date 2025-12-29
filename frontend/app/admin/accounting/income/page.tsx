@@ -33,7 +33,7 @@ import { ReceiptScanner, ExtractedReceiptData } from '@/components/admin/account
 import { DateInputUK } from '@/components/ui/date-input-uk';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import { Camera, ArrowUp, ArrowDown } from 'lucide-react';
+import { Camera, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 
 interface Category {
   value: string;

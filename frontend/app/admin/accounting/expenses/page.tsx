@@ -39,7 +39,7 @@ import { ReceiptScanner, ExtractedReceiptData } from '@/components/admin/account
 import { DateInputUK } from '@/components/ui/date-input-uk';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import { Camera, ArrowUp, ArrowDown } from 'lucide-react';
+import { Camera, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 
 interface Expense {
   id: string;
@@ -700,6 +700,17 @@ function ExpensesContent() {
                           </p>
                         )}
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteExpense(expense);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}

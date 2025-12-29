@@ -369,9 +369,9 @@ function IncomeManagementContent() {
                 />
               </div>
               <Select
-                value={categoryFilter}
+                value={categoryFilter || 'all'}
                 onValueChange={(value: string) => {
-                  setCategoryFilter(value);
+                  setCategoryFilter(value === 'all' ? '' : value);
                   setPage(1);
                 }}
               >
@@ -379,12 +379,14 @@ function IncomeManagementContent() {
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
-                  {categories.map((cat) => (
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.length > 0 ? categories.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
                       {cat.label}
                     </SelectItem>
-                  ))}
+                  )) : (
+                    <SelectItem value="loading" disabled>Loading...</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
               <div className="w-[200px]">
@@ -576,11 +578,13 @@ function IncomeManagementContent() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((cat) => (
+                    {categories.length > 0 ? categories.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>
                         {cat.label}
                       </SelectItem>
-                    ))}
+                    )) : (
+                      <SelectItem value="PRODUCT_SALES">Product Sales</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

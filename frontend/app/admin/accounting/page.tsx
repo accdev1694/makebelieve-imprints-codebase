@@ -394,8 +394,14 @@ function AccountingDashboardContent() {
             <CardDescription>Manage your accounting</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-4">
+            <Link href="/admin/accounting/income">
+              <Button className="btn-gradient">Manage Income</Button>
+            </Link>
             <Link href="/admin/accounting/expenses">
               <Button className="btn-gradient">Manage Expenses</Button>
+            </Link>
+            <Link href="/admin/accounting/income?action=add">
+              <Button variant="outline">+ Add Income</Button>
             </Link>
             <Link href="/admin/accounting/expenses?action=add">
               <Button variant="outline">+ Add Expense</Button>

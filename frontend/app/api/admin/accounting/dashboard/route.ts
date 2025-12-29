@@ -7,6 +7,7 @@ import {
   getPreviousWeekRange,
   getWeekRange,
   EXPENSE_CATEGORY_LABELS,
+  INCOME_CATEGORY_LABELS,
 } from '@/lib/server/tax-utils';
 
 /**
@@ -44,8 +45,27 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Calculate revenue metrics
-    const totalRevenue = orders.reduce(
+    // Get manual income entries for the period
+    const incomeEntries = await prisma.income.findMany({
+      where: {
+        incomeDate: {
+          gte: periodStart,
+          lte: periodEnd,
+        },
+      },
+      select: {
+        id: true,
+        amount: true,
+        vatAmount: true,
+        category: true,
+        description: true,
+        source: true,
+        incomeDate: true,
+      },
+    });
+
+    // Calculate order revenue metrics
+    const orderRevenue = orders.reduce(
       (sum, order) => sum + Number(order.totalPrice || 0),
       0
     );
@@ -53,7 +73,20 @@ export async function GET(request: NextRequest) {
       (sum, order) => sum + Number(order.refundAmount || 0),
       0
     );
-    const netRevenue = totalRevenue - totalRefunds;
+    const netOrderRevenue = orderRevenue - totalRefunds;
+
+    // Calculate manual income metrics
+    const manualIncome = incomeEntries.reduce(
+      (sum, income) => sum + Number(income.amount || 0),
+      0
+    );
+    const incomeVatCollected = incomeEntries
+      .filter((i) => i.vatAmount)
+      .reduce((sum, i) => sum + Number(i.vatAmount || 0), 0);
+
+    // Combined revenue
+    const totalRevenue = orderRevenue + manualIncome;
+    const netRevenue = netOrderRevenue + manualIncome;
 
     // Get expenses for the period
     const expenses = await prisma.expense.findMany({
@@ -97,10 +130,24 @@ export async function GET(request: NextRequest) {
       {} as Record<string, { amount: number; count: number }>
     );
 
-    // Calculate VAT collected (approximate - 20% of net sales)
-    // In a real system, this would come from invoices
+    // Income by category
+    const incomeByCategory = incomeEntries.reduce(
+      (acc, income) => {
+        const category = income.category;
+        if (!acc[category]) {
+          acc[category] = { amount: 0, count: 0 };
+        }
+        acc[category].amount += Number(income.amount || 0);
+        acc[category].count += 1;
+        return acc;
+      },
+      {} as Record<string, { amount: number; count: number }>
+    );
+
+    // Calculate VAT collected (from orders + manual income)
     const vatRate = 0.2;
-    const vatCollected = netRevenue * (vatRate / (1 + vatRate));
+    const orderVatCollected = netOrderRevenue * (vatRate / (1 + vatRate));
+    const vatCollected = orderVatCollected + incomeVatCollected;
 
     // Net profit
     const netProfit = netRevenue - totalExpenses;
@@ -111,9 +158,10 @@ export async function GET(request: NextRequest) {
 
     // Order stats
     const orderCount = orders.length;
-    const averageOrderValue = orderCount > 0 ? netRevenue / orderCount : 0;
+    const incomeCount = incomeEntries.length;
+    const averageOrderValue = orderCount > 0 ? netOrderRevenue / orderCount : 0;
 
-    // Get recent transactions (last 10 orders + expenses combined)
+    // Get recent transactions (orders + income + expenses combined)
     const recentOrders = await prisma.order.findMany({
       where: {
         status: {
@@ -127,6 +175,19 @@ export async function GET(request: NextRequest) {
         shippingAddress: true,
       },
       orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+
+    const recentIncome = await prisma.income.findMany({
+      select: {
+        id: true,
+        amount: true,
+        description: true,
+        category: true,
+        source: true,
+        incomeDate: true,
+      },
+      orderBy: { incomeDate: 'desc' },
       take: 5,
     });
 
@@ -151,6 +212,15 @@ export async function GET(request: NextRequest) {
         description: `Order from ${(order.shippingAddress as { name?: string })?.name || 'Customer'}`,
         date: order.createdAt,
       })),
+      ...recentIncome.map((income) => ({
+        id: income.id,
+        type: 'income' as const,
+        amount: Number(income.amount),
+        description: income.description,
+        category: income.category,
+        source: income.source,
+        date: income.incomeDate,
+      })),
       ...recentExpenses.map((expense) => ({
         id: expense.id,
         type: 'expense' as const,
@@ -163,11 +233,11 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 10);
 
-    // Week-over-week comparison
+    // Week-over-week comparison (orders + income)
     const currentWeek = getWeekRange(new Date());
     const previousWeek = getPreviousWeekRange();
 
-    const currentWeekRevenue = orders
+    const currentWeekOrderRevenue = orders
       .filter(
         (o) =>
           new Date(o.createdAt) >= currentWeek.start &&
@@ -175,13 +245,33 @@ export async function GET(request: NextRequest) {
       )
       .reduce((sum, o) => sum + Number(o.totalPrice || 0), 0);
 
-    const previousWeekRevenue = orders
+    const currentWeekIncome = incomeEntries
+      .filter(
+        (i) =>
+          new Date(i.incomeDate) >= currentWeek.start &&
+          new Date(i.incomeDate) <= currentWeek.end
+      )
+      .reduce((sum, i) => sum + Number(i.amount || 0), 0);
+
+    const currentWeekRevenue = currentWeekOrderRevenue + currentWeekIncome;
+
+    const previousWeekOrderRevenue = orders
       .filter(
         (o) =>
           new Date(o.createdAt) >= previousWeek.start &&
           new Date(o.createdAt) <= previousWeek.end
       )
       .reduce((sum, o) => sum + Number(o.totalPrice || 0), 0);
+
+    const previousWeekIncome = incomeEntries
+      .filter(
+        (i) =>
+          new Date(i.incomeDate) >= previousWeek.start &&
+          new Date(i.incomeDate) <= previousWeek.end
+      )
+      .reduce((sum, i) => sum + Number(i.amount || 0), 0);
+
+    const previousWeekRevenue = previousWeekOrderRevenue + previousWeekIncome;
 
     const weekOverWeekChange =
       previousWeekRevenue > 0
@@ -190,6 +280,11 @@ export async function GET(request: NextRequest) {
 
     // Find top expense category
     const topExpenseCategory = Object.entries(expensesByCategory).sort(
+      (a, b) => b[1].amount - a[1].amount
+    )[0];
+
+    // Find top income category
+    const topIncomeCategory = Object.entries(incomeByCategory).sort(
       (a, b) => b[1].amount - a[1].amount
     )[0];
 
@@ -202,22 +297,38 @@ export async function GET(request: NextRequest) {
           end: periodEnd.toISOString(),
         },
         summary: {
+          // Revenue breakdown
+          orderRevenue: Math.round(orderRevenue * 100) / 100,
+          manualIncome: Math.round(manualIncome * 100) / 100,
           totalRevenue: Math.round(totalRevenue * 100) / 100,
           totalRefunds: Math.round(totalRefunds * 100) / 100,
           netRevenue: Math.round(netRevenue * 100) / 100,
+          // Expenses
           totalExpenses: Math.round(totalExpenses * 100) / 100,
+          // Profit
           netProfit: Math.round(netProfit * 100) / 100,
           profitMargin: Math.round(profitMargin * 100) / 100,
+          // VAT
           vatCollected: Math.round(vatCollected * 100) / 100,
           vatReclaimable: Math.round(reclaimableVAT * 100) / 100,
           vatLiability: Math.round(vatLiability * 100) / 100,
+          // Counts
           orderCount,
+          incomeCount,
           averageOrderValue: Math.round(averageOrderValue * 100) / 100,
         },
         expensesByCategory: Object.entries(expensesByCategory).map(
           ([category, data]) => ({
             category,
             label: EXPENSE_CATEGORY_LABELS[category] || category,
+            amount: Math.round(data.amount * 100) / 100,
+            count: data.count,
+          })
+        ),
+        incomeByCategory: Object.entries(incomeByCategory).map(
+          ([category, data]) => ({
+            category,
+            label: INCOME_CATEGORY_LABELS[category] || category,
             amount: Math.round(data.amount * 100) / 100,
             count: data.count,
           })
@@ -234,6 +345,15 @@ export async function GET(request: NextRequest) {
                 EXPENSE_CATEGORY_LABELS[topExpenseCategory[0]] ||
                 topExpenseCategory[0],
               amount: Math.round(topExpenseCategory[1].amount * 100) / 100,
+            }
+          : null,
+        topIncomeCategory: topIncomeCategory
+          ? {
+              category: topIncomeCategory[0],
+              label:
+                INCOME_CATEGORY_LABELS[topIncomeCategory[0]] ||
+                topIncomeCategory[0],
+              amount: Math.round(topIncomeCategory[1].amount * 100) / 100,
             }
           : null,
         recentTransactions,

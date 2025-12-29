@@ -441,6 +441,39 @@ model Expense {
   @@map("expenses")
 }
 
+model Income {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  incomeNumber       String              @unique @map("income_number") @db.VarChar(50)
+  category           IncomeCategory
+  description        String              @db.VarChar(500)
+  amount             Decimal             @db.Decimal(10, 2)
+  currency           String              @default("GBP") @db.VarChar(3)
+  source             String?             @db.VarChar(255) // e.g., "Market Stall", "Wholesale", "Etsy", etc.
+  customerName       String?             @map("customer_name") @db.VarChar(255)
+  receiptUrl         String?             @map("receipt_url") @db.VarChar(500)
+  incomeDate         DateTime            @default(now()) @map("income_date")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at")
+  notes              String?
+
+  // VAT tracking
+  vatAmount          Decimal?            @map("vat_amount") @db.Decimal(10, 2)
+  vatRate            Decimal?            @map("vat_rate") @db.Decimal(5, 2)
+  isVatIncluded      Boolean             @default(true) @map("is_vat_included")
+
+  // Reference tracking
+  externalReference  String?             @map("external_reference") @db.VarChar(255) // Invoice number, receipt number, etc.
+
+  // Tax year tracking
+  taxYear            String?             @map("tax_year") @db.VarChar(9)
+
+  @@index([category])
+  @@index([source])
+  @@index([incomeDate(sort: Desc)])
+  @@index([taxYear])
+  @@map("income")
+}
+
 model Supplier {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String    @db.VarChar(255)
@@ -712,6 +745,17 @@ enum ExpenseCategory {
   SOFTWARE
   UTILITIES
   MARKETING
+  OTHER
+}
+
+enum IncomeCategory {
+  PRODUCT_SALES
+  WHOLESALE
+  MARKET_SALES
+  ONLINE_MARKETPLACE
+  CUSTOM_ORDERS
+  SHIPPING_REIMBURSEMENT
+  REFUND_RECEIVED
   OTHER
 }
 

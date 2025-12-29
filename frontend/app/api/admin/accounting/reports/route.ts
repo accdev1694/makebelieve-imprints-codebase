@@ -7,6 +7,7 @@ import {
   getCurrentTaxYear,
   getVATQuartersForTaxYear,
   EXPENSE_CATEGORY_LABELS,
+  INCOME_CATEGORY_LABELS,
 } from '@/lib/server/tax-utils';
 import { FinancialReportType } from '@prisma/client';
 
@@ -98,6 +99,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Get manual income entries for the period
+    const incomeEntries = await prisma.income.findMany({
+      where: {
+        incomeDate: {
+          gte: periodStart,
+          lte: periodEnd,
+        },
+      },
+      select: {
+        id: true,
+        amount: true,
+        vatAmount: true,
+        category: true,
+      },
+    });
+
     // Get expenses for the period
     const expenses = await prisma.expense.findMany({
       where: {
@@ -115,8 +132,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Calculate revenue metrics
-    const totalRevenue = orders.reduce(
+    // Calculate order revenue metrics
+    const orderRevenue = orders.reduce(
       (sum, order) => sum + Number(order.totalPrice || 0),
       0
     );
@@ -124,7 +141,20 @@ export async function POST(request: NextRequest) {
       (sum, order) => sum + Number(order.refundAmount || 0),
       0
     );
-    const netRevenue = totalRevenue - totalRefunds;
+    const netOrderRevenue = orderRevenue - totalRefunds;
+
+    // Calculate manual income metrics
+    const manualIncome = incomeEntries.reduce(
+      (sum, income) => sum + Number(income.amount || 0),
+      0
+    );
+    const incomeVatCollected = incomeEntries
+      .filter((i) => i.vatAmount)
+      .reduce((sum, i) => sum + Number(i.vatAmount || 0), 0);
+
+    // Combined revenue
+    const totalRevenue = orderRevenue + manualIncome;
+    const netRevenue = netOrderRevenue + manualIncome;
 
     // Calculate expense metrics
     const totalExpenses = expenses.reduce(
@@ -149,12 +179,27 @@ export async function POST(request: NextRequest) {
       {} as Record<string, { amount: number; count: number; label: string }>
     );
 
+    // Income by category
+    const incomeByCategory = incomeEntries.reduce(
+      (acc, income) => {
+        const category = income.category;
+        if (!acc[category]) {
+          acc[category] = { amount: 0, count: 0, label: INCOME_CATEGORY_LABELS[category] || category };
+        }
+        acc[category].amount += Number(income.amount || 0);
+        acc[category].count += 1;
+        return acc;
+      },
+      {} as Record<string, { amount: number; count: number; label: string }>
+    );
+
     // Net profit
     const netProfit = netRevenue - totalExpenses;
 
-    // VAT calculations
+    // VAT calculations (from orders + manual income)
     const vatRate = 0.2;
-    const vatCollected = netRevenue * (vatRate / (1 + vatRate));
+    const orderVatCollected = netOrderRevenue * (vatRate / (1 + vatRate));
+    const vatCollected = orderVatCollected + incomeVatCollected;
     const vatLiability = vatCollected - reclaimableVAT;
 
     // Build report data based on type
@@ -163,9 +208,20 @@ export async function POST(request: NextRequest) {
     if (reportType === 'PROFIT_LOSS' || reportType === 'TAX_YEAR_END') {
       reportData = {
         revenue: {
+          orders: Math.round(orderRevenue * 100) / 100,
+          manualIncome: Math.round(manualIncome * 100) / 100,
           gross: Math.round(totalRevenue * 100) / 100,
           refunds: Math.round(totalRefunds * 100) / 100,
           net: Math.round(netRevenue * 100) / 100,
+        },
+        income: {
+          total: Math.round(manualIncome * 100) / 100,
+          byCategory: Object.entries(incomeByCategory).map(([category, data]) => ({
+            category,
+            label: data.label,
+            amount: Math.round(data.amount * 100) / 100,
+            count: data.count,
+          })),
         },
         expenses: {
           total: Math.round(totalExpenses * 100) / 100,
@@ -181,6 +237,7 @@ export async function POST(request: NextRequest) {
           margin: netRevenue > 0 ? Math.round((netProfit / netRevenue) * 10000) / 100 : 0,
         },
         orderCount: orders.length,
+        incomeCount: incomeEntries.length,
         expenseCount: expenses.length,
       };
     }
@@ -219,12 +276,15 @@ export async function POST(request: NextRequest) {
     if (reportType === 'SUMMARY') {
       reportData = {
         overview: {
+          orderRevenue: Math.round(netOrderRevenue * 100) / 100,
+          manualIncome: Math.round(manualIncome * 100) / 100,
           revenue: Math.round(netRevenue * 100) / 100,
           expenses: Math.round(totalExpenses * 100) / 100,
           profit: Math.round(netProfit * 100) / 100,
           vatLiability: Math.round(vatLiability * 100) / 100,
         },
         orderCount: orders.length,
+        incomeCount: incomeEntries.length,
         expenseCount: expenses.length,
       };
     }

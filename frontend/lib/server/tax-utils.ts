@@ -256,3 +256,17 @@ export const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
   MARKETING: 'Marketing & Advertising',
   OTHER: 'Other Expenses',
 };
+
+/**
+ * Income categories with display labels
+ */
+export const INCOME_CATEGORY_LABELS: Record<string, string> = {
+  PRODUCT_SALES: 'Product Sales',
+  WHOLESALE: 'Wholesale',
+  MARKET_SALES: 'Market/Event Sales',
+  ONLINE_MARKETPLACE: 'Online Marketplace (Etsy, eBay, etc.)',
+  CUSTOM_ORDERS: 'Custom Orders',
+  SHIPPING_REIMBURSEMENT: 'Shipping Reimbursement',
+  REFUND_RECEIVED: 'Refund Received',
+  OTHER: 'Other Income',
+};

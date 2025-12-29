@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {};
 
-    if (category) {
+    if (category && category !== 'all') {
       where.category = category;
     }
 
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    if (taxYear) {
+    if (taxYear && taxYear !== 'all') {
       where.taxYear = taxYear;
     }
 

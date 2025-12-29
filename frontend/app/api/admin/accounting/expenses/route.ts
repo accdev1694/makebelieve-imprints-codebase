@@ -59,11 +59,11 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: Record<string, unknown> = {};
 
-    if (category) {
+    if (category && category !== 'all') {
       where.category = category;
     }
 
-    if (taxYear) {
+    if (taxYear && taxYear !== 'all') {
       where.taxYear = taxYear;
     }
 

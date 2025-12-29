@@ -524,9 +524,9 @@ function ExpensesContent() {
               <div className="w-[180px]">
                 <Label className="text-sm text-muted-foreground mb-2 block">Category</Label>
                 <Select
-                  value={filterCategory}
+                  value={filterCategory || 'all'}
                   onValueChange={(value: string) => {
-                    setFilterCategory(value);
+                    setFilterCategory(value === 'all' ? '' : value);
                     handleFilterChange();
                   }}
                 >
@@ -547,7 +547,7 @@ function ExpensesContent() {
               <div className="w-[160px]">
                 <Label className="text-sm text-muted-foreground mb-2 block">Tax Year</Label>
                 <Select
-                  value={filterTaxYear}
+                  value={filterTaxYear || 'all'}
                   onValueChange={(value: string) => {
                     setFilterTaxYear(value === 'all' ? '' : value);
                     setFilterMonth(''); // Clear month when tax year changes
@@ -571,7 +571,7 @@ function ExpensesContent() {
               <div className="w-[140px]">
                 <Label className="text-sm text-muted-foreground mb-2 block">Month</Label>
                 <Select
-                  value={filterMonth}
+                  value={filterMonth || 'all'}
                   onValueChange={(value: string) => {
                     setFilterMonth(value === 'all' ? '' : value);
                     handleFilterChange();

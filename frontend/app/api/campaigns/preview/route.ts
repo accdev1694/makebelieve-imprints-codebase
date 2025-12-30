@@ -58,6 +58,10 @@ export async function POST(request: NextRequest) {
         recipientCount: 0,
         sentCount: 0,
         failedCount: 0,
+        openCount: 0,
+        clickCount: 0,
+        bounceCount: 0,
+        unsubscribeCount: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

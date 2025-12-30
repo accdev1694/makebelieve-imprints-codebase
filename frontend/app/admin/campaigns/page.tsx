@@ -41,6 +41,10 @@ interface Campaign {
   recipientCount: number;
   sentCount: number;
   failedCount: number;
+  openCount: number;
+  clickCount: number;
+  bounceCount: number;
+  unsubscribeCount: number;
   createdAt: string;
 }
 
@@ -518,10 +522,20 @@ function AdminCampaignsContent() {
                       <p className="text-sm text-muted-foreground line-clamp-1">{campaign.subject}</p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                         {campaign.status === 'SENT' && (
-                          <span>
-                            Sent to {campaign.sentCount} / {campaign.recipientCount}
-                            {campaign.failedCount > 0 && ` (${campaign.failedCount} failed)`}
-                          </span>
+                          <>
+                            <span>
+                              Sent to {campaign.sentCount} / {campaign.recipientCount}
+                              {campaign.failedCount > 0 && ` (${campaign.failedCount} failed)`}
+                            </span>
+                            {(campaign.openCount > 0 || campaign.clickCount > 0) && (
+                              <span className="text-green-400">
+                                {campaign.openCount} opens · {campaign.clickCount} clicks
+                              </span>
+                            )}
+                            {campaign.bounceCount > 0 && (
+                              <span className="text-yellow-400">{campaign.bounceCount} bounced</span>
+                            )}
+                          </>
                         )}
                         {campaign.sentAt && (
                           <span>Sent {new Date(campaign.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>

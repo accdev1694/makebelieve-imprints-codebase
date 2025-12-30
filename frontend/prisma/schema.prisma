@@ -801,6 +801,12 @@ model Subscriber {
   confirmToken   String?          @map("confirm_token") @db.VarChar(255)
   subscribedAt   DateTime?        @map("subscribed_at")
   unsubscribedAt DateTime?        @map("unsubscribed_at")
+
+  // Bounce tracking
+  bounceCount    Int              @default(0) @map("bounce_count")
+  lastBounceAt   DateTime?        @map("last_bounce_at")
+  bounceType     String?          @map("bounce_type") @db.VarChar(50) // hard, soft, complaint
+
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at")
 
@@ -811,9 +817,10 @@ model Subscriber {
 }
 
 enum SubscriberStatus {
-  PENDING    // Awaiting email confirmation
-  ACTIVE     // Confirmed and receiving emails
-  UNSUBSCRIBED
+  PENDING      // Awaiting email confirmation
+  ACTIVE       // Confirmed and receiving emails
+  UNSUBSCRIBED // User unsubscribed
+  BOUNCED      // Email bounced - do not send
 }
 
 enum SubscriberSource {
@@ -932,6 +939,10 @@ model EmailCampaign {
   recipientCount Int           @default(0) @map("recipient_count")
   sentCount      Int           @default(0) @map("sent_count")
   failedCount    Int           @default(0) @map("failed_count")
+  openCount      Int           @default(0) @map("open_count")
+  clickCount     Int           @default(0) @map("click_count")
+  bounceCount    Int           @default(0) @map("bounce_count")
+  unsubscribeCount Int         @default(0) @map("unsubscribe_count")
 
   // Metadata
   createdAt     DateTime       @default(now()) @map("created_at")

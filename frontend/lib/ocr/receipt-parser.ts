@@ -318,6 +318,54 @@ function parseAmount(str: string): number | undefined {
 }
 
 /**
+ * Parse raw receipt text directly (without OCR)
+ * Useful when user pastes text from a digital receipt
+ */
+export function parseReceiptText(text: string): ParsedReceipt {
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+
+  const result: ParsedReceipt = {
+    rawText: text,
+    confidence: 100, // User-provided text, so 100% confidence in the input
+  };
+
+  // Extract vendor (usually first few lines)
+  result.vendor = extractVendor(lines);
+
+  // Extract date
+  result.date = extractDate(text);
+
+  // Extract total
+  result.total = extractTotal(text);
+
+  // Extract subtotal
+  result.subtotal = extractSubtotal(text);
+
+  // Extract VAT
+  const vatInfo = extractVAT(text);
+  result.vatAmount = vatInfo.amount;
+  result.vatRate = vatInfo.rate;
+
+  // Calculate VAT if we have total and subtotal but not VAT amount
+  if (!result.vatAmount && result.total && result.subtotal) {
+    result.vatAmount = Math.round((result.total - result.subtotal) * 100) / 100;
+  }
+
+  // If we have total and VAT but not subtotal, calculate it
+  if (!result.subtotal && result.total && result.vatAmount) {
+    result.subtotal = Math.round((result.total - result.vatAmount) * 100) / 100;
+  }
+
+  // Extract payment method
+  result.paymentMethod = extractPaymentMethod(text);
+
+  // Extract line items
+  result.items = extractLineItems(lines);
+
+  return result;
+}
+
+/**
  * Format parsed receipt data for display
  */
 export function formatParsedReceipt(receipt: ParsedReceipt): string {

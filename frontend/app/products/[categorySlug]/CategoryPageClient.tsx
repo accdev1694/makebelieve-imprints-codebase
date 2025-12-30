@@ -239,7 +239,7 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
             placeholder={`Search in ${category.name}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full max-w-md px-4 py-2 rounded-lg border border-gray-700 bg-gray-800 text-white placeholder-gray-400"
+            className="w-full max-w-md px-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder-muted-foreground"
           />
         </div>
 
@@ -290,7 +290,7 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
                 setSortBy(e.target.value);
                 setPage(1);
               }}
-              className="px-3 py-1.5 rounded-lg border border-gray-700 bg-gray-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>

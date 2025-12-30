@@ -4,10 +4,18 @@ import { requireAuth, handleApiError } from '@/lib/server/auth';
 import { OrderStatus } from '@prisma/client';
 import { recordPromoUsage } from '@/lib/server/promo-service';
 
-// Order statuses considered "archived" (concluded)
+// Order statuses considered "archived" (concluded) - legacy, used by admin
 const ARCHIVED_STATUSES: OrderStatus[] = ['delivered', 'cancelled', 'refunded'];
-// Order statuses considered "active" (needs attention)
+// Order statuses considered "active" (needs attention) - legacy, used by admin
 const ACTIVE_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'printing', 'shipped'];
+
+// Tab-based status groupings for customer orders page
+const TAB_STATUS_MAP: Record<string, OrderStatus[]> = {
+  in_progress: ['pending', 'payment_confirmed', 'confirmed', 'printing', 'cancellation_requested'],
+  shipped: ['shipped'],
+  completed: ['delivered'],
+  cancelled: ['cancelled', 'refunded'],
+};
 
 /**
  * GET /api/orders
@@ -16,7 +24,8 @@ const ACTIVE_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'printing', 'shi
  * - page: page number (default 1)
  * - limit: items per page (default 20, max 100)
  * - status: filter by specific status
- * - archived: if 'true', show only archived orders; if 'false', show only active orders
+ * - tab: filter by tab group ('all', 'in_progress', 'shipped', 'completed', 'cancelled')
+ * - archived: if 'true', show only archived orders; if 'false', show only active orders (legacy)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -27,15 +36,22 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
     const skip = (page - 1) * limit;
     const status = searchParams.get('status') as OrderStatus | null;
+    const tab = searchParams.get('tab');
     const archivedParam = searchParams.get('archived');
 
-    // Build status filter based on archived param
+    // Build status filter based on tab, status, or archived param
     let statusFilter: { status?: OrderStatus | { in: OrderStatus[] } } = {};
     if (status) {
+      // Direct status filter takes priority
       statusFilter = { status };
+    } else if (tab && tab !== 'all' && TAB_STATUS_MAP[tab]) {
+      // Tab-based filtering (new approach)
+      statusFilter = { status: { in: TAB_STATUS_MAP[tab] } };
     } else if (archivedParam === 'true') {
+      // Legacy archived filter
       statusFilter = { status: { in: ARCHIVED_STATUSES } };
     } else if (archivedParam === 'false') {
+      // Legacy active filter
       statusFilter = { status: { in: ACTIVE_STATUSES } };
     }
 

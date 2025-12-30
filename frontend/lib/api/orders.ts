@@ -154,12 +154,14 @@ export const ordersService = {
 
   /**
    * Get all orders for current user
-   * @param archived - if true, returns only archived orders; if false, returns only active orders; if undefined, returns all
+   * @param options.status - filter by specific status
+   * @param options.tab - filter by tab group ('all', 'in_progress', 'shipped', 'completed', 'cancelled')
+   * @param options.archived - legacy: if true, returns only archived orders; if false, returns only active orders
    */
   async list(
     page = 1,
     limit = 20,
-    options?: { status?: OrderStatus; archived?: boolean }
+    options?: { status?: OrderStatus; tab?: OrderTab; archived?: boolean }
   ): Promise<OrdersListResponse> {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -167,6 +169,9 @@ export const ordersService = {
     });
     if (options?.status) {
       params.set('status', options.status);
+    }
+    if (options?.tab) {
+      params.set('tab', options.tab);
     }
     if (options?.archived !== undefined) {
       params.set('archived', options.archived.toString());
@@ -276,7 +281,7 @@ export const CUSTOMER_CANCELLATION_REASONS: CancellationReason[] = [
   'OTHER',
 ];
 
-// Order status categories for filtering
+// Order status categories for filtering (legacy - used by admin page)
 export const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
   'pending',
   'payment_confirmed',
@@ -291,6 +296,38 @@ export const ARCHIVED_ORDER_STATUSES: OrderStatus[] = [
   'cancelled',
   'refunded',
 ];
+
+// Tab-based status groupings for customer orders page
+export type OrderTab = 'all' | 'in_progress' | 'shipped' | 'completed' | 'cancelled';
+
+export const ORDER_TAB_LABELS: Record<OrderTab, string> = {
+  all: 'All Orders',
+  in_progress: 'In Progress',
+  shipped: 'Shipped',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
+export const IN_PROGRESS_STATUSES: OrderStatus[] = [
+  'pending',
+  'payment_confirmed',
+  'confirmed',
+  'printing',
+  'cancellation_requested',
+];
+
+export const SHIPPED_STATUSES: OrderStatus[] = ['shipped'];
+
+export const COMPLETED_STATUSES: OrderStatus[] = ['delivered'];
+
+export const CANCELLED_STATUSES: OrderStatus[] = ['cancelled', 'refunded'];
+
+export const TAB_STATUS_MAP: Record<Exclude<OrderTab, 'all'>, OrderStatus[]> = {
+  in_progress: IN_PROGRESS_STATUSES,
+  shipped: SHIPPED_STATUSES,
+  completed: COMPLETED_STATUSES,
+  cancelled: CANCELLED_STATUSES,
+};
 
 /**
  * Check if an order status is considered archived (concluded)

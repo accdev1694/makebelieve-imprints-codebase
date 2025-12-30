@@ -1,39 +1,47 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ordersService, Order, OrderStatus, ORDER_STATUS_LABELS, ACTIVE_ORDER_STATUSES } from '@/lib/api/orders';
+import {
+  ordersService,
+  Order,
+  OrderStatus,
+  ORDER_STATUS_LABELS,
+  OrderTab,
+  ORDER_TAB_LABELS,
+} from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import Link from 'next/link';
-import { Archive } from 'lucide-react';
+
+const ORDER_TABS: OrderTab[] = ['all', 'in_progress', 'shipped', 'completed', 'cancelled'];
 
 function OrderHistoryContent() {
   const router = useRouter();
-  const { user } = useAuth();
+  const searchParams = useSearchParams();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Get active tab from URL or default to 'all'
+  const activeTab = (searchParams.get('tab') as OrderTab) || 'all';
+
   useEffect(() => {
     fetchOrders();
-  }, [statusFilter, currentPage]);
+  }, [activeTab, currentPage]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       const data = await ordersService.list(currentPage, 10, {
-        status: statusFilter === 'all' ? undefined : statusFilter,
-        archived: false, // Only show active orders
+        tab: activeTab,
       });
       setOrders(data.orders);
       setTotalPages(data.pagination.totalPages);
@@ -42,6 +50,15 @@ function OrderHistoryContent() {
       setError(e?.error || e?.message || 'Failed to load orders');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTabChange = (tab: OrderTab) => {
+    setCurrentPage(1);
+    if (tab === 'all') {
+      router.push('/orders');
+    } else {
+      router.push(`/orders?tab=${tab}`);
     }
   };
 
@@ -60,9 +77,38 @@ function OrderHistoryContent() {
     return colors[status];
   };
 
+  const getEmptyMessage = (tab: OrderTab): { title: string; description: string } => {
+    switch (tab) {
+      case 'in_progress':
+        return {
+          title: 'No orders in progress',
+          description: 'Orders being prepared or awaiting payment will appear here.',
+        };
+      case 'shipped':
+        return {
+          title: 'No shipped orders',
+          description: 'Orders on their way to you will appear here.',
+        };
+      case 'completed':
+        return {
+          title: 'No completed orders',
+          description: 'Successfully delivered orders will appear here.',
+        };
+      case 'cancelled':
+        return {
+          title: 'No cancelled orders',
+          description: 'Cancelled or refunded orders will appear here.',
+        };
+      default:
+        return {
+          title: 'No orders yet',
+          description: "When you place an order, it will appear here.",
+        };
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
@@ -73,16 +119,10 @@ function OrderHistoryContent() {
               </Button>
             </Link>
             <h1 className="text-2xl font-bold">
-              <span className="text-neon-gradient">Active Orders</span>
+              <span className="text-neon-gradient">Your Orders</span>
             </h1>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Link href="/orders/archive">
-              <Button variant="outline" size="sm">
-                <Archive className="w-4 h-4 mr-2" />
-                View Archive
-              </Button>
-            </Link>
             <Link href="/products">
               <Button variant="outline" size="sm">Continue Shopping</Button>
             </Link>
@@ -91,75 +131,26 @@ function OrderHistoryContent() {
             </Link>
           </div>
         </div>
+
         {error && (
           <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm mb-6">
             {error}
           </div>
         )}
 
-        {/* Filter Tabs - Only active statuses */}
-        <div className="mb-6 flex gap-2 flex-wrap">
-          <Button
-            variant={statusFilter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('all');
-              setCurrentPage(1);
-            }}
-            className={statusFilter === 'all' ? 'btn-gradient' : ''}
-          >
-            All Active
-          </Button>
-          <Button
-            variant={statusFilter === 'pending' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('pending');
-              setCurrentPage(1);
-            }}
-          >
-            Pending Payment
-          </Button>
-          <Button
-            variant={statusFilter === 'payment_confirmed' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('payment_confirmed');
-              setCurrentPage(1);
-            }}
-          >
-            Confirmed
-          </Button>
-          <Button
-            variant={statusFilter === 'printing' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('printing');
-              setCurrentPage(1);
-            }}
-          >
-            Printing
-          </Button>
-          <Button
-            variant={statusFilter === 'shipped' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('shipped');
-              setCurrentPage(1);
-            }}
-          >
-            Shipped
-          </Button>
-          <Button
-            variant={statusFilter === 'cancellation_requested' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('cancellation_requested');
-              setCurrentPage(1);
-            }}
-          >
-            Cancellation Requested
-          </Button>
+        {/* Tab Navigation */}
+        <div className="mb-6 flex gap-2 flex-wrap overflow-x-auto pb-2">
+          {ORDER_TABS.map((tab) => (
+            <Button
+              key={tab}
+              variant={activeTab === tab ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleTabChange(tab)}
+              className={activeTab === tab ? 'btn-gradient' : ''}
+            >
+              {ORDER_TAB_LABELS[tab]}
+            </Button>
+          ))}
         </div>
 
         {loading ? (
@@ -188,20 +179,17 @@ function OrderHistoryContent() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                {statusFilter === 'all' ? 'No active orders' : `No ${ORDER_STATUS_LABELS[statusFilter] || statusFilter} orders`}
+                {getEmptyMessage(activeTab).title}
               </h3>
               <p className="text-muted-foreground mb-6">
-                {statusFilter === 'all'
-                  ? 'You have no orders in progress. Check your archive for completed orders.'
-                  : 'Try selecting a different filter to see other orders.'}
+                {getEmptyMessage(activeTab).description}
               </p>
               <div className="flex gap-3 justify-center">
-                <Link href="/orders/archive">
-                  <Button variant="outline">
-                    <Archive className="w-4 h-4 mr-2" />
-                    View Archive
+                {activeTab !== 'all' && (
+                  <Button variant="outline" onClick={() => handleTabChange('all')}>
+                    View All Orders
                   </Button>
-                </Link>
+                )}
                 <Link href="/products">
                   <Button className="btn-gradient">Start Shopping</Button>
                 </Link>
@@ -283,6 +271,14 @@ function OrderHistoryContent() {
                         </div>
                       )}
 
+                      {order.refundAmount && (
+                        <div className="pt-2">
+                          <p className="text-sm text-orange-500">
+                            Refunded: £{Number(order.refundAmount).toFixed(2)}
+                          </p>
+                        </div>
+                      )}
+
                       <div className="pt-2">
                         <p className="text-xs text-muted-foreground">
                           Shipping to: {order.shippingAddress.name}, {order.shippingAddress.city},{' '}
@@ -326,10 +322,27 @@ function OrderHistoryContent() {
   );
 }
 
+function OrderHistoryWithSuspense() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-md h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <OrderHistoryContent />
+    </Suspense>
+  );
+}
+
 export default function OrderHistoryPage() {
   return (
     <ProtectedRoute>
-      <OrderHistoryContent />
+      <OrderHistoryWithSuspense />
     </ProtectedRoute>
   );
 }

@@ -68,9 +68,21 @@ export async function POST(request: NextRequest) {
 
     if (order.items.length > 0) {
       // Multi-item order
+      // Calculate VAT multiplier: order.totalPrice includes VAT, item prices don't
+      const itemsSubtotal = order.items.reduce(
+        (sum, item) => sum + Number(item.totalPrice),
+        0
+      );
+      const vatMultiplier = itemsSubtotal > 0
+        ? Number(order.totalPrice) / itemsSubtotal
+        : 1;
+
       for (const item of order.items) {
         const productName = item.product?.name || 'Custom Product';
         const variantName = item.variant?.name ? ` - ${item.variant.name}` : '';
+
+        // Apply VAT multiplier to get VAT-inclusive price
+        const unitPriceWithVat = Number(item.unitPrice) * vatMultiplier;
 
         lineItems.push({
           price_data: {
@@ -81,7 +93,8 @@ export async function POST(request: NextRequest) {
                 ? `Customization: ${JSON.stringify(item.customization)}`
                 : undefined,
             },
-            unit_amount: Math.round(Number(item.unitPrice) * 100),
+            // Use VAT-inclusive unit price
+            unit_amount: Math.round(unitPriceWithVat * 100),
           },
           quantity: item.quantity,
         });

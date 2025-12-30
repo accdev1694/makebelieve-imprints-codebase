@@ -15,13 +15,30 @@ export async function GET(request: NextRequest) {
     const productId = searchParams.get('productId');
     const category = searchParams.get('category');
     const isPremium = searchParams.get('isPremium');
+    const search = searchParams.get('search');
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
     const skip = (page - 1) * limit;
 
     const where: any = {};
     if (productId) where.productId = productId;
-    if (category) where.category = category;
+    if (category) where.category = { equals: category, mode: 'insensitive' };
     if (isPremium !== null && isPremium !== undefined) {
       where.isPremium = isPremium === 'true';
+    }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Build orderBy based on sortBy parameter
+    const orderBy: any = {};
+    if (['name', 'price', 'createdAt', 'category'].includes(sortBy)) {
+      orderBy[sortBy] = sortOrder === 'asc' ? 'asc' : 'desc';
+    } else {
+      orderBy.createdAt = 'desc';
     }
 
     const [templates, total] = await Promise.all([
@@ -38,7 +55,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
       }),
       prisma.productTemplate.count({ where }),
     ]);

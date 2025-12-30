@@ -28,34 +28,17 @@ export async function GET(request: NextRequest) {
     if (user.type === 'admin') {
       return getAdminNotifications();
     } else {
-      return getCustomerNotifications(user.userId, user.email);
+      return getCustomerNotifications(user.userId);
     }
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-async function getCustomerNotifications(userId: string, userEmail: string): Promise<NextResponse> {
+async function getCustomerNotifications(userId: string): Promise<NextResponse> {
   const items: NotificationItem[] = [];
 
-  // 1. Check for pending email confirmation
-  const pendingSubscriber = await prisma.subscriber.findFirst({
-    where: {
-      email: userEmail,
-      status: 'PENDING',
-    },
-  });
-
-  if (pendingSubscriber) {
-    items.push({
-      id: 'email-confirm',
-      type: 'email_confirmation',
-      message: 'Please confirm your email subscription',
-      action: 'mailto',
-    });
-  }
-
-  // 2. Check for pending orders (awaiting payment)
+  // 1. Check for pending orders (awaiting payment)
   const pendingOrders = await prisma.order.findMany({
     where: {
       customerId: userId,
@@ -79,7 +62,7 @@ async function getCustomerNotifications(userId: string, userEmail: string): Prom
     });
   }
 
-  // 3. Check for issues with unread admin responses
+  // 2. Check for issues with unread admin responses
   const issuesWithUnreadMessages = await prisma.issue.findMany({
     where: {
       orderItem: {
@@ -134,7 +117,7 @@ async function getCustomerNotifications(userId: string, userEmail: string): Prom
     });
   }
 
-  // 4. Check for cancellation request updates
+  // 3. Check for cancellation request updates
   const cancellationUpdates = await prisma.cancellationRequest.findMany({
     where: {
       order: {

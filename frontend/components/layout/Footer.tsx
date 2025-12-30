@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Facebook, Instagram, Twitter, CreditCard, Mail, Phone } from 'lucide-react';
+import { Facebook, Instagram, Twitter, CreditCard, Mail, Phone, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Logo } from './header/Logo';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const QUICK_LINKS = [
   { label: 'About Us', href: '/about' },
@@ -38,11 +39,66 @@ const SOCIAL_LINKS = [
 ];
 
 export function Footer() {
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [isActiveSubscriber, setIsActiveSubscriber] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  // Check subscription status for logged-in users
+  useEffect(() => {
+    const checkSubscriptionStatus = async () => {
+      if (!user?.email) return;
+
+      setCheckingStatus(true);
+      try {
+        const response = await fetch(`/api/subscribers/status?email=${encodeURIComponent(user.email)}`);
+        const data = await response.json();
+
+        if (data.subscribed) {
+          setIsActiveSubscriber(true);
+        }
+      } catch {
+        // Silently fail - just show the subscribe form
+      } finally {
+        setCheckingStatus(false);
+      }
+    };
+
+    checkSubscriptionStatus();
+  }, [user?.email]);
+
+  const handleUnsubscribe = async () => {
+    if (!user?.email) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/subscribers/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to unsubscribe');
+        return;
+      }
+
+      setIsActiveSubscriber(false);
+      setMessage('You have been unsubscribed.');
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,7 +240,38 @@ export function Footer() {
             <p className="text-sm text-muted-foreground mb-4">
               Get 10% off your first order and exclusive deals.
             </p>
-            {subscribed ? (
+            {checkingStatus ? (
+              <div className="h-20 flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : isActiveSubscriber ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-primary">
+                  <CheckCircle2 className="h-5 w-5" />
+                  <span className="font-medium text-sm">Subscribed</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  You&apos;re receiving our newsletter at {user?.email}
+                </p>
+                {error && (
+                  <p className="text-xs text-red-500">{error}</p>
+                )}
+                {message && (
+                  <p className="text-xs text-primary">{message}</p>
+                )}
+                {!message && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleUnsubscribe}
+                    disabled={loading}
+                    className="text-xs text-muted-foreground hover:text-destructive p-0 h-auto"
+                  >
+                    {loading ? 'Unsubscribing...' : 'Unsubscribe'}
+                  </Button>
+                )}
+              </div>
+            ) : subscribed ? (
               <p className="text-sm text-primary font-medium">
                 {message || 'Check your email to confirm!'}
               </p>

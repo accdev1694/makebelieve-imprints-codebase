@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Mail, Users, UserCheck, UserX, Search, Download } from 'lucide-react';
+import { Mail, Users, UserCheck, UserX, Search, Download, MoreVertical, CheckCircle, Trash2 } from 'lucide-react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 interface Subscriber {
   id: string;
@@ -126,6 +127,46 @@ function AdminSubscribersContent() {
       window.URL.revokeObjectURL(url);
     } catch {
       setError('Failed to export subscribers');
+    }
+  };
+
+  const activateSubscriber = async (id: string) => {
+    try {
+      const response = await fetch(`/api/subscribers/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'ACTIVE' }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to activate subscriber');
+      }
+
+      fetchSubscribers();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to activate subscriber';
+      setError(message);
+    }
+  };
+
+  const deleteSubscriber = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this subscriber?')) return;
+
+    try {
+      const response = await fetch(`/api/subscribers/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete subscriber');
+      }
+
+      fetchSubscribers();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete subscriber';
+      setError(message);
     }
   };
 
@@ -306,6 +347,38 @@ function AdminSubscribersContent() {
                           : `Added ${new Date(subscriber.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                       </p>
                     </div>
+
+                    {/* Actions */}
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Content
+                          className="z-50 min-w-[160px] bg-popover border border-border rounded-lg p-1 shadow-lg"
+                          align="end"
+                        >
+                          {subscriber.status !== 'ACTIVE' && (
+                            <DropdownMenu.Item
+                              className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer outline-none hover:bg-accent text-green-500"
+                              onSelect={() => activateSubscriber(subscriber.id)}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                              Activate
+                            </DropdownMenu.Item>
+                          )}
+                          <DropdownMenu.Item
+                            className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer outline-none hover:bg-destructive/10 text-destructive"
+                            onSelect={() => deleteSubscriber(subscriber.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </DropdownMenu.Item>
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Root>
                   </div>
                 ))}
               </div>

@@ -61,7 +61,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Check if order has a payment
     if (!order.payment) {
       return NextResponse.json(
-        { error: 'Order has no payment record' },
+        { error: 'Order has no payment record. This may be a free reprint order that cannot be refunded directly.' },
         { status: 400 }
       );
     }
@@ -69,7 +69,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Check if payment was completed
     if (order.payment.status !== 'COMPLETED') {
       return NextResponse.json(
-        { error: 'Order payment is not completed' },
+        {
+          error: `Payment status is "${order.payment.status}". Refunds can only be processed for completed payments. The Stripe webhook may not have updated the payment status - please check webhook logs in Stripe Dashboard.`,
+          details: {
+            paymentStatus: order.payment.status,
+            stripePaymentId: order.payment.stripePaymentId,
+            suggestion: 'Check Stripe Dashboard > Developers > Webhooks to verify the checkout.session.completed event was received and processed successfully.'
+          }
+        },
         { status: 400 }
       );
     }
@@ -93,7 +100,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const paymentIntentId = order.payment.stripePaymentId;
     if (!paymentIntentId) {
       return NextResponse.json(
-        { error: 'Order has no Stripe payment ID' },
+        { error: 'Order has no Stripe payment ID. The payment may not have been processed correctly.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate that stripePaymentId is a Payment Intent (starts with 'pi_'), not a Checkout Session (starts with 'cs_')
+    if (!paymentIntentId.startsWith('pi_')) {
+      return NextResponse.json(
+        {
+          error: `Invalid Stripe Payment ID format. Expected a Payment Intent ID (pi_xxx), but found "${paymentIntentId.substring(0, 15)}...". This usually means the Stripe webhook did not update the payment record after checkout completed.`,
+          details: {
+            currentPaymentId: paymentIntentId,
+            suggestion: 'Check Stripe Dashboard > Developers > Webhooks for failed webhook deliveries. You may need to manually update the payment record with the correct Payment Intent ID from Stripe.'
+          }
+        },
         { status: 400 }
       );
     }

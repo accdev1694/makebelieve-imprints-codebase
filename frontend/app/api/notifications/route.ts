@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireAuth, handleApiError } from '@/lib/server/auth';
+import { getAuthUser, handleApiError } from '@/lib/server/auth';
 
 /**
  * Generate a link to open the user's email app/webmail with a search for the confirmation email
@@ -56,10 +56,22 @@ export interface NotificationsResponse {
 /**
  * GET /api/notifications
  * Get pending action notifications for the current user
+ *
+ * Note: This endpoint returns empty results instead of 401 when not authenticated.
+ * This prevents 401 spam from polling requests when the session expires.
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAuth(request);
+    const user = await getAuthUser(request);
+
+    // Return empty notifications if not authenticated (prevents 401 spam from polling)
+    if (!user) {
+      return NextResponse.json({
+        totalCount: 0,
+        items: [],
+        authenticated: false,
+      } as NotificationsResponse & { authenticated: boolean });
+    }
 
     if (user.type === 'admin') {
       return getAdminNotifications();

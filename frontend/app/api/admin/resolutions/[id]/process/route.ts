@@ -151,6 +151,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         );
       }
 
+      // Validate stripePaymentId is a Payment Intent (not a Checkout Session)
+      if (!payment.stripePaymentId.startsWith('pi_')) {
+        return NextResponse.json(
+          {
+            error: `Cannot process refund: Invalid payment ID format. Expected Payment Intent (pi_xxx), found "${payment.stripePaymentId.substring(0, 15)}...". The Stripe webhook may not have updated the payment record.`,
+            suggestion: 'Check Stripe Dashboard > Developers > Webhooks for failed deliveries.'
+          },
+          { status: 400 }
+        );
+      }
+
       // Update resolution to processing
       await prisma.resolution.update({
         where: { id: resolutionId },

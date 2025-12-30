@@ -92,6 +92,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Process refund if payment exists and processRefund is true
     if (processRefund && order.payment && order.payment.status === 'COMPLETED' && order.payment.stripePaymentId) {
+      // Validate stripePaymentId is a Payment Intent (not a Checkout Session)
+      if (!order.payment.stripePaymentId.startsWith('pi_')) {
+        return NextResponse.json(
+          {
+            error: `Cannot process refund: Invalid payment ID format. Expected Payment Intent (pi_xxx), found "${order.payment.stripePaymentId.substring(0, 15)}...". The Stripe webhook may not have updated the payment record.`,
+            suggestion: 'Check Stripe Dashboard > Developers > Webhooks for failed deliveries.'
+          },
+          { status: 400 }
+        );
+      }
+
       const refundResult = await createRefund(
         order.payment.stripePaymentId,
         reason === 'FRAUD_SUSPECTED' ? 'fraudulent' : 'requested_by_customer'

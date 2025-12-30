@@ -159,11 +159,51 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Handle REFUND
     if (issue.status === 'APPROVED_REFUND') {
-      // Check payment exists
-      const payment = order.payment;
+      // Check payment exists - if this is a reprint order, look up the original order's payment
+      let payment = order.payment;
+      let originalOrderId: string | null = null;
+      let originalOrderTotal: number | null = null;
+
+      // Check if this is a reprint order (no payment, has metadata indicating it's a reprint)
+      if (!payment) {
+        // Check orderItem metadata for original order reference
+        const itemMetadata = orderItem.metadata as Record<string, unknown> | null;
+        if (itemMetadata?.isReprint && itemMetadata?.originalOrderId) {
+          originalOrderId = itemMetadata.originalOrderId as string;
+
+          // Look up the original order's payment
+          const originalOrder = await prisma.order.findUnique({
+            where: { id: originalOrderId },
+            include: { payment: true },
+          });
+
+          if (originalOrder?.payment) {
+            payment = originalOrder.payment;
+            originalOrderTotal = Number(originalOrder.totalPrice);
+          }
+        }
+      }
+
+      // Validate payment exists and has required fields
       if (!payment || !payment.stripePaymentId) {
         return NextResponse.json(
-          { error: 'No completed payment found for this order' },
+          { error: 'No payment found for this order. If this is a reprint order, the original order may not have a valid payment.' },
+          { status: 400 }
+        );
+      }
+
+      // Check payment status is COMPLETED
+      if (payment.status !== 'COMPLETED') {
+        return NextResponse.json(
+          { error: `Payment status is "${payment.status}". Refunds can only be processed for completed payments. The Stripe webhook may not have updated the payment status.` },
+          { status: 400 }
+        );
+      }
+
+      // Check stripePaymentId is a valid payment intent (starts with 'pi_')
+      if (!payment.stripePaymentId.startsWith('pi_')) {
+        return NextResponse.json(
+          { error: `Invalid payment ID format. Expected a Stripe Payment Intent ID (pi_xxx), got "${payment.stripePaymentId.substring(0, 10)}...". The webhook may not have updated the payment record.` },
           { status: 400 }
         );
       }
@@ -180,11 +220,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       let refundAmount: number;
 
       if (resolvedRefundType === 'PARTIAL_REFUND') {
-        // Partial refund: just this item's price
-        refundAmount = Number(orderItem.totalPrice);
+        // Partial refund: just this item's price (use original item price if this is a reprint)
+        refundAmount = Number(orderItem.totalPrice) || Number(originalOrderTotal) || 0;
       } else {
-        // Full refund: entire order
-        refundAmount = Number(order.totalPrice);
+        // Full refund: entire order (use original order total if this is a reprint)
+        refundAmount = originalOrderTotal || Number(order.totalPrice);
+      }
+
+      // Validate refund amount
+      if (refundAmount <= 0) {
+        return NextResponse.json(
+          { error: 'Cannot process refund: refund amount is £0. This may be a reprint order - please refund from the original order instead.' },
+          { status: 400 }
+        );
       }
 
       // Update issue to processing

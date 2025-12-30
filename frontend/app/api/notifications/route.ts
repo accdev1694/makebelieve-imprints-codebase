@@ -28,17 +28,35 @@ export async function GET(request: NextRequest) {
     if (user.type === 'admin') {
       return getAdminNotifications();
     } else {
-      return getCustomerNotifications(user.userId);
+      return getCustomerNotifications(user.userId, user.email);
     }
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-async function getCustomerNotifications(userId: string): Promise<NextResponse> {
+async function getCustomerNotifications(userId: string, userEmail: string): Promise<NextResponse> {
   const items: NotificationItem[] = [];
 
-  // 1. Check for pending orders (awaiting payment)
+  // 1. Check for pending subscription confirmation
+  const pendingSubscription = await prisma.subscriber.findFirst({
+    where: {
+      email: userEmail.toLowerCase(),
+      status: 'PENDING',
+    },
+  });
+
+  if (pendingSubscription) {
+    items.push({
+      id: 'pending-subscription',
+      type: 'pending_subscription',
+      message: 'Please confirm your newsletter subscription',
+      link: `mailto:${userEmail}`,
+      createdAt: pendingSubscription.createdAt.toISOString(),
+    });
+  }
+
+  // 2. Check for pending orders (awaiting payment)
   const pendingOrders = await prisma.order.findMany({
     where: {
       customerId: userId,
@@ -62,7 +80,7 @@ async function getCustomerNotifications(userId: string): Promise<NextResponse> {
     });
   }
 
-  // 2. Check for issues with unread admin responses
+  // 3. Check for issues with unread admin responses
   const issuesWithUnreadMessages = await prisma.issue.findMany({
     where: {
       orderItem: {

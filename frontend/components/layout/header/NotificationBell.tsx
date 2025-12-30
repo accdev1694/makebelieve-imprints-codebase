@@ -8,6 +8,7 @@ import {
   MessageSquare,
   ClipboardList,
   AlertCircle,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -15,6 +16,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from '@/app/api/notifications/route';
 
 const NOTIFICATION_ICONS: Record<string, React.ElementType> = {
+  pending_subscription: Mail,
   order_pending: Package,
   issue_response: MessageSquare,
   pending_orders: Package,
@@ -39,7 +41,12 @@ export function NotificationBell({ className }: NotificationBellProps) {
 
     // Navigate to the link
     if (item.link) {
-      router.push(item.link);
+      // Use window.location for mailto links
+      if (item.link.startsWith('mailto:')) {
+        window.location.href = item.link;
+      } else {
+        router.push(item.link);
+      }
     }
   };
 

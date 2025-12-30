@@ -33,7 +33,7 @@ import { ReceiptScanner, ExtractedReceiptData } from '@/components/admin/account
 import { DateInputUK } from '@/components/ui/date-input-uk';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import { Camera, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { Camera, ArrowUp, ArrowDown, Trash2, ClipboardPaste, PenLine } from 'lucide-react';
 
 interface Category {
   value: string;
@@ -187,7 +187,8 @@ function IncomeManagementContent() {
   const [submitting, setSubmitting] = useState(false);
 
   // Receipt scanner
-  const [showScanner, setShowScanner] = useState(false);
+  // Input mode for modal: scan receipt, paste text, or manual entry
+  const [inputMode, setInputMode] = useState<'scan' | 'paste' | 'manual'>('manual');
 
   // Auto-calculate VAT
   const [autoCalculateVat, setAutoCalculateVat] = useState(true);
@@ -714,30 +715,55 @@ function IncomeManagementContent() {
           )}
 
           <div className="space-y-4">
-            {/* Scan Receipt Button */}
-            <div className="flex justify-center">
+            {/* Input Mode Toggle */}
+            <div className="flex gap-2">
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => setShowScanner(true)}
-                className="w-full"
+                variant={inputMode === 'scan' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setInputMode('scan')}
+                className="flex-1"
               >
                 <Camera className="h-4 w-4 mr-2" />
-                Scan Receipt to Auto-Fill
+                Scan Receipt
+              </Button>
+              <Button
+                type="button"
+                variant={inputMode === 'paste' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setInputMode('paste')}
+                className="flex-1"
+              >
+                <ClipboardPaste className="h-4 w-4 mr-2" />
+                Paste Text
+              </Button>
+              <Button
+                type="button"
+                variant={inputMode === 'manual' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setInputMode('manual')}
+                className="flex-1"
+              >
+                <PenLine className="h-4 w-4 mr-2" />
+                Enter Manually
               </Button>
             </div>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  or enter manually
-                </span>
-              </div>
-            </div>
+            {/* Scan or Paste Mode */}
+            {(inputMode === 'scan' || inputMode === 'paste') && (
+              <ReceiptScanner
+                mode="income"
+                variant={inputMode === 'scan' ? 'image' : 'text'}
+                onDataExtracted={(data) => {
+                  handleReceiptData(data);
+                  setInputMode('manual');
+                }}
+              />
+            )}
 
+            {/* Manual Entry Mode */}
+            {inputMode === 'manual' && (
+              <>
             <div>
               <Label htmlFor="description">Description *</Label>
               <Input
@@ -895,6 +921,8 @@ function IncomeManagementContent() {
                 rows={2}
               />
             </div>
+              </>
+            )}
           </div>
 
           <DialogFooter>
@@ -910,12 +938,14 @@ function IncomeManagementContent() {
             >
               Cancel
             </Button>
-            <Button
-              onClick={isEditModalOpen ? handleEditIncome : handleAddIncome}
-              disabled={submitting || !formData.description || !formData.amount || !formData.category}
-            >
-              {submitting ? 'Saving...' : isEditModalOpen ? 'Update' : 'Add Income'}
-            </Button>
+            {inputMode === 'manual' && (
+              <Button
+                onClick={isEditModalOpen ? handleEditIncome : handleAddIncome}
+                disabled={submitting || !formData.description || !formData.amount || !formData.category}
+              >
+                {submitting ? 'Saving...' : isEditModalOpen ? 'Update' : 'Add Income'}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -941,15 +971,6 @@ function IncomeManagementContent() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Receipt Scanner Dialog */}
-      <Dialog open={showScanner} onOpenChange={setShowScanner}>
-        <DialogContent className="max-w-md p-0 overflow-hidden">
-          <ReceiptScanner
-            mode="income"
-            onDataExtracted={handleReceiptData}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

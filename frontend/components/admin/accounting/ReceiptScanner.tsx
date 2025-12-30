@@ -2,20 +2,17 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { useReceiptScanner, ScanStatus } from '@/hooks/useReceiptScanner';
+import { useReceiptScanner } from '@/hooks/useReceiptScanner';
 import { ParsedReceipt, parseReceiptText } from '@/lib/ocr/receipt-parser';
 import { cn } from '@/lib/utils';
 import {
   Camera,
   Upload,
-  X,
   FileImage,
   Loader2,
   CheckCircle2,
   AlertCircle,
   RotateCcw,
-  ClipboardPaste,
   FileText,
 } from 'lucide-react';
 
@@ -29,8 +26,8 @@ function formatDateUK(date: Date): string {
 
 export interface ReceiptScannerProps {
   onDataExtracted: (data: Partial<ExtractedReceiptData>) => void;
-  onClose?: () => void;
   mode: 'expense' | 'income';
+  variant: 'image' | 'text';
 }
 
 export interface ExtractedReceiptData {
@@ -42,11 +39,10 @@ export interface ExtractedReceiptData {
   vendor?: string;
 }
 
-export function ReceiptScanner({ onDataExtracted, onClose, mode }: ReceiptScannerProps) {
+export function ReceiptScanner({ onDataExtracted, mode, variant }: ReceiptScannerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [inputMode, setInputMode] = useState<'image' | 'text'>('image');
   const [pastedText, setPastedText] = useState('');
   const [textResult, setTextResult] = useState<ParsedReceipt | null>(null);
 
@@ -103,8 +99,7 @@ export function ReceiptScanner({ onDataExtracted, onClose, mode }: ReceiptScanne
   }, []);
 
   const handleApplyData = useCallback(() => {
-    // Use text result if in text mode, otherwise use image scan result
-    const receipt = inputMode === 'text' ? textResult : result?.receipt;
+    const receipt = variant === 'text' ? textResult : result?.receipt;
     if (!receipt) return;
 
     const data: Partial<ExtractedReceiptData> = {};
@@ -131,8 +126,7 @@ export function ReceiptScanner({ onDataExtracted, onClose, mode }: ReceiptScanne
     }
 
     onDataExtracted(data);
-    onClose?.();
-  }, [inputMode, textResult, result, onDataExtracted, onClose]);
+  }, [variant, textResult, result, onDataExtracted]);
 
   const renderProgress = () => (
     <div className="flex flex-col items-center gap-4 py-8">
@@ -239,7 +233,7 @@ export function ReceiptScanner({ onDataExtracted, onClose, mode }: ReceiptScanne
         </Button>
         <Button variant="outline" onClick={isTextMode ? handleResetText : reset}>
           <RotateCcw className="h-4 w-4 mr-2" />
-          {isTextMode ? 'Try Again' : 'Scan Another'}
+          Try Again
         </Button>
       </div>
     </div>
@@ -293,7 +287,6 @@ export function ReceiptScanner({ onDataExtracted, onClose, mode }: ReceiptScanne
           <Upload className="h-4 w-4 mr-2" />
           Choose File
         </Button>
-        {/* Hide camera button on desktop - only useful on mobile/tablet */}
         <Button
           variant="outline"
           onClick={() => cameraInputRef.current?.click()}
@@ -332,71 +325,25 @@ export function ReceiptScanner({ onDataExtracted, onClose, mode }: ReceiptScanne
 
   const isProcessing: boolean = ['preprocessing', 'scanning', 'parsing'].includes(status);
 
-  // Determine if we should show mode toggle (only when idle or showing text input without result)
-  const showModeToggle = (inputMode === 'image' && status === 'idle') ||
-                         (inputMode === 'text' && !textResult);
-
   return (
-    <Card className="w-full max-w-md">
-      <CardContent className="pt-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">
-            {inputMode === 'text' ? 'Extract' : 'Scan'} {mode === 'expense' ? 'Expense' : 'Income'} Receipt
-          </h3>
-          {onClose && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              disabled={isProcessing}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+    <div className="w-full">
+      {/* Image Mode */}
+      {variant === 'image' && (
+        <>
+          {status === 'idle' && renderUploadArea()}
+          {isProcessing && renderProgress()}
+          {status === 'error' && renderError()}
+          {status === 'complete' && result?.receipt && renderResult(result.receipt, false)}
+        </>
+      )}
 
-        {/* Mode Toggle */}
-        {showModeToggle && (
-          <div className="flex gap-2 mb-4">
-            <Button
-              variant={inputMode === 'image' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setInputMode('image')}
-              className="flex-1"
-            >
-              <Camera className="h-4 w-4 mr-2" />
-              Scan Image
-            </Button>
-            <Button
-              variant={inputMode === 'text' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setInputMode('text')}
-              className="flex-1"
-            >
-              <ClipboardPaste className="h-4 w-4 mr-2" />
-              Paste Text
-            </Button>
-          </div>
-        )}
-
-        {/* Image Mode */}
-        {inputMode === 'image' && (
-          <>
-            {status === 'idle' && renderUploadArea()}
-            {isProcessing && renderProgress()}
-            {status === 'error' && renderError()}
-            {status === 'complete' && result?.receipt && renderResult(result.receipt, false)}
-          </>
-        )}
-
-        {/* Text Mode */}
-        {inputMode === 'text' && (
-          <>
-            {!textResult && renderTextInput()}
-            {textResult && renderResult(textResult, true)}
-          </>
-        )}
-      </CardContent>
-    </Card>
+      {/* Text Mode */}
+      {variant === 'text' && (
+        <>
+          {!textResult && renderTextInput()}
+          {textResult && renderResult(textResult, true)}
+        </>
+      )}
+    </div>
   );
 }

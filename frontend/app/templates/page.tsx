@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Palette, LayoutGrid, X } from 'lucide-react';
@@ -11,13 +10,11 @@ import { TemplateCard, TemplateCardSkeleton } from '@/components/templates/Templ
 import { TemplateFilters } from '@/components/templates/TemplateFilters';
 import { TemplatePreviewModal } from '@/components/templates/TemplatePreviewModal';
 import { ProductTemplate, templatesService, TEMPLATE_CATEGORY_LABELS } from '@/lib/api/templates';
-import { CartIcon } from '@/components/cart/CartIcon';
 import { useDebounce } from '@/hooks/useDebounce';
 
 function TemplatesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, logout } = useAuth();
 
   // Filter state
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
@@ -103,46 +100,6 @@ function TemplatesPageContent() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Header Navigation */}
-      <header className="relative z-50 border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold">
-            <span className="text-neon-gradient">MakeBelieve</span>
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/products">
-              <Button variant="ghost">Products</Button>
-            </Link>
-            <Link href="/templates">
-              <Button variant="ghost" className="bg-accent">Templates</Button>
-            </Link>
-            <Link href="/about">
-              <Button variant="ghost">About</Button>
-            </Link>
-            <CartIcon />
-            {user ? (
-              <>
-                <Link href="/dashboard">
-                  <Button variant="ghost">Dashboard</Button>
-                </Link>
-                <Button variant="outline" onClick={logout}>
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/login">
-                  <Button variant="ghost">Login</Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button className="btn-gradient">Sign Up</Button>
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary/10 via-purple-500/10 to-pink-500/10 py-16">
         <div className="container mx-auto px-4 text-center">

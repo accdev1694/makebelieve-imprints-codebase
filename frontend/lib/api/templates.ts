@@ -77,7 +77,8 @@ export const templatesService = {
     const url = queryString ? `/templates?${queryString}` : '/templates';
 
     const response = await apiClient.get(url);
-    return response.data;
+    // API returns { success: true, data: { templates, pagination } }
+    return response.data.data || response.data;
   },
 
   /**

@@ -43,11 +43,14 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Ensure WELCOME10 promo exists
-    await ensureWelcome10Promo();
-
-    // Send welcome email with discount code
-    await sendWelcomeEmail(subscriber.email);
+    // Try to ensure WELCOME10 promo exists and send welcome email
+    // These are non-critical - don't fail confirmation if they error
+    try {
+      await ensureWelcome10Promo();
+      await sendWelcomeEmail(subscriber.email);
+    } catch (emailError) {
+      console.error('Error sending welcome email (subscription still confirmed):', emailError);
+    }
 
     return NextResponse.redirect(
       new URL('/subscribe/confirm?status=success', request.url)

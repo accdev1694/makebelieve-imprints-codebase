@@ -1,6 +1,0 @@
-/* Hide global header and footer on admin pages */
-/* The global Header has .sticky.top-0 and Footer has .bg-card.border-t */
-body:has(.admin-layout) > header.sticky.top-0,
-body:has(.admin-layout) > footer.bg-card {
-  display: none !important;
-}

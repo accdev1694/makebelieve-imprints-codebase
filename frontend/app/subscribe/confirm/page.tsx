@@ -55,18 +55,28 @@ function ConfirmContent() {
   }
 
   // Error states
+  let errorTitle = 'Confirmation Failed';
   let errorMessage = 'Something went wrong. Please try again later.';
+  let showResubscribe = false;
+
   if (error === 'missing_token') {
     errorMessage = 'The confirmation link is invalid. Please check your email for the correct link.';
   } else if (error === 'invalid_token') {
-    errorMessage = 'This confirmation link has expired or is invalid. Please subscribe again.';
+    errorTitle = 'Link Expired';
+    errorMessage = 'This confirmation link has expired or has already been used. Please enter your email below to receive a new confirmation link.';
+    showResubscribe = true;
   }
 
   return (
     <div className="text-center">
       <XCircle className="w-16 h-16 text-red-500 mx-auto mb-6" />
-      <h1 className="text-3xl font-bold mb-4">Confirmation Failed</h1>
+      <h1 className="text-3xl font-bold mb-4">{errorTitle}</h1>
       <p className="text-muted-foreground mb-6 max-w-md mx-auto">{errorMessage}</p>
+      {showResubscribe && (
+        <p className="text-sm text-muted-foreground mb-6">
+          Simply scroll to the footer and enter your email in the newsletter signup to receive a fresh confirmation link.
+        </p>
+      )}
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Link href="/">
           <Button className="btn-gradient">Back to Home</Button>

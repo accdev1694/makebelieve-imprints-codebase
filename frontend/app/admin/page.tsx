@@ -11,11 +11,10 @@ import { ordersService, Order, OrderStatus, ORDER_STATUS_LABELS } from '@/lib/ap
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import { NotificationBell } from '@/components/layout/header/NotificationBell';
 
 function AdminDashboardContent() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState({
@@ -95,45 +94,21 @@ function AdminDashboardContent() {
     return colors[status];
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch {
-      // Logout failed silently - user can try again
-    }
-  };
-
   if (user && user.userType !== 'PRINTER_ADMIN') {
     return null; // Will redirect in useEffect
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm">
-                ← Back
-              </Button>
-            </Link>
-            <h1 className="text-2xl font-bold">
-              <span className="text-neon-gradient">Admin Dashboard</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <NotificationBell />
-            <Badge variant="destructive">Admin</Badge>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
-
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold">
+            <span className="text-neon-gradient">Admin Dashboard</span>
+          </h1>
+          <Badge variant="destructive">Admin</Badge>
+        </div>
         {error && (
           <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm mb-6">
             {error}

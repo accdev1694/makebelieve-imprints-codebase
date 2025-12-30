@@ -195,20 +195,20 @@ async function getCustomerNotifications(userId: string, userEmail: string): Prom
 async function getAdminNotifications(): Promise<NextResponse> {
   const items: NotificationItem[] = [];
 
-  // 1. Count pending orders
-  const pendingOrderCount = await prisma.order.count({
+  // 1. Count orders needing attention (new orders ready for fulfillment)
+  const ordersNeedingAttention = await prisma.order.count({
     where: {
-      status: { in: ['pending', 'payment_confirmed'] },
+      status: { in: ['pending', 'payment_confirmed', 'confirmed'] },
     },
   });
 
-  if (pendingOrderCount > 0) {
+  if (ordersNeedingAttention > 0) {
     items.push({
       id: 'pending-orders',
       type: 'pending_orders',
-      message: `${pendingOrderCount} order${pendingOrderCount > 1 ? 's' : ''} pending`,
-      link: '/admin/orders?status=pending',
-      count: pendingOrderCount,
+      message: `${ordersNeedingAttention} order${ordersNeedingAttention > 1 ? 's' : ''} to process`,
+      link: '/admin/orders?status=confirmed',
+      count: ordersNeedingAttention,
     });
   }
 

@@ -2,25 +2,27 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ordersService, Order, OrderStatus, ORDER_STATUS_LABELS, ACTIVE_ORDER_STATUSES } from '@/lib/api/orders';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ordersService, Order, OrderStatus, ORDER_STATUS_LABELS, ARCHIVED_ORDER_STATUSES } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import Link from 'next/link';
-import { Archive } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown } from 'lucide-react';
 
-function OrderHistoryContent() {
+type SortOption = 'date_desc' | 'date_asc' | 'total_desc' | 'total_asc' | 'status';
+
+function OrderArchiveContent() {
   const router = useRouter();
-  const { user } = useAuth();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('date_desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -33,7 +35,7 @@ function OrderHistoryContent() {
       setLoading(true);
       const data = await ordersService.list(currentPage, 10, {
         status: statusFilter === 'all' ? undefined : statusFilter,
-        archived: false, // Only show active orders
+        archived: true, // Only show archived orders
       });
       setOrders(data.orders);
       setTotalPages(data.pagination.totalPages);
@@ -44,6 +46,24 @@ function OrderHistoryContent() {
       setLoading(false);
     }
   };
+
+  // Sort orders client-side
+  const sortedOrders = [...orders].sort((a, b) => {
+    switch (sortBy) {
+      case 'date_desc':
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      case 'date_asc':
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      case 'total_desc':
+        return Number(b.totalPrice) - Number(a.totalPrice);
+      case 'total_asc':
+        return Number(a.totalPrice) - Number(b.totalPrice);
+      case 'status':
+        return a.status.localeCompare(b.status);
+      default:
+        return 0;
+    }
+  });
 
   const getStatusColor = (status: OrderStatus): string => {
     const colors: Record<OrderStatus, string> = {
@@ -67,109 +87,105 @@ function OrderHistoryContent() {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard">
+            <Link href="/orders">
               <Button variant="ghost" size="sm">
-                ← Back to Dashboard
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Active Orders
               </Button>
             </Link>
             <h1 className="text-2xl font-bold">
-              <span className="text-neon-gradient">Active Orders</span>
+              <span className="text-neon-gradient">Order Archive</span>
             </h1>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Link href="/orders/archive">
-              <Button variant="outline" size="sm">
-                <Archive className="w-4 h-4 mr-2" />
-                View Archive
-              </Button>
-            </Link>
             <Link href="/products">
               <Button variant="outline" size="sm">Continue Shopping</Button>
             </Link>
-            <Link href="/design/new">
-              <Button className="btn-gradient" size="sm">Create New Design</Button>
-            </Link>
           </div>
         </div>
+
         {error && (
           <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm mb-6">
             {error}
           </div>
         )}
 
-        {/* Filter Tabs - Only active statuses */}
-        <div className="mb-6 flex gap-2 flex-wrap">
-          <Button
-            variant={statusFilter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('all');
-              setCurrentPage(1);
-            }}
-            className={statusFilter === 'all' ? 'btn-gradient' : ''}
-          >
-            All Active
-          </Button>
-          <Button
-            variant={statusFilter === 'pending' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('pending');
-              setCurrentPage(1);
-            }}
-          >
-            Pending Payment
-          </Button>
-          <Button
-            variant={statusFilter === 'payment_confirmed' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('payment_confirmed');
-              setCurrentPage(1);
-            }}
-          >
-            Confirmed
-          </Button>
-          <Button
-            variant={statusFilter === 'printing' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('printing');
-              setCurrentPage(1);
-            }}
-          >
-            Printing
-          </Button>
-          <Button
-            variant={statusFilter === 'shipped' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('shipped');
-              setCurrentPage(1);
-            }}
-          >
-            Shipped
-          </Button>
-          <Button
-            variant={statusFilter === 'cancellation_requested' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('cancellation_requested');
-              setCurrentPage(1);
-            }}
-          >
-            Cancellation Requested
-          </Button>
+        {/* Filter and Sort Controls */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between">
+          {/* Status Filter Tabs */}
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant={statusFilter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setStatusFilter('all');
+                setCurrentPage(1);
+              }}
+              className={statusFilter === 'all' ? 'btn-gradient' : ''}
+            >
+              All Archived
+            </Button>
+            <Button
+              variant={statusFilter === 'delivered' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setStatusFilter('delivered');
+                setCurrentPage(1);
+              }}
+              className={statusFilter === 'delivered' ? 'bg-green-500 hover:bg-green-600' : ''}
+            >
+              Delivered
+            </Button>
+            <Button
+              variant={statusFilter === 'cancelled' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setStatusFilter('cancelled');
+                setCurrentPage(1);
+              }}
+              className={statusFilter === 'cancelled' ? 'bg-red-500 hover:bg-red-600' : ''}
+            >
+              Cancelled
+            </Button>
+            <Button
+              variant={statusFilter === 'refunded' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setStatusFilter('refunded');
+                setCurrentPage(1);
+              }}
+              className={statusFilter === 'refunded' ? 'bg-orange-500 hover:bg-orange-600' : ''}
+            >
+              Refunded
+            </Button>
+          </div>
+
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+            <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date_desc">Newest First</SelectItem>
+                <SelectItem value="date_asc">Oldest First</SelectItem>
+                <SelectItem value="total_desc">Highest Total</SelectItem>
+                <SelectItem value="total_asc">Lowest Total</SelectItem>
+                <SelectItem value="status">By Status</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-md h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
-              <p className="text-muted-foreground">Loading your orders...</p>
+              <p className="text-muted-foreground">Loading archived orders...</p>
             </div>
           </div>
-        ) : orders.length === 0 ? (
+        ) : sortedOrders.length === 0 ? (
           <Card className="card-glow">
             <CardContent className="py-20 text-center">
               <div className="mb-6">
@@ -183,34 +199,26 @@ function OrderHistoryContent() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                    d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
                   />
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                {statusFilter === 'all' ? 'No active orders' : `No ${ORDER_STATUS_LABELS[statusFilter] || statusFilter} orders`}
+                {statusFilter === 'all' ? 'No archived orders' : `No ${ORDER_STATUS_LABELS[statusFilter] || statusFilter} orders`}
               </h3>
               <p className="text-muted-foreground mb-6">
                 {statusFilter === 'all'
-                  ? 'You have no orders in progress. Check your archive for completed orders.'
+                  ? 'Completed, cancelled, and refunded orders will appear here.'
                   : 'Try selecting a different filter to see other orders.'}
               </p>
-              <div className="flex gap-3 justify-center">
-                <Link href="/orders/archive">
-                  <Button variant="outline">
-                    <Archive className="w-4 h-4 mr-2" />
-                    View Archive
-                  </Button>
-                </Link>
-                <Link href="/products">
-                  <Button className="btn-gradient">Start Shopping</Button>
-                </Link>
-              </div>
+              <Link href="/orders">
+                <Button variant="outline">View Active Orders</Button>
+              </Link>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
+            {sortedOrders.map((order) => (
               <Card
                 key={order.id}
                 className="card-glow hover:-translate-y-1 transition-all duration-300 cursor-pointer"
@@ -234,7 +242,7 @@ function OrderHistoryContent() {
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                         <div>
                           <h3 className="font-semibold text-lg">
-                            {order.design?.name || 'Design'}
+                            {order.design?.name || 'Order'}
                           </h3>
                           <p className="text-sm text-muted-foreground">
                             Order #{order.id.slice(0, 8).toUpperCase()}
@@ -261,7 +269,7 @@ function OrderHistoryContent() {
                           </div>
                         )}
                         <div>
-                          <p className="text-muted-foreground">Price</p>
+                          <p className="text-muted-foreground">Total</p>
                           <p className="font-medium text-primary">£{Number(order.totalPrice).toFixed(2)}</p>
                         </div>
                         <div>
@@ -276,16 +284,17 @@ function OrderHistoryContent() {
                         </div>
                       </div>
 
-                      {order.trackingNumber && (
+                      {order.refundAmount && (
                         <div className="pt-2">
-                          <p className="text-xs text-muted-foreground mb-1">Tracking Number:</p>
-                          <p className="font-mono text-sm">{order.trackingNumber}</p>
+                          <p className="text-sm text-orange-500">
+                            Refunded: £{Number(order.refundAmount).toFixed(2)}
+                          </p>
                         </div>
                       )}
 
                       <div className="pt-2">
                         <p className="text-xs text-muted-foreground">
-                          Shipping to: {order.shippingAddress.name}, {order.shippingAddress.city},{' '}
+                          Shipped to: {order.shippingAddress.name}, {order.shippingAddress.city},{' '}
                           {order.shippingAddress.postcode}
                         </p>
                       </div>
@@ -326,10 +335,10 @@ function OrderHistoryContent() {
   );
 }
 
-export default function OrderHistoryPage() {
+export default function OrderArchivePage() {
   return (
     <ProtectedRoute>
-      <OrderHistoryContent />
+      <OrderArchiveContent />
     </ProtectedRoute>
   );
 }

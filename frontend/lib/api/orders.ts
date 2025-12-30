@@ -154,13 +154,23 @@ export const ordersService = {
 
   /**
    * Get all orders for current user
+   * @param archived - if true, returns only archived orders; if false, returns only active orders; if undefined, returns all
    */
-  async list(page = 1, limit = 20, status?: OrderStatus): Promise<OrdersListResponse> {
+  async list(
+    page = 1,
+    limit = 20,
+    options?: { status?: OrderStatus; archived?: boolean }
+  ): Promise<OrdersListResponse> {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
-      ...(status && { status }),
     });
+    if (options?.status) {
+      params.set('status', options.status);
+    }
+    if (options?.archived !== undefined) {
+      params.set('archived', options.archived.toString());
+    }
     const response = await apiClient.get<{ success: boolean; data: OrdersListResponse }>(
       `/orders?${params.toString()}`
     );
@@ -265,6 +275,36 @@ export const CUSTOMER_CANCELLATION_REASONS: CancellationReason[] = [
   'DUPLICATE_ORDER',
   'OTHER',
 ];
+
+// Order status categories for filtering
+export const ACTIVE_ORDER_STATUSES: OrderStatus[] = [
+  'pending',
+  'payment_confirmed',
+  'confirmed',
+  'printing',
+  'shipped',
+  'cancellation_requested',
+];
+
+export const ARCHIVED_ORDER_STATUSES: OrderStatus[] = [
+  'delivered',
+  'cancelled',
+  'refunded',
+];
+
+/**
+ * Check if an order status is considered archived (concluded)
+ */
+export const isArchivedStatus = (status: OrderStatus): boolean => {
+  return ARCHIVED_ORDER_STATUSES.includes(status);
+};
+
+/**
+ * Check if an order status is considered active (needs attention)
+ */
+export const isActiveStatus = (status: OrderStatus): boolean => {
+  return ACTIVE_ORDER_STATUSES.includes(status);
+};
 
 // Admin cancellation reasons (all reasons)
 export const ADMIN_CANCELLATION_REASONS: CancellationReason[] = [

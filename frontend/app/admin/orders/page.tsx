@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ordersService, Order, OrderStatus, ORDER_STATUS_LABELS } from '@/lib/api/orders';
+import { ordersService, Order, OrderStatus, ORDER_STATUS_LABELS, ACTIVE_ORDER_STATUSES, ARCHIVED_ORDER_STATUSES } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { Archive, Package } from 'lucide-react';
 
 function AdminOrdersContent() {
   const router = useRouter();
@@ -20,6 +21,7 @@ function AdminOrdersContent() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [viewMode, setViewMode] = useState<'active' | 'archive'>('active');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -34,24 +36,29 @@ function AdminOrdersContent() {
 
   useEffect(() => {
     fetchOrders();
-  }, [statusFilter, currentPage]);
+  }, [statusFilter, currentPage, viewMode]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const data = await ordersService.list(
-        currentPage,
-        15,
-        statusFilter === 'all' ? undefined : statusFilter
-      );
+      const data = await ordersService.list(currentPage, 15, {
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        archived: viewMode === 'archive',
+      });
       setOrders(data.orders);
       setTotalPages(data.pagination.totalPages);
-    } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to load orders');
+    } catch (err: unknown) {
+      const e = err as { error?: string; message?: string };
+      setError(e?.error || e?.message || 'Failed to load orders');
     } finally {
       setLoading(false);
     }
   };
+
+  // Get available status filters based on view mode
+  const availableStatuses = viewMode === 'active'
+    ? ACTIVE_ORDER_STATUSES
+    : ARCHIVED_ORDER_STATUSES;
 
   const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
     setUpdatingOrderId(orderId);
@@ -120,6 +127,34 @@ function AdminOrdersContent() {
               <span className="text-neon-gradient">Order Management</span>
             </h1>
           </div>
+          {/* View Mode Toggle */}
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'active' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setViewMode('active');
+                setStatusFilter('all');
+                setCurrentPage(1);
+              }}
+              className={viewMode === 'active' ? 'btn-gradient' : ''}
+            >
+              <Package className="w-4 h-4 mr-2" />
+              Active
+            </Button>
+            <Button
+              variant={viewMode === 'archive' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setViewMode('archive');
+                setStatusFilter('all');
+                setCurrentPage(1);
+              }}
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              Archive
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -131,7 +166,7 @@ function AdminOrdersContent() {
           </div>
         )}
 
-        {/* Filter Tabs */}
+        {/* Filter Tabs - Dynamic based on view mode */}
         <div className="mb-6 flex gap-2 flex-wrap">
           <Button
             variant={statusFilter === 'all' ? 'default' : 'outline'}
@@ -142,68 +177,21 @@ function AdminOrdersContent() {
             }}
             className={statusFilter === 'all' ? 'btn-gradient' : ''}
           >
-            All Orders
+            {viewMode === 'active' ? 'All Active' : 'All Archived'}
           </Button>
-          <Button
-            variant={statusFilter === 'pending' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('pending');
-              setCurrentPage(1);
-            }}
-          >
-            Pending
-          </Button>
-          <Button
-            variant={statusFilter === 'payment_confirmed' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('payment_confirmed');
-              setCurrentPage(1);
-            }}
-          >
-            Confirmed
-          </Button>
-          <Button
-            variant={statusFilter === 'printing' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('printing');
-              setCurrentPage(1);
-            }}
-          >
-            Printing
-          </Button>
-          <Button
-            variant={statusFilter === 'shipped' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('shipped');
-              setCurrentPage(1);
-            }}
-          >
-            Shipped
-          </Button>
-          <Button
-            variant={statusFilter === 'delivered' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('delivered');
-              setCurrentPage(1);
-            }}
-          >
-            Delivered
-          </Button>
-          <Button
-            variant={statusFilter === 'cancelled' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('cancelled');
-              setCurrentPage(1);
-            }}
-          >
-            Cancelled
-          </Button>
+          {availableStatuses.map((status) => (
+            <Button
+              key={status}
+              variant={statusFilter === status ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setStatusFilter(status);
+                setCurrentPage(1);
+              }}
+            >
+              {ORDER_STATUS_LABELS[status]}
+            </Button>
+          ))}
         </div>
 
         {loading ? (
@@ -217,11 +205,15 @@ function AdminOrdersContent() {
           <Card className="card-glow">
             <CardContent className="py-20 text-center">
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                {statusFilter === 'all' ? 'No orders yet' : `No ${statusFilter} orders`}
+                {statusFilter === 'all'
+                  ? viewMode === 'active' ? 'No active orders' : 'No archived orders'
+                  : `No ${ORDER_STATUS_LABELS[statusFilter] || statusFilter} orders`}
               </h3>
               <p className="text-muted-foreground">
                 {statusFilter === 'all'
-                  ? 'Orders will appear here once customers start placing them.'
+                  ? viewMode === 'active'
+                    ? 'Active orders will appear here when customers place them.'
+                    : 'Completed, cancelled, and refunded orders will appear here.'
                   : 'Try selecting a different filter to see other orders.'}
               </p>
             </CardContent>

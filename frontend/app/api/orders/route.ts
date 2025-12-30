@@ -4,9 +4,19 @@ import { requireAuth, handleApiError } from '@/lib/server/auth';
 import { OrderStatus } from '@prisma/client';
 import { recordPromoUsage } from '@/lib/server/promo-service';
 
+// Order statuses considered "archived" (concluded)
+const ARCHIVED_STATUSES: OrderStatus[] = ['delivered', 'cancelled', 'refunded'];
+// Order statuses considered "active" (needs attention)
+const ACTIVE_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'printing', 'shipped'];
+
 /**
  * GET /api/orders
  * List orders (user's own or all for admin)
+ * Query params:
+ * - page: page number (default 1)
+ * - limit: items per page (default 20, max 100)
+ * - status: filter by specific status
+ * - archived: if 'true', show only archived orders; if 'false', show only active orders
  */
 export async function GET(request: NextRequest) {
   try {
@@ -17,11 +27,22 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
     const skip = (page - 1) * limit;
     const status = searchParams.get('status') as OrderStatus | null;
+    const archivedParam = searchParams.get('archived');
+
+    // Build status filter based on archived param
+    let statusFilter: { status?: OrderStatus | { in: OrderStatus[] } } = {};
+    if (status) {
+      statusFilter = { status };
+    } else if (archivedParam === 'true') {
+      statusFilter = { status: { in: ARCHIVED_STATUSES } };
+    } else if (archivedParam === 'false') {
+      statusFilter = { status: { in: ACTIVE_STATUSES } };
+    }
 
     const where =
       user.type === 'admin'
-        ? { ...(status && { status }) }
-        : { customerId: user.userId, ...(status && { status }) };
+        ? { ...statusFilter }
+        : { customerId: user.userId, ...statusFilter };
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({

@@ -28,18 +28,13 @@ function DashboardContent() {
         const ordersResponse = await ordersService.list(1, 1);
         setTotalOrders(ordersResponse.pagination.total);
 
-        // Fetch pending orders (pending + confirmed + printing statuses)
-        const pendingStatuses = ['pending', 'confirmed', 'payment_confirmed', 'printing'];
-        let pendingCount = 0;
-        for (const status of pendingStatuses) {
-          try {
-            const pendingResponse = await ordersService.list(1, 1, status as 'pending' | 'confirmed' | 'printing');
-            pendingCount += pendingResponse.pagination.total;
-          } catch {
-            // Status might not exist or no orders with that status
-          }
+        // Fetch pending orders (all active orders)
+        try {
+          const activeResponse = await ordersService.list(1, 1, { archived: false });
+          setPendingOrders(activeResponse.pagination.total);
+        } catch {
+          setPendingOrders(0);
         }
-        setPendingOrders(pendingCount);
 
         // Fetch designs
         const designs = await designsService.list();

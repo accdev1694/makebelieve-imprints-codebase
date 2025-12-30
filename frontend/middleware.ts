@@ -42,22 +42,42 @@ const rateLimitConfig: Record<string, { maxRequests: number; windowMs: number }>
 };
 
 // Check if origin is allowed
-function isAllowedOrigin(origin: string | null, pathname: string): boolean {
-  // In production, require origin for API routes (except webhooks which are server-to-server)
-  if (isProduction && !origin) {
-    // Allow no-origin for webhooks (Stripe, Resend call these server-to-server)
-    if (pathname.startsWith('/api/webhooks/')) return true;
-    // Allow no-origin for cron jobs
-    if (pathname.startsWith('/api/cron/')) return true;
-    // Allow no-origin for health checks
-    if (pathname === '/api/health') return true;
-    // Block other API requests without origin in production
-    return false;
+function isAllowedOrigin(origin: string | null, pathname: string, request: NextRequest): boolean {
+  // Allow webhooks, cron jobs, and health checks (server-to-server)
+  if (pathname.startsWith('/api/webhooks/')) return true;
+  if (pathname.startsWith('/api/cron/')) return true;
+  if (pathname === '/api/health') return true;
+
+  // If origin is present, check against allowed list
+  if (origin) {
+    return allowedOrigins.includes(origin);
   }
 
-  // In development or if origin is present, check against allowed list
-  if (!origin) return true; // Development: allow no origin
-  return allowedOrigins.includes(origin);
+  // No origin header - check if it's a same-origin request
+  // Same-origin fetch requests often don't include Origin header
+  // Check Sec-Fetch-Site header (modern browsers) or Referer
+  const secFetchSite = request.headers.get('sec-fetch-site');
+  if (secFetchSite === 'same-origin' || secFetchSite === 'same-site') {
+    return true;
+  }
+
+  // Check Referer as fallback
+  const referer = request.headers.get('referer');
+  if (referer) {
+    try {
+      const refererUrl = new URL(referer);
+      const refererOrigin = refererUrl.origin;
+      return allowedOrigins.includes(refererOrigin);
+    } catch {
+      // Invalid referer URL
+    }
+  }
+
+  // In development, allow requests without origin
+  if (!isProduction) return true;
+
+  // In production with no origin and no valid referer, block
+  return false;
 }
 
 // Simple rate limiting check
@@ -112,7 +132,7 @@ export function middleware(request: NextRequest) {
   if (request.method === 'OPTIONS' && isApiRoute) {
     const response = new NextResponse(null, { status: 204 });
 
-    if (isAllowedOrigin(origin, pathname)) {
+    if (isAllowedOrigin(origin, pathname, request)) {
       response.headers.set('Access-Control-Allow-Origin', origin || (isProduction ? '' : '*'));
       response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
       response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
@@ -124,7 +144,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Check CORS for API routes
-  if (isApiRoute && !isAllowedOrigin(origin, pathname)) {
+  if (isApiRoute && !isAllowedOrigin(origin, pathname, request)) {
     return NextResponse.json(
       { error: 'Origin not allowed' },
       { status: 403 }
@@ -155,7 +175,7 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   // Add CORS headers for API routes
-  if (isApiRoute && origin && isAllowedOrigin(origin, pathname)) {
+  if (isApiRoute && origin && isAllowedOrigin(origin, pathname, request)) {
     response.headers.set('Access-Control-Allow-Origin', origin);
     response.headers.set('Access-Control-Allow-Credentials', 'true');
   }

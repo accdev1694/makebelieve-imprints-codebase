@@ -76,7 +76,7 @@ export async function sendPasswordResetEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -88,7 +88,7 @@ export async function sendPasswordResetEmail(
         <p>We received a request to reset your password for your ${APP_NAME} account. Click the button below to create a new password:</p>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${resetUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
             Reset Password
           </a>
         </div>
@@ -154,7 +154,7 @@ export async function sendSubscriptionConfirmEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -166,7 +166,7 @@ export async function sendSubscriptionConfirmEmail(
         <p>Please confirm your email address by clicking the button below:</p>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${confirmUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${confirmUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
             Confirm Subscription
           </a>
         </div>
@@ -232,7 +232,7 @@ export async function sendWelcomeEmail(email: string): Promise<boolean> {
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -248,7 +248,7 @@ export async function sendWelcomeEmail(email: string): Promise<boolean> {
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${shopUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${shopUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
             Start Shopping
           </a>
         </div>
@@ -319,7 +319,7 @@ export async function sendReprintConfirmationEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -338,7 +338,7 @@ export async function sendReprintConfirmationEmail(
         <p>Your replacement order is now being processed and will be dispatched soon. You'll receive tracking information once it ships.</p>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${orderUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${orderUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
             View Replacement Order
           </a>
         </div>
@@ -419,7 +419,7 @@ export async function sendRefundConfirmationEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -514,7 +514,7 @@ export async function sendIssueReceivedEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -539,7 +539,7 @@ export async function sendIssueReceivedEmail(
         </ul>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${issueUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${issueUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
             View Issue Status
           </a>
         </div>
@@ -600,7 +600,7 @@ export async function sendIssueInfoRequestedEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #f59e0b; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -617,7 +617,7 @@ export async function sendIssueInfoRequestedEmail(
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${issueUrl}" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${issueUrl}" style="background-color: #f59e0b; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #f59e0b;">
             Respond Now
           </a>
         </div>
@@ -678,7 +678,7 @@ export async function sendIssueApprovedEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #10b981; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -709,7 +709,7 @@ export async function sendIssueApprovedEmail(
         </p>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${issueUrl}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${issueUrl}" style="background-color: #10b981; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #10b981;">
             View Issue Details
           </a>
         </div>
@@ -765,7 +765,7 @@ export async function sendIssueRejectedEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -784,7 +784,7 @@ export async function sendIssueRejectedEmail(
         ${canAppeal ? `
         <p>If you believe this decision was made in error, you can appeal by providing additional information.</p>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${issueUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${issueUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
             Appeal This Decision
           </a>
         </div>
@@ -843,7 +843,7 @@ export async function sendIssueMessageEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -859,7 +859,7 @@ export async function sendIssueMessageEmail(
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${issueUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${issueUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
             View & Reply
           </a>
         </div>
@@ -922,7 +922,7 @@ export async function sendIssueResolvedEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #10b981; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -946,7 +946,7 @@ export async function sendIssueResolvedEmail(
         `}
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${issueUrl}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${issueUrl}" style="background-color: #10b981; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #10b981;">
             View Issue Details
           </a>
         </div>
@@ -1019,7 +1019,7 @@ export async function sendAdminNewIssueAlert(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #ef4444; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">New Issue Alert</h1>
       </div>
 
@@ -1056,7 +1056,7 @@ export async function sendAdminNewIssueAlert(
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${issueUrl}" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${issueUrl}" style="background-color: #ef4444; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #ef4444;">
             Review Issue Now
           </a>
         </div>
@@ -1128,7 +1128,7 @@ export async function sendOrderCancelledBySellerEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -1156,7 +1156,7 @@ export async function sendOrderCancelledBySellerEmail(
         <p>We sincerely apologise for any inconvenience this may have caused. If you have any questions, please don't hesitate to contact us.</p>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${APP_URL}/products" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${APP_URL}/products" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
             Continue Shopping
           </a>
         </div>
@@ -1224,7 +1224,7 @@ export async function sendCancellationRequestReceivedEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -1250,7 +1250,7 @@ export async function sendCancellationRequestReceivedEmail(
         </ul>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${orderUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${orderUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
             View Order Status
           </a>
         </div>
@@ -1314,7 +1314,7 @@ export async function sendCancellationRequestApprovedEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #10b981; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -1342,7 +1342,7 @@ export async function sendCancellationRequestApprovedEmail(
         <p>We're sorry to see this order go. We hope to serve you again in the future!</p>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${APP_URL}/products" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${APP_URL}/products" style="background-color: #10b981; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #10b981;">
             Continue Shopping
           </a>
         </div>
@@ -1399,7 +1399,7 @@ export async function sendCancellationRequestRejectedEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -1418,7 +1418,7 @@ export async function sendCancellationRequestRejectedEmail(
         <p>Your order will continue to be processed and shipped as normal. Once you receive your order, if there are any issues with it, you can submit a return or exchange request.</p>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${orderUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${orderUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
             View Order Status
           </a>
         </div>
@@ -1491,7 +1491,7 @@ export async function sendIssueConcludedEmail(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
@@ -1518,7 +1518,7 @@ export async function sendIssueConcludedEmail(
         <p style="color: #6b7280;">This issue is now closed and no further action is required. You can still view the full conversation history for your records.</p>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${issueUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${issueUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
             View Issue Details
           </a>
         </div>
@@ -1594,7 +1594,7 @@ export async function sendAdminCancellationRequestAlert(
       <title>${subject}</title>
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+      <div style="background-color: #f59e0b; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
         <h1 style="color: white; margin: 0; font-size: 24px;">Cancellation Request</h1>
       </div>
 
@@ -1634,7 +1634,7 @@ export async function sendAdminCancellationRequestAlert(
         ` : ''}
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${orderUrl}" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${orderUrl}" style="background-color: #f59e0b; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #f59e0b;">
             Review & Respond
           </a>
         </div>

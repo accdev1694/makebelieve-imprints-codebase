@@ -176,8 +176,9 @@ apiClient.interceptors.response.use(
       // that falls out of the range of 2xx
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const apiError = error.response.data as any; // Cast to any to check for message property
+      // Check for message first, then error string (API sometimes returns { error: 'message' })
       const message =
-        apiError?.message || 'An error occurred during the request. Please try again.';
+        apiError?.message || (typeof apiError?.error === 'string' ? apiError.error : null) || 'An error occurred during the request. Please try again.';
       return Promise.reject({
         statusCode: error.response.status,
         message,

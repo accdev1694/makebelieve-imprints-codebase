@@ -43,8 +43,8 @@ export function generateCampaignHtml(
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
       <!-- Header -->
-      <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">${APP_NAME}</h1>
       </div>
 
       <!-- Content -->
@@ -55,7 +55,7 @@ export function generateCampaignHtml(
 
         <!-- CTA Button -->
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${shopUrl}" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="${shopUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
             Shop Now
           </a>
         </div>

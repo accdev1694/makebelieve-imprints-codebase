@@ -153,6 +153,16 @@ function OrderHistoryContent() {
           >
             Delivered
           </Button>
+          <Button
+            variant={statusFilter === 'cancelled' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => {
+              setStatusFilter('cancelled');
+              setCurrentPage(1);
+            }}
+          >
+            Cancelled
+          </Button>
         </div>
 
         {loading ? (

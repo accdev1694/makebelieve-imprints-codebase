@@ -141,7 +141,7 @@ export async function sendSubscriptionConfirmEmail(
   email: string,
   confirmToken: string
 ): Promise<boolean> {
-  const confirmUrl = `${APP_URL}/subscribe/confirm?token=${confirmToken}`;
+  const confirmUrl = `${APP_URL}/api/subscribers/confirm?token=${confirmToken}`;
 
   const subject = `Confirm your subscription to ${APP_NAME}`;
 

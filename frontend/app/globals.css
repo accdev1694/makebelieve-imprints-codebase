@@ -254,24 +254,24 @@
   input[type="date"]::-webkit-calendar-picker-indicator,
   input[type="datetime-local"]::-webkit-calendar-picker-indicator,
   input[type="time"]::-webkit-calendar-picker-indicator {
-    filter: invert(1) brightness(2);
-    cursor: pointer;
-    opacity: 1;
+    filter: invert(1) brightness(2) !important;
+    cursor: pointer !important;
+    opacity: 1 !important;
     transition: opacity 0.2s;
   }
 
   input[type="date"]::-webkit-calendar-picker-indicator:hover,
   input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
   input[type="time"]::-webkit-calendar-picker-indicator:hover {
-    opacity: 0.8;
+    opacity: 0.8 !important;
   }
 
   /* Firefox/all browsers date picker styling */
   input[type="date"],
   input[type="datetime-local"],
   input[type="time"] {
-    color-scheme: dark;
-    color: hsl(var(--foreground));
+    color-scheme: dark !important;
+    color: hsl(var(--foreground)) !important;
   }
 
   /* Select dropdown styling for dark theme */

@@ -2,6 +2,42 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
 
+/**
+ * Generate a link to open the user's email app/webmail with a search for the confirmation email
+ */
+function getEmailSearchLink(email: string): string {
+  const domain = email.split('@')[1]?.toLowerCase();
+  const searchQuery = encodeURIComponent('MakeBelieve Imprints confirm subscription');
+
+  // Gmail (including Google Workspace domains we can't detect)
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    return `https://mail.google.com/mail/u/0/#search/${searchQuery}`;
+  }
+
+  // Outlook / Hotmail / Live / Microsoft
+  if (['outlook.com', 'hotmail.com', 'live.com', 'msn.com', 'outlook.co.uk'].includes(domain)) {
+    return `https://outlook.live.com/mail/0/inbox?search=${searchQuery}`;
+  }
+
+  // Yahoo
+  if (domain === 'yahoo.com' || domain === 'yahoo.co.uk' || domain?.startsWith('yahoo.')) {
+    return `https://mail.yahoo.com/d/search/keyword=${searchQuery}`;
+  }
+
+  // iCloud
+  if (domain === 'icloud.com' || domain === 'me.com' || domain === 'mac.com') {
+    return 'https://www.icloud.com/mail/';
+  }
+
+  // ProtonMail
+  if (domain === 'protonmail.com' || domain === 'proton.me' || domain === 'pm.me') {
+    return 'https://mail.proton.me/u/0/all-mail';
+  }
+
+  // Default: open a generic mailto (opens default email app)
+  return `mailto:${email}`;
+}
+
 export interface NotificationItem {
   id: string;
   type: string;
@@ -47,11 +83,14 @@ async function getCustomerNotifications(userId: string, userEmail: string): Prom
   });
 
   if (pendingSubscription) {
+    // Generate email app link based on email provider
+    const emailLink = getEmailSearchLink(userEmail);
+
     items.push({
       id: 'pending-subscription',
       type: 'pending_subscription',
       message: 'Please confirm your newsletter subscription',
-      link: `mailto:${userEmail}`,
+      link: emailLink,
       createdAt: pendingSubscription.createdAt.toISOString(),
     });
   }

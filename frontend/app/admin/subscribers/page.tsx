@@ -105,13 +105,12 @@ function AdminSubscribersContent() {
 
       // Create CSV
       const csv = [
-        ['Email', 'Name', 'Status', 'Source', 'Subscribed Date'].join(','),
+        ['Email', 'Name', 'Status', 'Subscribed Date'].join(','),
         ...data.subscribers.map((s) =>
           [
             s.email,
             s.name || '',
             s.status,
-            s.source,
             s.subscribedAt ? new Date(s.subscribedAt).toISOString() : '',
           ].join(',')
         ),
@@ -141,16 +140,6 @@ function AdminSubscribersContent() {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
-  };
-
-  const getSourceBadge = (source: string) => {
-    const colors: Record<string, string> = {
-      FOOTER: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      CHECKOUT: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      POPUP: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      ADMIN: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-    };
-    return <Badge className={colors[source] || 'bg-gray-500/20'}>{source.toLowerCase()}</Badge>;
   };
 
   if (user && user.userType !== 'PRINTER_ADMIN') {
@@ -305,7 +294,6 @@ function AdminSubscribersContent() {
                       <div className="flex items-center gap-3 mb-1">
                         <h4 className="font-semibold">{subscriber.email}</h4>
                         {getStatusBadge(subscriber.status)}
-                        {getSourceBadge(subscriber.source)}
                       </div>
                       {subscriber.name && (
                         <p className="text-sm text-muted-foreground">{subscriber.name}</p>

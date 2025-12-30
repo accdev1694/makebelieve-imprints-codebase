@@ -1,13 +1,11 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   Bell,
-  Mail,
   Package,
   MessageSquare,
-  XCircle,
   ClipboardList,
   AlertCircle,
 } from 'lucide-react';
@@ -17,13 +15,11 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from '@/app/api/notifications/route';
 
 const NOTIFICATION_ICONS: Record<string, React.ElementType> = {
-  email_confirmation: Mail,
   order_pending: Package,
   issue_response: MessageSquare,
-  cancellation_update: XCircle,
   pending_orders: Package,
   issues_review: ClipboardList,
-  cancellation_requests: XCircle,
+  cancellation_requests: AlertCircle,
   unread_messages: MessageSquare,
 };
 
@@ -32,14 +28,19 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ className }: NotificationBellProps) {
-  const { notifications, totalCount, isLoading } = useNotifications();
+  const router = useRouter();
+  const { notifications, totalCount, isLoading, markAsRead } = useNotifications();
 
-  const handleNotificationClick = (item: NotificationItem) => {
-    if (item.action === 'mailto') {
-      // Open email client
-      window.open('mailto:', '_blank');
+  const handleNotificationClick = async (item: NotificationItem) => {
+    // Mark issue notifications as read before navigating
+    if (item.type === 'issue_response' || item.type === 'unread_messages') {
+      await markAsRead(item.id, item.type);
     }
-    // For links, the Link component handles navigation
+
+    // Navigate to the link
+    if (item.link) {
+      router.push(item.link);
+    }
   };
 
   const renderNotificationItem = (item: NotificationItem) => {
@@ -65,27 +66,14 @@ export function NotificationBell({ className }: NotificationBellProps) {
       </div>
     );
 
-    if (item.link) {
-      return (
-        <DropdownMenu.Item key={item.id} asChild>
-          <Link href={item.link}>{content}</Link>
-        </DropdownMenu.Item>
-      );
-    }
-
-    if (item.action === 'mailto') {
-      return (
-        <DropdownMenu.Item
-          key={item.id}
-          onSelect={() => handleNotificationClick(item)}
-        >
-          {content}
-        </DropdownMenu.Item>
-      );
-    }
-
+    // All notifications now use the click handler for proper tracking
     return (
-      <DropdownMenu.Item key={item.id}>{content}</DropdownMenu.Item>
+      <DropdownMenu.Item
+        key={item.id}
+        onSelect={() => handleNotificationClick(item)}
+      >
+        {content}
+      </DropdownMenu.Item>
     );
   };
 

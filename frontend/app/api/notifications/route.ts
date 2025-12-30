@@ -117,42 +117,6 @@ async function getCustomerNotifications(userId: string): Promise<NextResponse> {
     });
   }
 
-  // 3. Check for cancellation request updates
-  const cancellationUpdates = await prisma.cancellationRequest.findMany({
-    where: {
-      order: {
-        customerId: userId,
-      },
-      status: { in: ['APPROVED', 'REJECTED'] },
-      reviewedAt: {
-        // Only show updates from last 7 days
-        gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      },
-    },
-    select: {
-      id: true,
-      status: true,
-      reviewedAt: true,
-      order: {
-        select: {
-          id: true,
-        },
-      },
-    },
-    orderBy: { reviewedAt: 'desc' },
-    take: 5,
-  });
-
-  for (const request of cancellationUpdates) {
-    items.push({
-      id: `cancel-${request.id}`,
-      type: 'cancellation_update',
-      message: `Cancellation request ${request.status.toLowerCase()}`,
-      link: `/orders/${request.order.id}`,
-      createdAt: request.reviewedAt?.toISOString(),
-    });
-  }
-
   return NextResponse.json({
     totalCount: items.length,
     items,

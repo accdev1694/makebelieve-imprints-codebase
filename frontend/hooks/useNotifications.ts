@@ -26,6 +26,20 @@ async function fetchNotifications(): Promise<NotificationsResponse> {
 }
 
 /**
+ * Mark issue messages as read
+ */
+async function markIssueAsRead(issueId: string): Promise<void> {
+  const response = await fetch(`/api/issues/${issueId}/mark-read`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    console.error('Failed to mark issue as read');
+  }
+}
+
+/**
  * Hook for fetching user notifications with polling
  */
 export function useNotifications(enabled: boolean = true) {
@@ -39,11 +53,22 @@ export function useNotifications(enabled: boolean = true) {
     retry: false, // Don't retry on auth failure
   });
 
+  const markAsRead = async (notificationId: string, type: string) => {
+    // Extract issue ID from notification ID (format: "issue-{id}")
+    if (type === 'issue_response' || type === 'unread_messages') {
+      const issueId = notificationId.replace('issue-', '');
+      await markIssueAsRead(issueId);
+      // Refetch to update the count
+      query.refetch();
+    }
+  };
+
   return {
     notifications: query.data?.items ?? [],
     totalCount: query.data?.totalCount ?? 0,
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: query.refetch,
+    markAsRead,
   };
 }

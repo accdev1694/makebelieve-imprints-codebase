@@ -22,6 +22,9 @@ import {
   FileText,
   Loader2,
   TestTube,
+  Copy,
+  Eye,
+  Code,
 } from 'lucide-react';
 
 interface Campaign {
@@ -98,6 +101,16 @@ function AdminCampaignsContent() {
   // Send/Test state
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+
+  // Preview state
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  // Send confirmation modal
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [campaignToSend, setCampaignToSend] = useState<Campaign | null>(null);
 
   // Redirect if not admin
   useEffect(() => {
@@ -229,32 +242,8 @@ function AdminCampaignsContent() {
     }
   };
 
-  const handleSend = async (campaign: Campaign) => {
-    if (!confirm(`Send "${campaign.name}" to ${stats.activeSubscribers} subscribers?`)) {
-      return;
-    }
-
-    setSendingId(campaign.id);
-
-    try {
-      const response = await fetch(`/api/campaigns/${campaign.id}/send`, {
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send campaign');
-      }
-
-      alert(data.message);
-      fetchCampaigns();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to send campaign';
-      setError(message);
-    } finally {
-      setSendingId(null);
-    }
+  const handleSend = (campaign: Campaign) => {
+    openSendModal(campaign);
   };
 
   const handleTest = async (campaign: Campaign) => {
@@ -282,6 +271,98 @@ function AdminCampaignsContent() {
       setError(message);
     } finally {
       setTestingId(null);
+    }
+  };
+
+  const handleDuplicate = async (campaign: Campaign) => {
+    setDuplicatingId(campaign.id);
+
+    try {
+      const response = await fetch(`/api/campaigns/${campaign.id}/duplicate`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to duplicate campaign');
+      }
+
+      fetchCampaigns();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to duplicate campaign';
+      setError(message);
+    } finally {
+      setDuplicatingId(null);
+    }
+  };
+
+  const openSendModal = (campaign: Campaign) => {
+    setCampaignToSend(campaign);
+    setShowSendModal(true);
+  };
+
+  const confirmSend = async () => {
+    if (!campaignToSend) return;
+
+    setShowSendModal(false);
+    setSendingId(campaignToSend.id);
+
+    try {
+      const response = await fetch(`/api/campaigns/${campaignToSend.id}/send`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send campaign');
+      }
+
+      alert(data.message);
+      fetchCampaigns();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to send campaign';
+      setError(message);
+    } finally {
+      setSendingId(null);
+      setCampaignToSend(null);
+    }
+  };
+
+  const loadPreview = async () => {
+    if (!formData.content || !formData.subject) {
+      setPreviewHtml('<p style="padding: 20px; color: #666;">Enter content and subject to see preview</p>');
+      setShowPreview(true);
+      return;
+    }
+
+    setPreviewLoading(true);
+    try {
+      const response = await fetch('/api/campaigns/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: formData.content,
+          subject: formData.subject,
+          type: formData.type,
+          promoId: formData.promoId || null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate preview');
+      }
+
+      setPreviewHtml(data.html);
+      setShowPreview(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to generate preview';
+      setFormError(message);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -492,6 +573,19 @@ function AdminCampaignsContent() {
                           </Button>
                         </>
                       )}
+                      <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDuplicate(campaign)}
+                          disabled={duplicatingId === campaign.id}
+                          title="Duplicate campaign"
+                        >
+                          {duplicatingId === campaign.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
                       {campaign.status !== 'SENT' && (
                         <Button
                           variant="ghost"
@@ -539,132 +633,236 @@ function AdminCampaignsContent() {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-card rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-border">
               <h2 className="text-xl font-bold">
                 {editingCampaign ? 'Edit Campaign' : 'Create Campaign'}
               </h2>
-              <Button variant="ghost" size="sm" onClick={() => setShowModal(false)}>
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant={showPreview ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    if (!showPreview) {
+                      loadPreview();
+                    } else {
+                      setShowPreview(false);
+                    }
+                  }}
+                  disabled={previewLoading}
+                >
+                  {previewLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : showPreview ? (
+                    <Code className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Eye className="h-4 w-4 mr-2" />
+                  )}
+                  {showPreview ? 'Edit' : 'Preview'}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => { setShowModal(false); setShowPreview(false); }}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              {formError && (
-                <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-2 rounded-lg text-sm">
-                  {formError}
+            {showPreview ? (
+              <div className="p-4">
+                <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm"><strong>Subject:</strong> {formData.subject || '(no subject)'}</p>
+                  {formData.previewText && (
+                    <p className="text-sm text-muted-foreground"><strong>Preview:</strong> {formData.previewText}</p>
+                  )}
                 </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Campaign Name *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Summer Sale Announcement"
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
-                  required
-                />
+                <div className="border border-border rounded-lg overflow-hidden bg-white">
+                  <iframe
+                    srcDoc={previewHtml}
+                    className="w-full h-[500px]"
+                    title="Email Preview"
+                    sandbox="allow-same-origin"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  This is how your email will appear to subscribers
+                </p>
               </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                {formError && (
+                  <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-2 rounded-lg text-sm">
+                    {formError}
+                  </div>
+                )}
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Email Subject *</label>
-                <input
-                  type="text"
-                  value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  placeholder="e.g., Summer Sale - Up to 30% Off!"
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Preview Text</label>
-                <input
-                  type="text"
-                  value={formData.previewText}
-                  onChange={(e) => setFormData({ ...formData, previewText: e.target.value })}
-                  placeholder="Short preview shown in inbox"
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Campaign Type</label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) =>
-                      setFormData({ ...formData, type: e.target.value as CampaignFormData['type'] })
-                    }
+                  <label className="block text-sm font-medium mb-1">Campaign Name *</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., Summer Sale Announcement"
                     className="w-full px-3 py-2 rounded-lg border border-border bg-background"
-                  >
-                    {CAMPAIGN_TYPES.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
+                    required
+                  />
                 </div>
 
-                {formData.type === 'PROMO' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email Subject *</label>
+                  <input
+                    type="text"
+                    value={formData.subject}
+                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    placeholder="e.g., Summer Sale - Up to 30% Off!"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Preview Text</label>
+                  <input
+                    type="text"
+                    value={formData.previewText}
+                    onChange={(e) => setFormData({ ...formData, previewText: e.target.value })}
+                    placeholder="Short preview shown in inbox"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Link Promo Code</label>
+                    <label className="block text-sm font-medium mb-1">Campaign Type</label>
                     <select
-                      value={formData.promoId}
-                      onChange={(e) => setFormData({ ...formData, promoId: e.target.value })}
+                      value={formData.type}
+                      onChange={(e) =>
+                        setFormData({ ...formData, type: e.target.value as CampaignFormData['type'] })
+                      }
                       className="w-full px-3 py-2 rounded-lg border border-border bg-background"
                     >
-                      <option value="">Select a promo...</option>
-                      {promos.map((promo) => (
-                        <option key={promo.id} value={promo.id}>
-                          {promo.code} - {promo.name}
+                      {CAMPAIGN_TYPES.map((type) => (
+                        <option key={type.value} value={type.value}>
+                          {type.label}
                         </option>
                       ))}
                     </select>
                   </div>
-                )}
+
+                  {formData.type === 'PROMO' && (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Link Promo Code</label>
+                      <select
+                        value={formData.promoId}
+                        onChange={(e) => setFormData({ ...formData, promoId: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                      >
+                        <option value="">Select a promo...</option>
+                        {promos.map((promo) => (
+                          <option key={promo.id} value={promo.id}>
+                            {promo.code} - {promo.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email Content (HTML) *</label>
+                  <textarea
+                    value={formData.content}
+                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                    placeholder="<h2>Hello!</h2><p>Check out our amazing deals...</p>"
+                    rows={8}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background font-mono text-sm"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Write the main content in HTML. The email header, footer, and promo code block will be added automatically.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Schedule Send</label>
+                  <input
+                    type="datetime-local"
+                    value={formData.scheduledAt}
+                    onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formData.scheduledAt
+                      ? 'Campaign will be sent automatically at this time'
+                      : 'Leave empty to save as draft for manual sending'}
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t border-border">
+                  <Button type="button" variant="outline" onClick={() => { setShowModal(false); setShowPreview(false); }}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="btn-gradient" disabled={submitting}>
+                    {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    {editingCampaign ? 'Update' : 'Create'}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Send Confirmation Modal */}
+      {showSendModal && campaignToSend && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 bg-primary/20 rounded-full mx-auto mb-4">
+                <Send className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold text-center mb-2">Send Campaign</h3>
+              <p className="text-center text-muted-foreground mb-6">
+                Are you sure you want to send <strong>&quot;{campaignToSend.name}&quot;</strong>?
+              </p>
+
+              <div className="bg-muted/50 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">Recipients</span>
+                  <span className="font-semibold flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    {stats.activeSubscribers} subscribers
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Subject</span>
+                  <span className="font-medium text-sm truncate max-w-[200px]">{campaignToSend.subject}</span>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Email Content (HTML) *</label>
-                <textarea
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  placeholder="<h2>Hello!</h2><p>Check out our amazing deals...</p>"
-                  rows={8}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background font-mono text-sm"
-                  required
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Write the main content in HTML. The email header, footer, and promo code block will be added automatically.
-                </p>
-              </div>
+              {stats.activeSubscribers === 0 && (
+                <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 px-4 py-2 rounded-lg text-sm mb-4">
+                  No active subscribers. The campaign cannot be sent.
+                </div>
+              )}
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Schedule Send</label>
-                <input
-                  type="datetime-local"
-                  value={formData.scheduledAt}
-                  onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Leave empty to save as draft for manual sending
-                </p>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t border-border">
-                <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => { setShowSendModal(false); setCampaignToSend(null); }}
+                >
                   Cancel
                 </Button>
-                <Button type="submit" className="btn-gradient" loading={submitting}>
-                  {editingCampaign ? 'Update' : 'Create'}
+                <Button
+                  className="flex-1 btn-gradient"
+                  onClick={confirmSend}
+                  disabled={stats.activeSubscribers === 0}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Now
                 </Button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

@@ -70,7 +70,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    const event: ResendWebhookPayload = JSON.parse(payload);
+    let event: ResendWebhookPayload;
+    try {
+      event = JSON.parse(payload);
+    } catch (parseError) {
+      console.error('Failed to parse Resend webhook payload:', parseError);
+      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
+
     const { type, data } = event;
     const recipientEmail = data.to[0]?.toLowerCase();
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { handleApiError } from '@/lib/server/auth';
+import { Prisma } from '@prisma/client';
 
 /**
  * GET /api/templates
@@ -10,8 +11,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
     const productId = searchParams.get('productId');
     const category = searchParams.get('category');
     const isPremium = searchParams.get('isPremium');
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     const sortOrder = searchParams.get('sortOrder') || 'desc';
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.ProductTemplateWhereInput = {};
     if (productId) where.productId = productId;
     if (category) where.category = { equals: category, mode: 'insensitive' };
     if (isPremium !== null && isPremium !== undefined) {
@@ -34,12 +35,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Build orderBy based on sortBy parameter
-    const orderBy: any = {};
-    if (['name', 'price', 'createdAt', 'category'].includes(sortBy)) {
-      orderBy[sortBy] = sortOrder === 'asc' ? 'asc' : 'desc';
-    } else {
-      orderBy.createdAt = 'desc';
-    }
+    type SortableField = 'name' | 'price' | 'createdAt' | 'category';
+    const validSortFields: SortableField[] = ['name', 'price', 'createdAt', 'category'];
+    const orderBy: Prisma.ProductTemplateOrderByWithRelationInput = validSortFields.includes(sortBy as SortableField)
+      ? { [sortBy]: sortOrder === 'asc' ? 'asc' : 'desc' }
+      : { createdAt: 'desc' };
 
     const [templates, total] = await Promise.all([
       prisma.productTemplate.findMany({

@@ -3,10 +3,18 @@ import prisma from '@/lib/prisma';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
 import { Prisma } from '@prisma/client';
 
+// Type for Design from Prisma with optional relations
+type DesignWithRelations = Prisma.DesignGetPayload<{
+  include: {
+    user: { select: { id: true; name: true; email: true } };
+    _count: { select: { orders: true } };
+  };
+}>;
+
 /**
  * Helper to map Prisma Design to frontend format
  */
-const mapDesignToFrontend = (design: any) => {
+const mapDesignToFrontend = (design: DesignWithRelations | null) => {
   if (!design) return null;
   const { title, fileUrl, printWidth, printHeight, ...rest } = design;
   return {
@@ -27,8 +35,8 @@ export async function GET(request: NextRequest) {
     const user = await requireAuth(request);
     const { searchParams } = new URL(request.url);
 
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
     const skip = (page - 1) * limit;
 
     const where: Prisma.DesignWhereInput =

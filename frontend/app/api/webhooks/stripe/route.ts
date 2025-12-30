@@ -99,8 +99,8 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   const orderId = session.metadata?.orderId;
 
   if (!orderId) {
-    console.error('No orderId in session metadata');
-    return;
+    console.error('No orderId in session metadata - payment received but order cannot be updated');
+    throw new Error('Missing orderId in checkout session metadata');
   }
 
   // Update order status to confirmed

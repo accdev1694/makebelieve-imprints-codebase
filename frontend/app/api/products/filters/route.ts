@@ -24,56 +24,57 @@ export async function GET(request: NextRequest) {
       productWhere.legacyProductType = productType;
     }
 
-    // Get all variants for active products matching filters
-    const variants = await prisma.productVariant.findMany({
-      where: {
-        product: productWhere,
-      },
-      select: {
-        material: true,
-        size: true,
-        price: true,
-      },
-    });
-
-    // Get base prices from products
-    const products = await prisma.product.findMany({
+    // Use database aggregation instead of loading all records into memory
+    // Get product IDs that match the filter first
+    const matchingProducts = await prisma.product.findMany({
       where: productWhere,
-      select: {
-        basePrice: true,
+      select: { id: true },
+    });
+    const productIds = matchingProducts.map(p => p.id);
+
+    // Use groupBy for efficient aggregation of materials
+    const materialGroups = await prisma.productVariant.groupBy({
+      by: ['material'],
+      where: {
+        productId: { in: productIds },
+        material: { not: null },
       },
+      _count: { material: true },
     });
 
-    // Aggregate materials
-    const materialCounts = new Map<string, number>();
-    variants.forEach((v) => {
-      if (v.material) {
-        materialCounts.set(v.material, (materialCounts.get(v.material) || 0) + 1);
-      }
+    // Use groupBy for efficient aggregation of sizes
+    const sizeGroups = await prisma.productVariant.groupBy({
+      by: ['size'],
+      where: {
+        productId: { in: productIds },
+        size: { not: null },
+      },
+      _count: { size: true },
     });
 
-    // Aggregate sizes
-    const sizeCounts = new Map<string, number>();
-    variants.forEach((v) => {
-      if (v.size) {
-        sizeCounts.set(v.size, (sizeCounts.get(v.size) || 0) + 1);
-      }
+    // Use aggregate for price range - more efficient than loading all records
+    const priceAgg = await prisma.product.aggregate({
+      where: productWhere,
+      _min: { basePrice: true },
+      _max: { basePrice: true },
     });
 
-    // Calculate price range from base prices
-    const prices = products.map((p) => Number(p.basePrice));
-    const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-    const maxPrice = prices.length > 0 ? Math.max(...prices) : 100;
+    const minPrice = priceAgg._min.basePrice ? Number(priceAgg._min.basePrice) : 0;
+    const maxPrice = priceAgg._max.basePrice ? Number(priceAgg._max.basePrice) : 100;
 
     return NextResponse.json({
-      materials: Array.from(materialCounts.entries()).map(([value, count]) => ({
-        value,
-        count,
-      })),
-      sizes: Array.from(sizeCounts.entries()).map(([value, count]) => ({
-        value,
-        count,
-      })),
+      materials: materialGroups
+        .filter(g => g.material !== null)
+        .map(g => ({
+          value: g.material as string,
+          count: g._count.material,
+        })),
+      sizes: sizeGroups
+        .filter(g => g.size !== null)
+        .map(g => ({
+          value: g.size as string,
+          count: g._count.size,
+        })),
       priceRange: {
         min: minPrice,
         max: maxPrice,

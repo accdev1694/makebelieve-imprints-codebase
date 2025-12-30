@@ -6,6 +6,7 @@ import {
   sendCancellationRequestApprovedEmail,
   sendCancellationRequestRejectedEmail,
 } from '@/lib/server/email';
+import { OrderStatus } from '@prisma/client';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -160,8 +161,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     } else {
       // REJECT action
       // Update cancellation request and restore order status
-      const previousStatus = order.cancellationRequest.notes?.includes('previous_status:')
-        ? order.cancellationRequest.notes.split('previous_status:')[1]?.trim() as any
+      const parsedStatus = order.cancellationRequest.notes?.includes('previous_status:')
+        ? order.cancellationRequest.notes.split('previous_status:')[1]?.trim()
+        : null;
+      // Validate that the parsed status is a valid OrderStatus, fallback to 'confirmed'
+      const validStatuses: OrderStatus[] = ['pending', 'confirmed', 'payment_confirmed', 'printing', 'shipped', 'delivered', 'cancelled', 'refunded', 'cancellation_requested'];
+      const previousStatus: OrderStatus = (parsedStatus && validStatuses.includes(parsedStatus as OrderStatus))
+        ? (parsedStatus as OrderStatus)
         : 'confirmed';
 
       await prisma.$transaction([

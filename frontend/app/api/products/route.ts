@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
+import { Prisma } from '@prisma/client';
 
 /**
  * GET /api/products
@@ -10,9 +11,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Parse query parameters
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '12', 10);
+    // Parse query parameters with bounds checking
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '12', 10)));
     const categoryId = searchParams.get('categoryId');
     const categorySlug = searchParams.get('categorySlug');
     const category = searchParams.get('category'); // Legacy enum (HOME_LIFESTYLE, STATIONERY, etc.)
@@ -27,8 +28,8 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // Build where clause
-    const where: any = {};
+    // Build where clause with proper typing
+    const where: Prisma.ProductWhereInput = {};
 
     // Dynamic category filtering
     if (categoryId) {

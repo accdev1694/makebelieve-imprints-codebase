@@ -42,10 +42,20 @@ interface WeeklyReportData {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret
+    // Verify cron secret - REQUIRED in production
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
+    // In production, CRON_SECRET must be set
+    if (!cronSecret && process.env.NODE_ENV === 'production') {
+      console.error('CRON_SECRET environment variable is not set');
+      return NextResponse.json(
+        { success: false, error: 'Server misconfiguration' },
+        { status: 500 }
+      );
+    }
+
+    // Validate authorization if secret is configured
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -257,6 +267,15 @@ export async function GET(request: NextRequest) {
     // Verify cron secret or admin auth
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
+
+    // In production, CRON_SECRET must be set
+    if (!cronSecret && process.env.NODE_ENV === 'production') {
+      console.error('CRON_SECRET environment variable is not set');
+      return NextResponse.json(
+        { success: false, error: 'Server misconfiguration' },
+        { status: 500 }
+      );
+    }
 
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json(

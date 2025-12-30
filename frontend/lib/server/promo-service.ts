@@ -19,6 +19,8 @@ export interface CartItem {
 
 /**
  * Validate a promo code for a given user/email and cart
+ * Note: This is a pre-validation check. Final validation with race condition protection
+ * happens during order creation in a transaction (see /api/orders POST handler).
  */
 export async function validatePromoCode(
   code: string,
@@ -98,6 +100,89 @@ export async function validatePromoCode(
     discountAmount: discountResult.discountAmount,
     discountPercentage: promo.discountType === 'PERCENTAGE' ? Number(promo.discountValue) : undefined,
   };
+}
+
+/**
+ * Validate and record promo usage atomically within a transaction
+ * This prevents race conditions where multiple concurrent requests could bypass usage limits
+ */
+export async function validateAndRecordPromoUsage(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  promoCode: string,
+  options: {
+    userId?: string;
+    email?: string;
+    orderId: string;
+    discountAmount: number;
+    cartTotal?: number;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const { userId, email, orderId, discountAmount, cartTotal = 0 } = options;
+
+  // Get promo with lock (using findFirst with transaction ensures consistent read)
+  const promo = await tx.promo.findUnique({
+    where: { code: promoCode.toUpperCase() },
+  });
+
+  if (!promo) {
+    return { success: false, error: 'Invalid promo code' };
+  }
+
+  // Re-validate all conditions within the transaction
+  if (!promo.isActive) {
+    return { success: false, error: 'This promo code is no longer active' };
+  }
+
+  if (promo.startsAt && new Date() < promo.startsAt) {
+    return { success: false, error: 'This promo code is not yet active' };
+  }
+
+  if (promo.expiresAt && new Date() > promo.expiresAt) {
+    return { success: false, error: 'This promo code has expired' };
+  }
+
+  if (promo.maxUses !== null && promo.currentUses >= promo.maxUses) {
+    return { success: false, error: 'This promo code has reached its usage limit' };
+  }
+
+  if (promo.minOrderAmount && cartTotal < Number(promo.minOrderAmount)) {
+    return { success: false, error: `Minimum order amount of £${Number(promo.minOrderAmount).toFixed(2)} required` };
+  }
+
+  // Check per-user usage limit within transaction
+  if (promo.maxUsesPerUser > 0 && (userId || email)) {
+    const userUsageCount = await tx.promoUsage.count({
+      where: {
+        promoId: promo.id,
+        OR: [
+          ...(userId ? [{ userId }] : []),
+          ...(email ? [{ email: email.toLowerCase() }] : []),
+        ],
+      },
+    });
+
+    if (userUsageCount >= promo.maxUsesPerUser) {
+      return { success: false, error: 'You have already used this promo code' };
+    }
+  }
+
+  // Record usage and increment counter atomically
+  await tx.promoUsage.create({
+    data: {
+      promoId: promo.id,
+      userId,
+      email: email?.toLowerCase(),
+      orderId,
+      discountAmount,
+    },
+  });
+
+  await tx.promo.update({
+    where: { id: promo.id },
+    data: { currentUses: { increment: 1 } },
+  });
+
+  return { success: true };
 }
 
 /**

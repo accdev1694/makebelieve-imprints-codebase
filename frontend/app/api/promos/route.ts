@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
     await requireAdmin(request);
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
     const status = searchParams.get('status'); // active, expired, upcoming
     const search = searchParams.get('search');
 
@@ -143,6 +143,14 @@ export async function POST(request: NextRequest) {
     if (discountType === 'PERCENTAGE' && (discountValue < 0 || discountValue > 100)) {
       return NextResponse.json(
         { error: 'Percentage discount must be between 0 and 100' },
+        { status: 400 }
+      );
+    }
+
+    // Validate fixed amount range (must be positive and reasonable)
+    if (discountType === 'FIXED_AMOUNT' && (discountValue <= 0 || discountValue > 10000)) {
+      return NextResponse.json(
+        { error: 'Fixed discount amount must be between £0.01 and £10,000' },
         { status: 400 }
       );
     }

@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
     const user = await requireAuth(request);
     const { searchParams } = new URL(request.url);
 
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
     const skip = (page - 1) * limit;
     const status = searchParams.get('status') as OrderStatus | null;
 
@@ -110,56 +110,75 @@ export async function POST(request: NextRequest) {
 
     // Support both single design orders and multi-item cart orders
     if (body.items && Array.isArray(body.items)) {
-      // Multi-item cart order
-      const order = await prisma.order.create({
-        data: {
-          customerId: user.userId,
-          subtotal: body.subtotal,
-          discountAmount: body.discountAmount,
-          promoCode: body.promoCode,
-          totalPrice: body.totalPrice,
-          shippingAddress: body.shippingAddress,
-          status: 'pending',
-          items: {
-            create: body.items.map((item: any) => ({
-              productId: item.productId,
-              variantId: item.variantId,
-              designId: item.designId,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              totalPrice: item.totalPrice,
-              customization: item.customization,
-              metadata: item.metadata,
-            })),
-          },
-        },
-        include: {
-          items: {
-            include: {
-              product: true,
-              variant: true,
-              design: true,
+      // Multi-item cart order - use transaction to ensure atomicity
+      const order = await prisma.$transaction(async (tx) => {
+        // Create the order
+        const newOrder = await tx.order.create({
+          data: {
+            customerId: user.userId,
+            subtotal: body.subtotal,
+            discountAmount: body.discountAmount,
+            promoCode: body.promoCode,
+            totalPrice: body.totalPrice,
+            shippingAddress: body.shippingAddress,
+            status: 'pending',
+            items: {
+              create: body.items.map((item: { productId: string; variantId?: string; designId?: string; quantity: number; unitPrice: number; totalPrice: number; customization?: unknown; metadata?: unknown }) => ({
+                productId: item.productId,
+                variantId: item.variantId,
+                designId: item.designId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                totalPrice: item.totalPrice,
+                customization: item.customization,
+                metadata: item.metadata,
+              })),
             },
           },
-          customer: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+          include: {
+            items: {
+              include: {
+                product: true,
+                variant: true,
+                design: true,
+              },
+            },
+            customer: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
             },
           },
-        },
-      });
-
-      // Record promo usage if a promo code was applied
-      if (body.promoCode && body.discountAmount > 0) {
-        await recordPromoUsage(body.promoCode, {
-          userId: user.userId,
-          email: user.email,
-          orderId: order.id,
-          discountAmount: body.discountAmount,
         });
-      }
+
+        // Record promo usage within the same transaction if a promo code was applied
+        if (body.promoCode && body.discountAmount > 0) {
+          const promo = await tx.promo.findUnique({
+            where: { code: body.promoCode.toUpperCase() },
+          });
+
+          if (promo) {
+            await tx.promoUsage.create({
+              data: {
+                promoId: promo.id,
+                userId: user.userId,
+                email: user.email?.toLowerCase(),
+                orderId: newOrder.id,
+                discountAmount: body.discountAmount,
+              },
+            });
+
+            await tx.promo.update({
+              where: { id: promo.id },
+              data: { currentUses: { increment: 1 } },
+            });
+          }
+        }
+
+        return newOrder;
+      });
 
       return NextResponse.json(
         { success: true, data: { order } },

@@ -15,9 +15,17 @@ function getISOWeek(date: Date): number {
 // This endpoint is called by Vercel Cron every 5 minutes
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret in production
+    // Verify cron secret - REQUIRED in production
     const authHeader = request.headers.get('authorization');
-    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    const cronSecret = process.env.CRON_SECRET;
+
+    // In production, CRON_SECRET must be set
+    if (!cronSecret && process.env.NODE_ENV === 'production') {
+      console.error('CRON_SECRET environment variable is not set');
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+    }
+
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

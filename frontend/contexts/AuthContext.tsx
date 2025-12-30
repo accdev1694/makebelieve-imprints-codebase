@@ -28,9 +28,17 @@ function getCachedUser(): User | null {
       if (Date.now() - timestamp < CACHE_DURATION) {
         return user;
       }
+      // Cache expired, clean up
+      localStorage.removeItem(USER_CACHE_KEY);
     }
-  } catch {
-    // Ignore cache errors
+  } catch (error) {
+    console.warn('Failed to read user cache from localStorage:', error);
+    // Attempt to clean up corrupted cache
+    try {
+      localStorage.removeItem(USER_CACHE_KEY);
+    } catch {
+      // Ignore cleanup errors
+    }
   }
   return null;
 }
@@ -43,8 +51,8 @@ function setCachedUser(user: User | null) {
     } else {
       localStorage.removeItem(USER_CACHE_KEY);
     }
-  } catch {
-    // Ignore cache errors
+  } catch (error) {
+    console.warn('Failed to write user cache to localStorage:', error);
   }
 }
 

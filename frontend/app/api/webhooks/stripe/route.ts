@@ -148,7 +148,9 @@ async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
   const orderId = paymentIntent.metadata?.orderId;
 
   if (!orderId) {
-    console.log('No orderId in payment intent metadata');
+    // Payment intents without orderId may come from other Stripe integrations
+    // Log as warning but don't fail - checkout.session.completed is the primary handler
+    console.warn(`Payment intent ${paymentIntent.id} succeeded but has no orderId in metadata`);
     return;
   }
 
@@ -172,7 +174,8 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
   const orderId = paymentIntent.metadata?.orderId;
 
   if (!orderId) {
-    console.log('No orderId in payment intent metadata');
+    // Payment intents without orderId may come from other Stripe integrations
+    console.warn(`Payment intent ${paymentIntent.id} failed but has no orderId in metadata`);
     return;
   }
 
@@ -211,7 +214,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
       : charge.payment_intent?.id;
 
   if (!paymentIntentId) {
-    console.log('No payment intent in charge');
+    console.warn(`Charge ${charge.id} refunded but has no payment intent`);
     return;
   }
 

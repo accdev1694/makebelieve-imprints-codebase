@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
-import { Prisma } from '@prisma/client';
+import { Prisma, ProductCategory, ProductStatus, CustomizationType } from '@prisma/client';
 
 /**
  * GET /api/products
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     // Legacy category enum filtering (HOME_LIFESTYLE, STATIONERY, etc.)
     if (category) {
-      where.legacyCategory = category;
+      where.legacyCategory = category as ProductCategory;
     }
 
     // Dynamic subcategory filtering
@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
       if (subcat) where.subcategoryId = subcat.id;
     }
 
-    if (customizationType) where.customizationType = customizationType;
-    if (status) where.status = status;
+    if (customizationType) where.customizationType = customizationType as CustomizationType;
+    if (status) where.status = status as ProductStatus;
     if (featured === 'true') where.featured = true;
     if (search) {
       where.OR = [

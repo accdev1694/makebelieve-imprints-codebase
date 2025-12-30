@@ -185,8 +185,8 @@ export async function POST(request: NextRequest) {
         { status: 201 }
       );
     } else {
-      // Legacy single design order
-      const { designId, ...orderData } = body;
+      // Legacy single design order - also use transaction for promo atomicity
+      const { designId, promoCode, discountAmount, ...orderData } = body;
 
       if (designId) {
         // Verify design exists and belongs to user
@@ -209,22 +209,52 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const order = await prisma.order.create({
-        data: {
-          ...orderData,
-          designId,
-          customerId: user.userId,
-        },
-        include: {
-          design: true,
-          customer: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+      const order = await prisma.$transaction(async (tx) => {
+        const newOrder = await tx.order.create({
+          data: {
+            ...orderData,
+            designId,
+            promoCode,
+            discountAmount,
+            customerId: user.userId,
+          },
+          include: {
+            design: true,
+            customer: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
             },
           },
-        },
+        });
+
+        // Record promo usage for legacy orders too
+        if (promoCode && discountAmount > 0) {
+          const promo = await tx.promo.findUnique({
+            where: { code: promoCode.toUpperCase() },
+          });
+
+          if (promo) {
+            await tx.promoUsage.create({
+              data: {
+                promoId: promo.id,
+                userId: user.userId,
+                email: user.email?.toLowerCase(),
+                orderId: newOrder.id,
+                discountAmount: discountAmount,
+              },
+            });
+
+            await tx.promo.update({
+              where: { id: promo.id },
+              data: { currentUses: { increment: 1 } },
+            });
+          }
+        }
+
+        return newOrder;
       });
 
       return NextResponse.json(

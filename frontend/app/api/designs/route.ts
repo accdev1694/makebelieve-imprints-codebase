@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
-import { Prisma } from '@prisma/client';
+import { Prisma, Design } from '@prisma/client';
 
-// Type for Design from Prisma with optional relations
+// Type for Design from Prisma with relations (used in GET)
 type DesignWithRelations = Prisma.DesignGetPayload<{
   include: {
     user: { select: { id: true; name: true; email: true } };
@@ -13,9 +13,16 @@ type DesignWithRelations = Prisma.DesignGetPayload<{
 
 /**
  * Helper to map Prisma Design to frontend format
+ * Works with both full relations (from GET) and basic design (from POST)
  */
-const mapDesignToFrontend = (design: DesignWithRelations | null) => {
+function mapDesignToFrontend(design: DesignWithRelations): ReturnType<typeof mapDesignBasic> & { user: DesignWithRelations['user']; _count: DesignWithRelations['_count'] };
+function mapDesignToFrontend(design: Design): ReturnType<typeof mapDesignBasic>;
+function mapDesignToFrontend(design: Design | DesignWithRelations | null) {
   if (!design) return null;
+  return mapDesignBasic(design);
+}
+
+function mapDesignBasic(design: Design | DesignWithRelations) {
   const { title, fileUrl, printWidth, printHeight, ...rest } = design;
   return {
     ...rest,
@@ -24,7 +31,7 @@ const mapDesignToFrontend = (design: DesignWithRelations | null) => {
     customWidth: printWidth,
     customHeight: printHeight,
   };
-};
+}
 
 /**
  * GET /api/designs

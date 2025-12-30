@@ -2,44 +2,118 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Next.js Middleware for CORS and Security Headers
+ * Next.js Middleware for CORS, Security Headers, and Rate Limiting
  *
  * Handles:
  * - CORS preflight requests (OPTIONS)
  * - CORS headers for allowed origins
  * - Security headers for all responses
+ * - Basic rate limiting for sensitive endpoints
  */
+
+// Environment check
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Allowed origins for CORS
 const allowedOrigins = [
   'https://mkbl.vercel.app',
   'https://makebelieveimprints.co.uk',
   'https://www.makebelieveimprints.co.uk',
-  // Development origins
-  'http://localhost:3000',
-  'http://localhost:3001',
-  // Mobile app origins (Capacitor)
+  // Development origins (only used in development)
+  ...(isProduction ? [] : [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost',
+  ]),
+  // Mobile app origins (Capacitor) - these don't send Origin header typically
   'capacitor://localhost',
   'ionic://localhost',
-  'http://localhost', // Android WebView
 ];
 
+// Rate limiting storage (in-memory, resets on deploy - use Redis for production scale)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+// Rate limit configuration per endpoint pattern
+const rateLimitConfig: Record<string, { maxRequests: number; windowMs: number }> = {
+  '/api/auth/login': { maxRequests: 5, windowMs: 15 * 60 * 1000 }, // 5 per 15 min
+  '/api/auth/register': { maxRequests: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour
+  '/api/auth/forgot-password': { maxRequests: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour
+  '/api/subscribers': { maxRequests: 5, windowMs: 60 * 1000 }, // 5 per minute
+};
+
 // Check if origin is allowed
-function isAllowedOrigin(origin: string | null): boolean {
-  if (!origin) return true; // Allow requests with no origin (same-origin, mobile apps)
+function isAllowedOrigin(origin: string | null, pathname: string): boolean {
+  // In production, require origin for API routes (except webhooks which are server-to-server)
+  if (isProduction && !origin) {
+    // Allow no-origin for webhooks (Stripe, Resend call these server-to-server)
+    if (pathname.startsWith('/api/webhooks/')) return true;
+    // Allow no-origin for cron jobs
+    if (pathname.startsWith('/api/cron/')) return true;
+    // Allow no-origin for health checks
+    if (pathname === '/api/health') return true;
+    // Block other API requests without origin in production
+    return false;
+  }
+
+  // In development or if origin is present, check against allowed list
+  if (!origin) return true; // Development: allow no origin
   return allowedOrigins.includes(origin);
+}
+
+// Simple rate limiting check
+function checkRateLimit(ip: string, pathname: string): { allowed: boolean; retryAfter?: number } {
+  const config = Object.entries(rateLimitConfig).find(([pattern]) => pathname.startsWith(pattern));
+  if (!config) return { allowed: true };
+
+  const [, { maxRequests, windowMs }] = config;
+  const key = `${ip}:${pathname}`;
+  const now = Date.now();
+
+  const record = rateLimitStore.get(key);
+
+  if (!record || now > record.resetTime) {
+    // New window
+    rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+    return { allowed: true };
+  }
+
+  if (record.count >= maxRequests) {
+    const retryAfter = Math.ceil((record.resetTime - now) / 1000);
+    return { allowed: false, retryAfter };
+  }
+
+  record.count++;
+  return { allowed: true };
+}
+
+// Clean up old rate limit entries periodically (every 100 requests)
+let requestCount = 0;
+function cleanupRateLimitStore() {
+  requestCount++;
+  if (requestCount % 100 === 0) {
+    const now = Date.now();
+    for (const [key, record] of rateLimitStore.entries()) {
+      if (now > record.resetTime) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }
 }
 
 export function middleware(request: NextRequest) {
   const origin = request.headers.get('origin');
-  const isApiRoute = request.nextUrl.pathname.startsWith('/api');
+  const pathname = request.nextUrl.pathname;
+  const isApiRoute = pathname.startsWith('/api');
+
+  // Clean up rate limit store periodically
+  cleanupRateLimitStore();
 
   // Handle preflight requests
   if (request.method === 'OPTIONS' && isApiRoute) {
     const response = new NextResponse(null, { status: 204 });
 
-    if (isAllowedOrigin(origin)) {
-      response.headers.set('Access-Control-Allow-Origin', origin || '*');
+    if (isAllowedOrigin(origin, pathname)) {
+      response.headers.set('Access-Control-Allow-Origin', origin || (isProduction ? '' : '*'));
       response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
       response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
       response.headers.set('Access-Control-Allow-Credentials', 'true');
@@ -49,12 +123,40 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
+  // Check CORS for API routes
+  if (isApiRoute && !isAllowedOrigin(origin, pathname)) {
+    return NextResponse.json(
+      { error: 'Origin not allowed' },
+      { status: 403 }
+    );
+  }
+
+  // Rate limiting for sensitive endpoints
+  if (isApiRoute && request.method === 'POST') {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+               request.headers.get('x-real-ip') ||
+               'unknown';
+
+    const rateLimit = checkRateLimit(ip, pathname);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfter || 60),
+          },
+        }
+      );
+    }
+  }
+
   // Continue with the request
   const response = NextResponse.next();
 
   // Add CORS headers for API routes
-  if (isApiRoute && isAllowedOrigin(origin)) {
-    response.headers.set('Access-Control-Allow-Origin', origin || '*');
+  if (isApiRoute && origin && isAllowedOrigin(origin, pathname)) {
+    response.headers.set('Access-Control-Allow-Origin', origin);
     response.headers.set('Access-Control-Allow-Credentials', 'true');
   }
 
@@ -63,6 +165,29 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // Additional security headers for production
+  if (isProduction) {
+    // HSTS - enforce HTTPS for 1 year, include subdomains
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+
+    // Content Security Policy - adjust as needed for your app
+    response.headers.set('Content-Security-Policy', [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data: https: blob:",
+      "connect-src 'self' https://api.stripe.com https://*.stripe.com wss://*.stripe.com",
+      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join('; '));
+
+    // Permissions Policy
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  }
 
   return response;
 }

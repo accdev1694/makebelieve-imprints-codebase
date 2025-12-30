@@ -27,7 +27,8 @@ import { storageService } from '@/lib/api/storage';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Camera, AlertCircle, MessageSquare, Lock } from 'lucide-react';
+import { X, Camera, AlertCircle, MessageSquare, Lock, RefreshCw } from 'lucide-react';
+import { useCart, AddToCartPayload } from '@/contexts/CartContext';
 
 // Enhanced issue reasons with NEVER_ARRIVED
 const ISSUE_REASONS = [
@@ -106,6 +107,7 @@ interface OrderDetailsClientProps {
 
 function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   const router = useRouter();
+  const { addItem, openCart } = useCart();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -337,6 +339,30 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
 
   const getItemIssue = (itemId: string): ItemIssue | null => {
     return itemIssues[itemId] || null;
+  };
+
+  const handleReorder = () => {
+    if (!order?.items?.length) return;
+
+    for (const item of order.items) {
+      if (!item.product) continue;
+
+      const payload: AddToCartPayload = {
+        productId: item.product.id,
+        productName: item.product.name,
+        productSlug: item.product.slug || item.product.id,
+        productImage: item.product.images?.[0]?.imageUrl || '',
+        variantId: item.variant?.id,
+        variantName: item.variant?.name,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        customization: item.customization as AddToCartPayload['customization'],
+      };
+
+      addItem(payload);
+    }
+
+    openCart();
   };
 
   if (loading) {
@@ -710,6 +736,16 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
           <Link href="/orders">
             <Button variant="outline" className="w-full sm:w-auto">Back to Orders</Button>
           </Link>
+          {order.items && order.items.length > 0 && (
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto border-primary/50 text-primary hover:text-primary"
+              onClick={handleReorder}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reorder
+            </Button>
+          )}
           {order.trackingNumber && (
             <Link href={`/track?number=${order.trackingNumber}`}>
               <Button variant="outline" className="w-full sm:w-auto">Track Shipment</Button>

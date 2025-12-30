@@ -47,6 +47,7 @@ export interface OrderItem {
   product?: {
     id: string;
     name: string;
+    slug?: string;
     images?: { imageUrl: string }[];
   };
   variant?: {

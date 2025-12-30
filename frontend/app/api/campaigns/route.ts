@@ -75,6 +75,9 @@ export async function POST(request: NextRequest) {
       type = 'NEWSLETTER',
       promoId,
       scheduledAt,
+      isRecurring = false,
+      recurrenceDay,
+      recurrenceTime,
     } = body;
 
     // Validate required fields
@@ -125,6 +128,9 @@ export async function POST(request: NextRequest) {
         promoId,
         status: scheduledAt ? 'SCHEDULED' : 'DRAFT',
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+        isRecurring,
+        recurrenceDay: isRecurring ? recurrenceDay : null,
+        recurrenceTime: isRecurring ? recurrenceTime : null,
       },
     });
 

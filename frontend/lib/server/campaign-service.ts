@@ -239,6 +239,115 @@ export async function sendCampaign(campaignId: string): Promise<{
 }
 
 /**
+ * Send a recurring campaign (weekly newsletter)
+ * Sends the campaign but keeps it in DRAFT status for next week
+ */
+export async function sendRecurringCampaign(
+  campaignId: string,
+  currentWeek: number
+): Promise<{
+  success: boolean;
+  sentCount: number;
+  failedCount: number;
+  error?: string;
+}> {
+  // Get campaign
+  const campaign = await prisma.emailCampaign.findUnique({
+    where: { id: campaignId },
+  });
+
+  if (!campaign) {
+    return { success: false, sentCount: 0, failedCount: 0, error: 'Campaign not found' };
+  }
+
+  if (!campaign.isRecurring) {
+    return { success: false, sentCount: 0, failedCount: 0, error: 'Campaign is not recurring' };
+  }
+
+  // Check if already sent this week
+  if (campaign.lastSentWeek === currentWeek) {
+    return { success: false, sentCount: 0, failedCount: 0, error: 'Already sent this week' };
+  }
+
+  // Get linked promo if any
+  let promo: Promo | null = null;
+  if (campaign.promoId) {
+    promo = await prisma.promo.findUnique({
+      where: { id: campaign.promoId },
+    });
+  }
+
+  // Get all active subscribers
+  const subscribers = await prisma.subscriber.findMany({
+    where: { status: 'ACTIVE' },
+    select: { email: true },
+  });
+
+  if (subscribers.length === 0) {
+    return { success: false, sentCount: 0, failedCount: 0, error: 'No active subscribers' };
+  }
+
+  let sentCount = 0;
+  let failedCount = 0;
+
+  // Send emails in batches
+  const batchSize = 10;
+  for (let i = 0; i < subscribers.length; i += batchSize) {
+    const batch = subscribers.slice(i, i + batchSize);
+
+    const results = await Promise.allSettled(
+      batch.map(async (subscriber) => {
+        const html = generateCampaignHtml(campaign, promo, subscriber.email);
+        const text = campaign.plainText || generateCampaignPlainText(campaign, promo, subscriber.email);
+
+        return sendEmail({
+          to: subscriber.email,
+          subject: campaign.subject,
+          html,
+          text,
+        });
+      })
+    );
+
+    results.forEach((result) => {
+      if (result.status === 'fulfilled' && result.value) {
+        sentCount++;
+      } else {
+        failedCount++;
+      }
+    });
+
+    // Small delay between batches to avoid rate limits
+    if (i + batchSize < subscribers.length) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+
+  // Update campaign: mark this week as sent, reset stats for tracking
+  await prisma.emailCampaign.update({
+    where: { id: campaignId },
+    data: {
+      lastSentWeek: currentWeek,
+      sentAt: new Date(),
+      recipientCount: subscribers.length,
+      sentCount,
+      failedCount,
+      // Reset tracking stats for new week
+      openCount: 0,
+      clickCount: 0,
+      bounceCount: 0,
+      unsubscribeCount: 0,
+    },
+  });
+
+  return {
+    success: failedCount < subscribers.length,
+    sentCount,
+    failedCount,
+  };
+}
+
+/**
  * Send a test email for a campaign
  */
 export async function sendTestCampaign(

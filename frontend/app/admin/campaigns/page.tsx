@@ -38,6 +38,10 @@ interface Campaign {
   status: 'DRAFT' | 'SCHEDULED' | 'SENDING' | 'SENT' | 'FAILED' | 'CANCELLED';
   scheduledAt: string | null;
   sentAt: string | null;
+  isRecurring: boolean;
+  recurrenceDay: number | null;
+  recurrenceTime: string | null;
+  lastSentWeek: number | null;
   recipientCount: number;
   sentCount: number;
   failedCount: number;
@@ -64,6 +68,9 @@ interface CampaignFormData {
   type: 'NEWSLETTER' | 'PROMO' | 'ANNOUNCEMENT' | 'SEASONAL';
   promoId: string;
   scheduledAt: string;
+  isRecurring: boolean;
+  recurrenceDay: string;
+  recurrenceTime: string;
 }
 
 const initialFormData: CampaignFormData = {
@@ -74,7 +81,20 @@ const initialFormData: CampaignFormData = {
   type: 'NEWSLETTER',
   promoId: '',
   scheduledAt: '',
+  isRecurring: false,
+  recurrenceDay: '1', // Monday
+  recurrenceTime: '09:00',
 };
+
+const DAYS_OF_WEEK = [
+  { value: '0', label: 'Sunday' },
+  { value: '1', label: 'Monday' },
+  { value: '2', label: 'Tuesday' },
+  { value: '3', label: 'Wednesday' },
+  { value: '4', label: 'Thursday' },
+  { value: '5', label: 'Friday' },
+  { value: '6', label: 'Saturday' },
+];
 
 const CAMPAIGN_TYPES = [
   { value: 'NEWSLETTER', label: 'Newsletter' },
@@ -178,6 +198,9 @@ function AdminCampaignsContent() {
       type: campaign.type,
       promoId: campaign.promoId || '',
       scheduledAt: campaign.scheduledAt ? campaign.scheduledAt.slice(0, 16) : '',
+      isRecurring: campaign.isRecurring,
+      recurrenceDay: campaign.recurrenceDay?.toString() || '1',
+      recurrenceTime: campaign.recurrenceTime || '09:00',
     });
     setFormError('');
     setShowModal(true);
@@ -196,7 +219,10 @@ function AdminCampaignsContent() {
         content: formData.content,
         type: formData.type,
         promoId: formData.promoId || null,
-        scheduledAt: formData.scheduledAt || null,
+        scheduledAt: formData.isRecurring ? null : (formData.scheduledAt || null),
+        isRecurring: formData.isRecurring,
+        recurrenceDay: formData.isRecurring ? parseInt(formData.recurrenceDay) : null,
+        recurrenceTime: formData.isRecurring ? formData.recurrenceTime : null,
       };
 
       const url = editingCampaign ? `/api/campaigns/${editingCampaign.id}` : '/api/campaigns';
@@ -518,6 +544,12 @@ function AdminCampaignsContent() {
                         <h4 className="font-semibold">{campaign.name}</h4>
                         {getStatusBadge(campaign.status)}
                         {getTypeBadge(campaign.type)}
+                        {campaign.isRecurring && (
+                          <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Weekly
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-1">{campaign.subject}</p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
@@ -540,10 +572,15 @@ function AdminCampaignsContent() {
                         {campaign.sentAt && (
                           <span>Sent {new Date(campaign.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         )}
-                        {campaign.scheduledAt && campaign.status === 'SCHEDULED' && (
+                        {campaign.scheduledAt && campaign.status === 'SCHEDULED' && !campaign.isRecurring && (
                           <span>Scheduled for {new Date(campaign.scheduledAt).toLocaleString('en-GB')}</span>
                         )}
-                        {!campaign.sentAt && !campaign.scheduledAt && (
+                        {campaign.isRecurring && campaign.recurrenceDay !== null && (
+                          <span>
+                            Every {DAYS_OF_WEEK.find(d => d.value === campaign.recurrenceDay?.toString())?.label} at {campaign.recurrenceTime}
+                          </span>
+                        )}
+                        {!campaign.sentAt && !campaign.scheduledAt && !campaign.isRecurring && (
                           <span>Created {new Date(campaign.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         )}
                       </div>
@@ -796,19 +833,66 @@ function AdminCampaignsContent() {
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Schedule Send</label>
-                  <input
-                    type="datetime-local"
-                    value={formData.scheduledAt}
-                    onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-background"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formData.scheduledAt
-                      ? 'Campaign will be sent automatically at this time'
-                      : 'Leave empty to save as draft for manual sending'}
-                  </p>
+                {/* Recurring vs One-time toggle */}
+                <div className="border border-border rounded-lg p-4 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="isRecurring"
+                      checked={formData.isRecurring}
+                      onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    <label htmlFor="isRecurring" className="text-sm font-medium">
+                      Weekly recurring newsletter
+                    </label>
+                  </div>
+
+                  {formData.isRecurring ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Send every</label>
+                        <select
+                          value={formData.recurrenceDay}
+                          onChange={(e) => setFormData({ ...formData, recurrenceDay: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                        >
+                          {DAYS_OF_WEEK.map((day) => (
+                            <option key={day.value} value={day.value}>
+                              {day.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">at</label>
+                        <input
+                          type="time"
+                          value={formData.recurrenceTime}
+                          onChange={(e) => setFormData({ ...formData, recurrenceTime: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                        />
+                      </div>
+                      <p className="col-span-2 text-xs text-muted-foreground">
+                        This campaign will auto-send every week. Edit the content anytime before the scheduled time.
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Schedule one-time send</label>
+                      <input
+                        type="datetime-local"
+                        value={formData.scheduledAt}
+                        onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formData.scheduledAt
+                          ? 'Campaign will be sent automatically at this time'
+                          : 'Leave empty to save as draft for manual sending'}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4 border-t border-border">

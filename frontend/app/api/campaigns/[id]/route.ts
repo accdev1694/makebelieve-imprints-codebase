@@ -63,6 +63,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       promoId,
       scheduledAt,
       status,
+      isRecurring,
+      recurrenceDay,
+      recurrenceTime,
     } = body;
 
     // Check if campaign exists
@@ -109,14 +112,29 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (promoId !== undefined) updateData.promoId = promoId;
     if (scheduledAt !== undefined) {
       updateData.scheduledAt = scheduledAt ? new Date(scheduledAt) : null;
-      // Auto-update status based on schedule
-      if (scheduledAt && existing.status === 'DRAFT') {
-        updateData.status = 'SCHEDULED';
-      } else if (!scheduledAt && existing.status === 'SCHEDULED') {
-        updateData.status = 'DRAFT';
+      // Auto-update status based on schedule (only for non-recurring)
+      if (!isRecurring) {
+        if (scheduledAt && existing.status === 'DRAFT') {
+          updateData.status = 'SCHEDULED';
+        } else if (!scheduledAt && existing.status === 'SCHEDULED') {
+          updateData.status = 'DRAFT';
+        }
       }
     }
     if (status !== undefined) updateData.status = status;
+
+    // Recurring fields
+    if (isRecurring !== undefined) {
+      updateData.isRecurring = isRecurring;
+      if (isRecurring) {
+        updateData.recurrenceDay = recurrenceDay;
+        updateData.recurrenceTime = recurrenceTime;
+        updateData.scheduledAt = null; // Clear one-time schedule
+      } else {
+        updateData.recurrenceDay = null;
+        updateData.recurrenceTime = null;
+      }
+    }
 
     const campaign = await prisma.emailCampaign.update({
       where: { id },

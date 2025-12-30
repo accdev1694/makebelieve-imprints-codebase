@@ -935,6 +935,12 @@ model EmailCampaign {
   scheduledAt   DateTime?      @map("scheduled_at")
   sentAt        DateTime?      @map("sent_at")
 
+  // Recurring schedule (for weekly newsletters)
+  isRecurring   Boolean        @default(false) @map("is_recurring")
+  recurrenceDay Int?           @map("recurrence_day") // 0=Sunday, 1=Monday, ..., 6=Saturday
+  recurrenceTime String?       @map("recurrence_time") @db.VarChar(5) // HH:MM format
+  lastSentWeek  Int?           @map("last_sent_week") // ISO week number to prevent double-send
+
   // Stats
   recipientCount Int           @default(0) @map("recipient_count")
   sentCount      Int           @default(0) @map("sent_count")

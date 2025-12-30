@@ -362,7 +362,7 @@ function IncomeManagementContent() {
       vatRate: data.vatRate?.toString() || prev.vatRate,
       source: data.vendor || prev.source,
     }));
-    setShowScanner(false);
+    setInputMode('manual');
   };
 
   if (user && user.userType !== 'PRINTER_ADMIN') {

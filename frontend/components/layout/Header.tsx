@@ -10,6 +10,7 @@ import { Logo } from './header/Logo';
 import { DesktopNav } from './header/DesktopNav';
 import { HeaderSearch } from './header/HeaderSearch';
 import { UserDropdown } from './header/UserDropdown';
+import { NotificationBell } from './header/NotificationBell';
 import { MobileMenu } from './header/MobileMenu';
 
 interface HeaderProps {
@@ -58,6 +59,9 @@ export function Header({
 
             {/* Right Section */}
             <div className="flex items-center gap-2">
+              {/* Notifications (only for logged-in users) */}
+              {user && <NotificationBell />}
+
               {/* User Dropdown */}
               <UserDropdown user={user} onLogout={logout} />
 

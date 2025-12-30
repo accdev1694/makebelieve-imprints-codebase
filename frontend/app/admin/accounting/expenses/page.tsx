@@ -354,7 +354,7 @@ function ExpensesContent() {
       vatAmount: data.vatAmount?.toString() || prev.vatAmount,
       vatRate: data.vatRate?.toString() || prev.vatRate,
     }));
-    setShowScanner(false);
+    setInputMode('manual');
   };
 
   const handleSubmit = async () => {

@@ -11,6 +11,7 @@ import { ordersService, Order, OrderStatus, ORDER_STATUS_LABELS } from '@/lib/ap
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { NotificationBell } from '@/components/layout/header/NotificationBell';
 
 function AdminDashboardContent() {
   const router = useRouter();
@@ -122,6 +123,7 @@ function AdminDashboardContent() {
             </h1>
           </div>
           <div className="flex items-center gap-4">
+            <NotificationBell />
             <Badge variant="destructive">Admin</Badge>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               Logout

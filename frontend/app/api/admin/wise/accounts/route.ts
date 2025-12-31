@@ -50,7 +50,10 @@ export async function POST(request: NextRequest) {
 
     // Validate token by fetching profiles
     try {
+      console.log('Fetching Wise profiles with provided token...');
       const profiles = await getProfiles(apiToken);
+      console.log('Profiles received:', profiles.length);
+
       if (profiles.length === 0) {
         return NextResponse.json(
           { error: 'Invalid API token or no profiles found' },
@@ -59,10 +62,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Get balances to verify full access
+      console.log('Fetching balances for profile:', profiles[0].id);
       await getBalances(profiles[0].id, apiToken);
-    } catch {
+      console.log('Balances fetched successfully');
+    } catch (validationError) {
+      console.error('Wise API validation error:', validationError);
+      const errorMessage = validationError instanceof Error ? validationError.message : 'Unknown error';
       return NextResponse.json(
-        { error: 'Invalid API token - could not authenticate with Wise' },
+        { error: `Could not authenticate with Wise: ${errorMessage}` },
         { status: 400 }
       );
     }

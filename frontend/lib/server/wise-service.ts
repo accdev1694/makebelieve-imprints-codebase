@@ -601,7 +601,7 @@ export async function connectWiseAccount(
     const account = await prisma.wiseAccount.create({
       data: {
         profileId: String(profile.id),
-        profileType: profile.type,
+        profileType: profile.type.toUpperCase() as 'PERSONAL' | 'BUSINESS',
         name: profileName,
         apiToken,
         createdBy: adminUserId,

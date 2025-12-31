@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
+import { updateIncomeStatus } from '@/lib/server/accounting-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -42,6 +43,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         },
       },
     });
+
+    // Auto-accounting: Update income status when order is delivered
+    if (status === 'delivered') {
+      try {
+        await updateIncomeStatus(id, 'CONFIRMED');
+      } catch (accountingError) {
+        console.error('Failed to update income status:', accountingError);
+      }
+    }
 
     return NextResponse.json({
       success: true,

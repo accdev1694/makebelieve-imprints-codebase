@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import prisma from '@/lib/prisma';
+import {
+  createIncomeFromOrder,
+  createRefundEntry,
+  getOrderForAccounting,
+} from '@/lib/server/accounting-service';
 
 // Lazy initialization of Stripe to avoid build-time errors
 let stripe: Stripe | null = null;
@@ -139,6 +144,17 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   });
 
   console.log(`Order ${orderId} payment completed`);
+
+  // Auto-accounting: Create income entry for this order
+  try {
+    const orderForAccounting = await getOrderForAccounting(orderId);
+    if (orderForAccounting) {
+      await createIncomeFromOrder(orderForAccounting, 'PENDING');
+    }
+  } catch (accountingError) {
+    // Log but don't fail the webhook - order processing is more critical
+    console.error('Failed to create income entry:', accountingError);
+  }
 }
 
 /**
@@ -271,4 +287,15 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   }
 
   console.log(`Order ${payment.orderId} marked as refunded via webhook`);
+
+  // Auto-accounting: Create refund entry
+  try {
+    const orderForAccounting = await getOrderForAccounting(payment.orderId);
+    if (orderForAccounting) {
+      const refundAmount = (charge.amount_refunded || charge.amount) / 100;
+      await createRefundEntry(orderForAccounting, refundAmount, 'Stripe refund via webhook');
+    }
+  } catch (accountingError) {
+    console.error('Failed to create refund entry:', accountingError);
+  }
 }

@@ -4,6 +4,7 @@ import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import { createRefund } from '@/lib/server/stripe-service';
 import { sendOrderCancelledBySellerEmail } from '@/lib/server/email';
 import { CancellationReason, OrderStatus } from '@prisma/client';
+import { createRefundEntry, getOrderForAccounting } from '@/lib/server/accounting-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -175,6 +176,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     ).catch((error) => {
       console.error('Failed to send cancellation email:', error);
     });
+
+    // Auto-accounting: Create refund entry if refund was processed
+    if (refundAmount) {
+      try {
+        const orderForAccounting = await getOrderForAccounting(orderId);
+        if (orderForAccounting) {
+          await createRefundEntry(
+            orderForAccounting,
+            refundAmount,
+            `Cancellation - ${reason}`
+          );
+        }
+      } catch (accountingError) {
+        console.error('Failed to create refund entry:', accountingError);
+      }
+    }
 
     return NextResponse.json({
       success: true,

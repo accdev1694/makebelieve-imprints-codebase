@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import { createRefund } from '@/lib/server/stripe-service';
 import { sendRefundConfirmationEmail } from '@/lib/server/email';
+import { createRefundEntry, getOrderForAccounting } from '@/lib/server/accounting-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -189,6 +190,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     ).catch((error) => {
       console.error('Failed to send refund confirmation email:', error);
     });
+
+    // Auto-accounting: Create refund entry
+    try {
+      const orderForAccounting = await getOrderForAccounting(orderId);
+      if (orderForAccounting) {
+        await createRefundEntry(
+          orderForAccounting,
+          Number(order.payment.amount),
+          `Refund - ${reason}`
+        );
+      }
+    } catch (accountingError) {
+      console.error('Failed to create refund entry:', accountingError);
+    }
 
     return NextResponse.json({
       success: true,

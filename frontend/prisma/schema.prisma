@@ -288,6 +288,7 @@ model Order {
   resolutions          Resolution[]
   review               Review?
   cancellationRequest  CancellationRequest?
+  income               Income?          // Auto-accounting relation
 
   @@index([customerId])
   @@index([status])
@@ -467,10 +468,16 @@ model Income {
   // Tax year tracking
   taxYear            String?             @map("tax_year") @db.VarChar(9)
 
+  // Order linking for auto-accounting
+  orderId            String?             @unique @map("order_id") @db.Uuid
+  status             IncomeStatus        @default(PENDING)
+  order              Order?              @relation(fields: [orderId], references: [id])
+
   @@index([category])
   @@index([source])
   @@index([incomeDate(sort: Desc)])
   @@index([taxYear])
+  @@index([status])
   @@map("income")
 }
 
@@ -757,6 +764,12 @@ enum IncomeCategory {
   SHIPPING_REIMBURSEMENT
   REFUND_RECEIVED
   OTHER
+}
+
+enum IncomeStatus {
+  PENDING    // Payment received, order not yet delivered
+  CONFIRMED  // Order delivered, income confirmed
+  REVERSED   // Refunded or cancelled
 }
 
 enum ReportPeriod {

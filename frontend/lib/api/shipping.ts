@@ -56,6 +56,14 @@ export const shippingService = {
  * Tracking status labels for UI display
  */
 export const TRACKING_STATUS_LABELS: Record<string, string> = {
+  // Order statuses
+  pending: 'Pending',
+  confirmed: 'Confirmed',
+  processing: 'Processing',
+  pending_cancellation: 'Cancellation Requested',
+  cancelled: 'Cancelled',
+  refunded: 'Refunded',
+  // Shipping statuses
   created: 'Label Created',
   collected: 'Collected',
   in_transit: 'In Transit',
@@ -70,10 +78,18 @@ export const TRACKING_STATUS_LABELS: Record<string, string> = {
  */
 export const getTrackingStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
+    // Order statuses
+    pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50',
+    confirmed: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
+    processing: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
+    pending_cancellation: 'bg-amber-500/10 text-amber-500 border-amber-500/50',
+    cancelled: 'bg-red-500/10 text-red-500 border-red-500/50',
+    refunded: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
+    // Shipping statuses
     created: 'bg-gray-500/10 text-gray-500 border-gray-500/50',
     collected: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
-    in_transit: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
-    out_for_delivery: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
+    in_transit: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
+    out_for_delivery: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/50',
     delivered: 'bg-green-500/10 text-green-500 border-green-500/50',
     failed_delivery: 'bg-red-500/10 text-red-500 border-red-500/50',
     returned: 'bg-orange-500/10 text-orange-500 border-orange-500/50',

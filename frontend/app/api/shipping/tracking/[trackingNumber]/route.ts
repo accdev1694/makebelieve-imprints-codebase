@@ -44,14 +44,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Map order status to tracking status
+    // Map order status to tracking status (lowercase to match client expectations)
     const statusMap: Record<string, { status: string; description: string }> = {
-      pending: { status: 'PENDING', description: 'Order received, awaiting processing' },
-      confirmed: { status: 'CONFIRMED', description: 'Order confirmed, preparing for production' },
-      printing: { status: 'PROCESSING', description: 'Order is being printed' },
-      shipped: { status: 'IN_TRANSIT', description: 'Order has been shipped' },
-      delivered: { status: 'DELIVERED', description: 'Order has been delivered' },
-      cancelled: { status: 'CANCELLED', description: 'Order was cancelled' },
+      pending: { status: 'pending', description: 'Order received, awaiting processing' },
+      payment_confirmed: { status: 'confirmed', description: 'Payment confirmed, preparing for production' },
+      confirmed: { status: 'confirmed', description: 'Order confirmed, preparing for production' },
+      printing: { status: 'processing', description: 'Order is being printed' },
+      shipped: { status: 'in_transit', description: 'Order has been shipped and is on its way' },
+      delivered: { status: 'delivered', description: 'Order has been delivered' },
+      cancelled: { status: 'cancelled', description: 'Order was cancelled' },
+      refunded: { status: 'refunded', description: 'Order was refunded' },
+      cancellation_requested: { status: 'pending_cancellation', description: 'Cancellation requested' },
     };
 
     const trackingStatus = statusMap[order.status] || statusMap.pending;
@@ -86,15 +89,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json({
-      trackingNumber,
-      carrier: order.carrier || 'Royal Mail',
-      status: trackingStatus.status,
-      statusDescription: trackingStatus.description,
-      estimatedDelivery,
-      lastUpdated: order.updatedAt.toISOString(),
-      events: events.reverse(), // Most recent first
-      // Royal Mail tracking link
-      trackingUrl: `https://www.royalmail.com/track-your-item#/tracking-results/${trackingNumber}`,
+      success: true,
+      data: {
+        trackingNumber,
+        carrier: order.carrier || 'Royal Mail',
+        status: trackingStatus.status,
+        statusDescription: trackingStatus.description,
+        estimatedDelivery,
+        lastUpdated: order.updatedAt.toISOString(),
+        events: events.reverse(), // Most recent first
+        // Royal Mail tracking link
+        trackingUrl: `https://www.royalmail.com/track-your-item#/tracking-results/${trackingNumber}`,
+      },
     });
   } catch (error) {
     console.error('Tracking lookup error:', error);

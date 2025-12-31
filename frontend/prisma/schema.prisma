@@ -434,6 +434,7 @@ model Expense {
   importBatch           ExpenseImportBatch?  @relation(fields: [importBatchId], references: [id])
   inventoryAdditions    InventoryAddition[]
   supplierTransaction   SupplierTransaction? // Auto-linked from Stripe Issuing
+  wiseTransaction       WiseTransaction?     // Auto-linked from Wise
 
   @@index([category])
   @@index([supplierId])
@@ -511,6 +512,136 @@ model SavedProduct {
   @@index([source])
   @@index([createdBy])
   @@map("saved_products")
+}
+
+// ============================================
+// WISE INTEGRATION - AUTOMATIC EXPENSE CAPTURE
+// ============================================
+
+model WiseAccount {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId       String            @unique @map("profile_id") @db.VarChar(50) // Wise profile ID
+  profileType     WiseProfileType   @map("profile_type") // personal or business
+  name            String            @db.VarChar(255)
+  email           String?           @db.VarChar(255)
+
+  // API credentials (encrypted in practice)
+  apiToken        String?           @map("api_token") @db.VarChar(500)
+
+  // Sync configuration
+  isActive        Boolean           @default(true) @map("is_active")
+  lastSyncAt      DateTime?         @map("last_sync_at")
+  syncFrequency   Int               @default(5) @map("sync_frequency") // minutes
+  autoCreateExpense Boolean         @default(true) @map("auto_create_expense")
+
+  // Webhook configuration (for business accounts)
+  webhookSecret   String?           @map("webhook_secret") @db.VarChar(255)
+  webhookEnabled  Boolean           @default(false) @map("webhook_enabled")
+
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at")
+  createdBy       String            @map("created_by") @db.Uuid
+
+  transactions    WiseTransaction[]
+  balances        WiseBalance[]
+
+  @@index([isActive])
+  @@index([createdBy])
+  @@map("wise_accounts")
+}
+
+model WiseBalance {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId       String       @map("account_id") @db.Uuid
+  currency        String       @db.VarChar(3)
+  amount          Decimal      @db.Decimal(15, 2)
+  reservedAmount  Decimal      @default(0) @map("reserved_amount") @db.Decimal(15, 2)
+  lastUpdated     DateTime     @default(now()) @map("last_updated")
+
+  account         WiseAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, currency])
+  @@index([accountId])
+  @@map("wise_balances")
+}
+
+model WiseTransaction {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId           String                @map("account_id") @db.Uuid
+  wiseTransactionId   String                @unique @map("wise_transaction_id") @db.VarChar(50)
+
+  // Transaction details
+  type                WiseTransactionType
+  status              WiseTransactionStatus @default(PENDING)
+  direction           TransactionDirection  @default(OUTGOING)
+
+  // Amount info
+  amount              Decimal               @db.Decimal(15, 2)
+  currency            String                @db.VarChar(3)
+  amountInGBP         Decimal?              @map("amount_in_gbp") @db.Decimal(15, 2) // Converted for reporting
+  exchangeRate        Decimal?              @map("exchange_rate") @db.Decimal(15, 6)
+  fee                 Decimal?              @db.Decimal(10, 2)
+
+  // Merchant/recipient info
+  merchantName        String?               @map("merchant_name") @db.VarChar(255)
+  merchantCategory    String?               @map("merchant_category") @db.VarChar(100)
+  merchantCategoryCode String?              @map("merchant_category_code") @db.VarChar(10) // MCC code
+  description         String?               @db.VarChar(500)
+
+  // Card details (if card transaction)
+  cardLast4           String?               @map("card_last_4") @db.VarChar(4)
+  cardId              String?               @map("card_id") @db.VarChar(50)
+
+  // Reference to auto-created expense
+  expenseId           String?               @unique @map("expense_id") @db.Uuid
+
+  // Raw data from Wise API
+  rawData             Json?                 @map("raw_data")
+
+  // Timestamps
+  transactionDate     DateTime              @map("transaction_date")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @default(now()) @updatedAt @map("updated_at")
+
+  account             WiseAccount           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  expense             Expense?              @relation(fields: [expenseId], references: [id])
+
+  @@index([accountId])
+  @@index([status])
+  @@index([type])
+  @@index([transactionDate(sort: Desc)])
+  @@index([merchantName])
+  @@map("wise_transactions")
+}
+
+enum WiseProfileType {
+  PERSONAL
+  BUSINESS
+}
+
+enum WiseTransactionType {
+  CARD_PAYMENT       // Debit card purchase
+  CARD_REFUND        // Refund to card
+  TRANSFER_OUT       // Transfer sent
+  TRANSFER_IN        // Transfer received
+  CONVERSION         // Currency conversion
+  DIRECT_DEBIT       // Direct debit payment
+  ATM_WITHDRAWAL     // Cash withdrawal
+  FEE                // Wise fees
+  OTHER
+}
+
+enum WiseTransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  FAILED
+  REFUNDED
+}
+
+enum TransactionDirection {
+  INCOMING
+  OUTGOING
 }
 
 model Income {
@@ -869,6 +1000,7 @@ enum ExpenseImportSource {
   AMAZON_API
   EBAY_API
   SUPPLIER_INTEGRATION
+  WISE_API
 }
 
 enum ImportBatchStatus {

@@ -17,6 +17,7 @@ import {
   AlertCircle,
   CheckCircle2,
   ShoppingCart,
+  Wallet,
 } from 'lucide-react';
 
 interface IssuingStatus {
@@ -122,7 +123,7 @@ function PurchasingDashboardContent() {
         ) : (
           <div className="space-y-8">
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card
                 className="card-glow cursor-pointer hover:-translate-y-1 transition-all duration-300"
                 onClick={() => router.push('/admin/purchasing/search')}
@@ -144,6 +145,26 @@ function PurchasingDashboardContent() {
               </Card>
 
               <Card
+                className="card-glow cursor-pointer hover:-translate-y-1 transition-all duration-300 border-emerald-500/30"
+                onClick={() => router.push('/admin/wise')}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-emerald-500/10 rounded-lg">
+                      <Wallet className="w-6 h-6 text-emerald-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Wise Integration</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Auto-capture expenses
+                      </p>
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card
                 className="card-glow cursor-pointer hover:-translate-y-1 transition-all duration-300"
                 onClick={() => router.push('/admin/purchasing/cards')}
               >
@@ -155,7 +176,7 @@ function PurchasingDashboardContent() {
                     <div className="flex-1">
                       <h3 className="font-semibold">Virtual Cards</h3>
                       <p className="text-sm text-muted-foreground">
-                        Manage purchasing cards
+                        Stripe Issuing cards
                       </p>
                     </div>
                     <ArrowRight className="w-5 h-5 text-muted-foreground" />

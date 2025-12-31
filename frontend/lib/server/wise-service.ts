@@ -452,7 +452,7 @@ export async function syncWiseTransactions(
             merchantCategoryCode: tx.details.merchant?.categoryCode,
             description: tx.details.description,
             transactionDate: new Date(tx.date),
-            rawData: tx as unknown as Record<string, unknown>,
+            rawData: JSON.parse(JSON.stringify(tx)),
           },
         });
 

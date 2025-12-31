@@ -212,7 +212,7 @@ function WiseTransactionsContent() {
                 <span className="text-sm font-medium">Filters:</span>
               </div>
 
-              <Select value={selectedAccount} onValueChange={(v) => { setSelectedAccount(v); setPage(1); }}>
+              <Select value={selectedAccount} onValueChange={(v: string) => { setSelectedAccount(v); setPage(1); }}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="All Accounts" />
                 </SelectTrigger>
@@ -226,7 +226,7 @@ function WiseTransactionsContent() {
                 </SelectContent>
               </Select>
 
-              <Select value={selectedType} onValueChange={(v) => { setSelectedType(v); setPage(1); }}>
+              <Select value={selectedType} onValueChange={(v: string) => { setSelectedType(v); setPage(1); }}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>

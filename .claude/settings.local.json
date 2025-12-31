@@ -27,7 +27,9 @@
       "Bash(done)",
       "Bash(for f in app/home-lifestyle/[subcategory]/page.tsx app/orders/[id]/page.tsx app/products/[categorySlug]/page.tsx app/large-format/[subcategory]/page.tsx app/stationery/[subcategory]/page.tsx app/gifts/occasions/[category]/page.tsx app/photo-prints/[subcategory]/page.tsx app/product/[id]/page.tsx app/design/[id]/page.tsx app/digital-downloads/[subcategory]/page.tsx app/admin/orders/[id]/page.tsx)",
       "Bash(do if head -1 $f)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npx prisma db push:*)"
     ]
   }
 }

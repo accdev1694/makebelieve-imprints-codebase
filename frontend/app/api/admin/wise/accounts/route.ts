@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Connect the account
-    const result = await connectWiseAccount(apiToken, user.id);
+    const result = await connectWiseAccount(apiToken, user.userId);
 
     if (!result.success) {
       return NextResponse.json(

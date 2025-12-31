@@ -200,7 +200,7 @@ async function handleCardTransaction(transaction: WiseCardTransaction) {
       cardLast4: transaction.cardToken.slice(-4),
       cardId: transaction.cardId,
       transactionDate: new Date(transaction.createdAt),
-      rawData: transaction as unknown as Record<string, unknown>,
+      rawData: JSON.parse(JSON.stringify(transaction)),
     },
   });
 

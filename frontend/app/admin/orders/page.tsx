@@ -1,31 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ordersService, Order, OrderStatus, ORDER_STATUS_LABELS, ACTIVE_ORDER_STATUSES, ARCHIVED_ORDER_STATUSES } from '@/lib/api/orders';
+import {
+  ordersService,
+  Order,
+  OrderStatus,
+  ORDER_STATUS_LABELS,
+  OrderTab,
+  ORDER_TAB_LABELS,
+} from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import { Archive, Package } from 'lucide-react';
+
+const ORDER_TABS: OrderTab[] = ['all', 'in_progress', 'shipped', 'completed', 'cancelled'];
 
 function AdminOrdersContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [viewMode, setViewMode] = useState<'active' | 'archive'>('active');
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+
+  // Get active tab from URL or default to 'all'
+  const activeTab = (searchParams.get('tab') as OrderTab) || 'all';
 
   // Redirect if not admin
   useEffect(() => {
@@ -36,14 +46,13 @@ function AdminOrdersContent() {
 
   useEffect(() => {
     fetchOrders();
-  }, [statusFilter, currentPage, viewMode]);
+  }, [activeTab, currentPage]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       const data = await ordersService.list(currentPage, 15, {
-        status: statusFilter === 'all' ? undefined : statusFilter,
-        archived: viewMode === 'archive',
+        tab: activeTab,
       });
       setOrders(data.orders);
       setTotalPages(data.pagination.totalPages);
@@ -55,10 +64,14 @@ function AdminOrdersContent() {
     }
   };
 
-  // Get available status filters based on view mode
-  const availableStatuses = viewMode === 'active'
-    ? ACTIVE_ORDER_STATUSES
-    : ARCHIVED_ORDER_STATUSES;
+  const handleTabChange = (tab: OrderTab) => {
+    setCurrentPage(1);
+    if (tab === 'all') {
+      router.push('/admin/orders');
+    } else {
+      router.push(`/admin/orders?tab=${tab}`);
+    }
+  };
 
   const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
     setUpdatingOrderId(orderId);
@@ -67,12 +80,11 @@ function AdminOrdersContent() {
     try {
       await apiClient.put(`/orders/${orderId}/status`, { status: newStatus });
 
-      // Update local state
-      setOrders(
-        orders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
-      );
-    } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to update order status');
+      // Refresh orders to reflect the change (order may move to different tab)
+      fetchOrders();
+    } catch (err: unknown) {
+      const e = err as { error?: string; message?: string };
+      setError(e?.error || e?.message || 'Failed to update order status');
     } finally {
       setUpdatingOrderId(null);
     }
@@ -108,6 +120,36 @@ function AdminOrdersContent() {
     return workflow[currentStatus];
   };
 
+  const getEmptyMessage = (tab: OrderTab): { title: string; description: string } => {
+    switch (tab) {
+      case 'in_progress':
+        return {
+          title: 'No orders in progress',
+          description: 'Orders being prepared or awaiting payment will appear here.',
+        };
+      case 'shipped':
+        return {
+          title: 'No shipped orders',
+          description: 'Orders currently in transit will appear here.',
+        };
+      case 'completed':
+        return {
+          title: 'No completed orders',
+          description: 'Successfully delivered orders will appear here.',
+        };
+      case 'cancelled':
+        return {
+          title: 'No cancelled orders',
+          description: 'Cancelled or refunded orders will appear here.',
+        };
+      default:
+        return {
+          title: 'No orders yet',
+          description: 'Orders will appear here when customers place them.',
+        };
+    }
+  };
+
   if (user && user.userType !== 'PRINTER_ADMIN') {
     return null;
   }
@@ -127,34 +169,6 @@ function AdminOrdersContent() {
               <span className="text-neon-gradient">Order Management</span>
             </h1>
           </div>
-          {/* View Mode Toggle */}
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === 'active' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setViewMode('active');
-                setStatusFilter('all');
-                setCurrentPage(1);
-              }}
-              className={viewMode === 'active' ? 'btn-gradient' : ''}
-            >
-              <Package className="w-4 h-4 mr-2" />
-              Active
-            </Button>
-            <Button
-              variant={viewMode === 'archive' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setViewMode('archive');
-                setStatusFilter('all');
-                setCurrentPage(1);
-              }}
-            >
-              <Archive className="w-4 h-4 mr-2" />
-              Archive
-            </Button>
-          </div>
         </div>
       </header>
 
@@ -166,30 +180,17 @@ function AdminOrdersContent() {
           </div>
         )}
 
-        {/* Filter Tabs - Dynamic based on view mode */}
-        <div className="mb-6 flex gap-2 flex-wrap">
-          <Button
-            variant={statusFilter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setStatusFilter('all');
-              setCurrentPage(1);
-            }}
-            className={statusFilter === 'all' ? 'btn-gradient' : ''}
-          >
-            {viewMode === 'active' ? 'All Active' : 'All Archived'}
-          </Button>
-          {availableStatuses.map((status) => (
+        {/* Tab Navigation */}
+        <div className="mb-6 flex gap-2 flex-wrap overflow-x-auto pb-2">
+          {ORDER_TABS.map((tab) => (
             <Button
-              key={status}
-              variant={statusFilter === status ? 'default' : 'outline'}
+              key={tab}
+              variant={activeTab === tab ? 'default' : 'outline'}
               size="sm"
-              onClick={() => {
-                setStatusFilter(status);
-                setCurrentPage(1);
-              }}
+              onClick={() => handleTabChange(tab)}
+              className={activeTab === tab ? 'btn-gradient' : ''}
             >
-              {ORDER_STATUS_LABELS[status]}
+              {ORDER_TAB_LABELS[tab]}
             </Button>
           ))}
         </div>
@@ -205,17 +206,20 @@ function AdminOrdersContent() {
           <Card className="card-glow">
             <CardContent className="py-20 text-center">
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                {statusFilter === 'all'
-                  ? viewMode === 'active' ? 'No active orders' : 'No archived orders'
-                  : `No ${ORDER_STATUS_LABELS[statusFilter] || statusFilter} orders`}
+                {getEmptyMessage(activeTab).title}
               </h3>
               <p className="text-muted-foreground">
-                {statusFilter === 'all'
-                  ? viewMode === 'active'
-                    ? 'Active orders will appear here when customers place them.'
-                    : 'Completed, cancelled, and refunded orders will appear here.'
-                  : 'Try selecting a different filter to see other orders.'}
+                {getEmptyMessage(activeTab).description}
               </p>
+              {activeTab !== 'all' && (
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => handleTabChange('all')}
+                >
+                  View All Orders
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -311,9 +315,9 @@ function AdminOrdersContent() {
                                 size="sm"
                                 className="w-full"
                                 onClick={() => handleUpdateStatus(order.id, nextStatus)}
-                                loading={isUpdating}
+                                disabled={isUpdating}
                               >
-                                {`Mark as ${ORDER_STATUS_LABELS[nextStatus]}`}
+                                {isUpdating ? 'Updating...' : `Mark as ${ORDER_STATUS_LABELS[nextStatus]}`}
                               </Button>
                             )}
 
@@ -377,10 +381,27 @@ function AdminOrdersContent() {
   );
 }
 
+function AdminOrdersWithSuspense() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-md h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <AdminOrdersContent />
+    </Suspense>
+  );
+}
+
 export default function AdminOrdersPage() {
   return (
     <ProtectedRoute>
-      <AdminOrdersContent />
+      <AdminOrdersWithSuspense />
     </ProtectedRoute>
   );
 }

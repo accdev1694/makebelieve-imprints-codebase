@@ -17,6 +17,10 @@ const TAB_STATUS_MAP: Record<string, OrderStatus[]> = {
   cancelled: ['cancelled', 'refunded'],
 };
 
+// Valid sort fields and their Prisma orderBy mappings
+type SortField = 'date' | 'price' | 'customer' | 'city' | 'status';
+type SortOrder = 'asc' | 'desc';
+
 /**
  * GET /api/orders
  * List orders (user's own or all for admin)
@@ -25,6 +29,8 @@ const TAB_STATUS_MAP: Record<string, OrderStatus[]> = {
  * - limit: items per page (default 20, max 100)
  * - status: filter by specific status
  * - tab: filter by tab group ('all', 'in_progress', 'shipped', 'completed', 'cancelled')
+ * - sort: sort field ('date', 'price', 'customer', 'city', 'status') - default 'date'
+ * - order: sort order ('asc', 'desc') - default 'desc'
  * - archived: if 'true', show only archived orders; if 'false', show only active orders (legacy)
  */
 export async function GET(request: NextRequest) {
@@ -38,6 +44,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') as OrderStatus | null;
     const tab = searchParams.get('tab');
     const archivedParam = searchParams.get('archived');
+    const sortField = (searchParams.get('sort') as SortField) || 'date';
+    const sortOrder = (searchParams.get('order') as SortOrder) || 'desc';
 
     // Build status filter based on tab, status, or archived param
     let statusFilter: { status?: OrderStatus | { in: OrderStatus[] } } = {};
@@ -53,6 +61,32 @@ export async function GET(request: NextRequest) {
     } else if (archivedParam === 'false') {
       // Legacy active filter
       statusFilter = { status: { in: ACTIVE_STATUSES } };
+    }
+
+    // Build orderBy based on sort field
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let orderBy: any;
+    switch (sortField) {
+      case 'price':
+        orderBy = { totalPrice: sortOrder };
+        break;
+      case 'customer':
+        // Sort by customer name via relation
+        orderBy = { customer: { name: sortOrder } };
+        break;
+      case 'city':
+        // Sort by city in shipping address JSON - requires raw query workaround
+        // For now, fall back to date sorting as JSON field sorting is complex in Prisma
+        // TODO: Implement proper JSON field sorting if needed
+        orderBy = { createdAt: sortOrder };
+        break;
+      case 'status':
+        orderBy = { status: sortOrder };
+        break;
+      case 'date':
+      default:
+        orderBy = { createdAt: sortOrder };
+        break;
     }
 
     const where =
@@ -114,7 +148,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
       }),
       prisma.order.count({ where }),
     ]);

@@ -156,12 +156,14 @@ export const ordersService = {
    * Get all orders for current user
    * @param options.status - filter by specific status
    * @param options.tab - filter by tab group ('all', 'in_progress', 'shipped', 'completed', 'cancelled')
+   * @param options.sort - sort field ('date', 'price', 'customer', 'city', 'status')
+   * @param options.order - sort order ('asc', 'desc')
    * @param options.archived - legacy: if true, returns only archived orders; if false, returns only active orders
    */
   async list(
     page = 1,
     limit = 20,
-    options?: { status?: OrderStatus; tab?: OrderTab; archived?: boolean }
+    options?: { status?: OrderStatus; tab?: OrderTab; sort?: SortField; order?: SortOrder; archived?: boolean }
   ): Promise<OrdersListResponse> {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -172,6 +174,12 @@ export const ordersService = {
     }
     if (options?.tab) {
       params.set('tab', options.tab);
+    }
+    if (options?.sort) {
+      params.set('sort', options.sort);
+    }
+    if (options?.order) {
+      params.set('order', options.order);
     }
     if (options?.archived !== undefined) {
       params.set('archived', options.archived.toString());
@@ -328,6 +336,35 @@ export const TAB_STATUS_MAP: Record<Exclude<OrderTab, 'all'>, OrderStatus[]> = {
   completed: COMPLETED_STATUSES,
   cancelled: CANCELLED_STATUSES,
 };
+
+// Sort options
+export type SortField = 'date' | 'price' | 'customer' | 'city' | 'status';
+export type SortOrder = 'asc' | 'desc';
+
+export interface SortOption {
+  field: SortField;
+  order: SortOrder;
+  label: string;
+}
+
+// Customer sort options (simpler)
+export const CUSTOMER_SORT_OPTIONS: SortOption[] = [
+  { field: 'date', order: 'desc', label: 'Newest First' },
+  { field: 'date', order: 'asc', label: 'Oldest First' },
+  { field: 'price', order: 'desc', label: 'Highest Price' },
+  { field: 'price', order: 'asc', label: 'Lowest Price' },
+];
+
+// Admin sort options (more comprehensive)
+export const ADMIN_SORT_OPTIONS: SortOption[] = [
+  { field: 'date', order: 'desc', label: 'Newest First' },
+  { field: 'date', order: 'asc', label: 'Oldest First' },
+  { field: 'price', order: 'desc', label: 'Highest Price' },
+  { field: 'price', order: 'asc', label: 'Lowest Price' },
+  { field: 'customer', order: 'asc', label: 'Customer A-Z' },
+  { field: 'customer', order: 'desc', label: 'Customer Z-A' },
+  { field: 'status', order: 'asc', label: 'Status A-Z' },
+];
 
 /**
  * Check if an order status is considered archived (concluded)

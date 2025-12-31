@@ -14,9 +14,13 @@ import {
   ORDER_STATUS_LABELS,
   OrderTab,
   ORDER_TAB_LABELS,
+  CUSTOMER_SORT_OPTIONS,
+  SortOption,
 } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
+import { ArrowUpDown } from 'lucide-react';
 
 const ORDER_TABS: OrderTab[] = ['all', 'in_progress', 'shipped', 'completed', 'cancelled'];
 
@@ -29,6 +33,7 @@ function OrderHistoryContent() {
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortOption, setSortOption] = useState<SortOption>(CUSTOMER_SORT_OPTIONS[0]);
 
   // Get active tab from URL or default to 'all'
   const activeTab = (searchParams.get('tab') as OrderTab) || 'all';
@@ -40,7 +45,7 @@ function OrderHistoryContent() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const data = await ordersService.list(currentPage, 10, {
+      const data = await ordersService.list(currentPage, 100, {
         tab: activeTab,
       });
       setOrders(data.orders);
@@ -50,6 +55,34 @@ function OrderHistoryContent() {
       setError(e?.error || e?.message || 'Failed to load orders');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Client-side sorting
+  const sortedOrders = [...orders].sort((a, b) => {
+    const { field, order } = sortOption;
+    let comparison = 0;
+
+    switch (field) {
+      case 'date':
+        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        break;
+      case 'price':
+        comparison = Number(a.totalPrice) - Number(b.totalPrice);
+        break;
+      default:
+        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+
+    return order === 'asc' ? comparison : -comparison;
+  });
+
+  const handleSortChange = (value: string) => {
+    const option = CUSTOMER_SORT_OPTIONS.find(
+      (opt) => `${opt.field}-${opt.order}` === value
+    );
+    if (option) {
+      setSortOption(option);
     }
   };
 
@@ -138,19 +171,41 @@ function OrderHistoryContent() {
           </div>
         )}
 
-        {/* Tab Navigation */}
-        <div className="mb-6 flex gap-2 flex-wrap overflow-x-auto pb-2">
-          {ORDER_TABS.map((tab) => (
-            <Button
-              key={tab}
-              variant={activeTab === tab ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleTabChange(tab)}
-              className={activeTab === tab ? 'btn-gradient' : ''}
+        {/* Tab Navigation and Sort */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between">
+          <div className="flex gap-2 flex-wrap overflow-x-auto pb-2">
+            {ORDER_TABS.map((tab) => (
+              <Button
+                key={tab}
+                variant={activeTab === tab ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleTabChange(tab)}
+                className={activeTab === tab ? 'btn-gradient' : ''}
+              >
+                {ORDER_TAB_LABELS[tab]}
+              </Button>
+            ))}
+          </div>
+
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+            <Select
+              value={`${sortOption.field}-${sortOption.order}`}
+              onValueChange={handleSortChange}
             >
-              {ORDER_TAB_LABELS[tab]}
-            </Button>
-          ))}
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                {CUSTOMER_SORT_OPTIONS.map((opt) => (
+                  <SelectItem key={`${opt.field}-${opt.order}`} value={`${opt.field}-${opt.order}`}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {loading ? (
@@ -198,7 +253,7 @@ function OrderHistoryContent() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
+            {sortedOrders.map((order) => (
               <Card
                 key={order.id}
                 className="card-glow hover:-translate-y-1 transition-all duration-300 cursor-pointer"

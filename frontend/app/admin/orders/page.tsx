@@ -15,10 +15,14 @@ import {
   ORDER_STATUS_LABELS,
   OrderTab,
   ORDER_TAB_LABELS,
+  ADMIN_SORT_OPTIONS,
+  SortOption,
 } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { ArrowUpDown } from 'lucide-react';
 
 const ORDER_TABS: OrderTab[] = ['all', 'in_progress', 'shipped', 'completed', 'cancelled'];
 
@@ -33,6 +37,7 @@ function AdminOrdersContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [sortOption, setSortOption] = useState<SortOption>(ADMIN_SORT_OPTIONS[0]);
 
   // Get active tab from URL or default to 'all'
   const activeTab = (searchParams.get('tab') as OrderTab) || 'all';
@@ -46,13 +51,15 @@ function AdminOrdersContent() {
 
   useEffect(() => {
     fetchOrders();
-  }, [activeTab, currentPage]);
+  }, [activeTab, currentPage, sortOption]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       const data = await ordersService.list(currentPage, 15, {
         tab: activeTab,
+        sort: sortOption.field,
+        order: sortOption.order,
       });
       setOrders(data.orders);
       setTotalPages(data.pagination.totalPages);
@@ -61,6 +68,16 @@ function AdminOrdersContent() {
       setError(e?.error || e?.message || 'Failed to load orders');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSortChange = (value: string) => {
+    const option = ADMIN_SORT_OPTIONS.find(
+      (opt) => `${opt.field}-${opt.order}` === value
+    );
+    if (option) {
+      setSortOption(option);
+      setCurrentPage(1);
     }
   };
 
@@ -180,19 +197,41 @@ function AdminOrdersContent() {
           </div>
         )}
 
-        {/* Tab Navigation */}
-        <div className="mb-6 flex gap-2 flex-wrap overflow-x-auto pb-2">
-          {ORDER_TABS.map((tab) => (
-            <Button
-              key={tab}
-              variant={activeTab === tab ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleTabChange(tab)}
-              className={activeTab === tab ? 'btn-gradient' : ''}
+        {/* Tab Navigation and Sort */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between">
+          <div className="flex gap-2 flex-wrap overflow-x-auto pb-2">
+            {ORDER_TABS.map((tab) => (
+              <Button
+                key={tab}
+                variant={activeTab === tab ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleTabChange(tab)}
+                className={activeTab === tab ? 'btn-gradient' : ''}
+              >
+                {ORDER_TAB_LABELS[tab]}
+              </Button>
+            ))}
+          </div>
+
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+            <Select
+              value={`${sortOption.field}-${sortOption.order}`}
+              onValueChange={handleSortChange}
             >
-              {ORDER_TAB_LABELS[tab]}
-            </Button>
-          ))}
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                {ADMIN_SORT_OPTIONS.map((opt) => (
+                  <SelectItem key={`${opt.field}-${opt.order}`} value={`${opt.field}-${opt.order}`}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {loading ? (

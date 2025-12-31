@@ -430,9 +430,10 @@ model Expense {
   // Tax year tracking
   taxYear            String?             @map("tax_year") @db.VarChar(9)
 
-  supplier           Supplier?           @relation(fields: [supplierId], references: [id])
-  importBatch        ExpenseImportBatch? @relation(fields: [importBatchId], references: [id])
-  inventoryAdditions InventoryAddition[]
+  supplier              Supplier?            @relation(fields: [supplierId], references: [id])
+  importBatch           ExpenseImportBatch?  @relation(fields: [importBatchId], references: [id])
+  inventoryAdditions    InventoryAddition[]
+  supplierTransaction   SupplierTransaction? // Auto-linked from Stripe Issuing
 
   @@index([category])
   @@index([supplierId])
@@ -440,6 +441,76 @@ model Expense {
   @@index([taxYear])
   @@index([importBatchId])
   @@map("expenses")
+}
+
+// ============================================
+// STRIPE ISSUING - VIRTUAL CARDS FOR PURCHASING
+// ============================================
+
+model VirtualCard {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stripeCardId    String        @unique @map("stripe_card_id") @db.VarChar(255)
+  cardholderId    String        @map("cardholder_id") @db.VarChar(255)
+  name            String        @db.VarChar(100) // Card nickname
+  last4           String        @db.VarChar(4)
+  expiryMonth     Int           @map("expiry_month")
+  expiryYear      Int           @map("expiry_year")
+  spendingLimit   Decimal       @map("spending_limit") @db.Decimal(10, 2)
+  status          CardStatus    @default(ACTIVE)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @default(now()) @updatedAt @map("updated_at")
+  createdBy       String        @map("created_by") @db.Uuid // Admin user ID
+
+  transactions    SupplierTransaction[]
+
+  @@index([status])
+  @@index([createdBy])
+  @@map("virtual_cards")
+}
+
+model SupplierTransaction {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cardId            String            @map("card_id") @db.Uuid
+  stripeAuthId      String            @unique @map("stripe_auth_id") @db.VarChar(255)
+  merchantName      String            @map("merchant_name") @db.VarChar(255)
+  merchantCategory  String?           @map("merchant_category") @db.VarChar(100)
+  amount            Decimal           @db.Decimal(10, 2)
+  currency          String            @default("GBP") @db.VarChar(3)
+  status            TransactionStatus @default(PENDING)
+  productSearched   Json?             @map("product_searched") // Original search result
+  expenseId         String?           @unique @map("expense_id") @db.Uuid
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @default(now()) @updatedAt @map("updated_at")
+
+  card              VirtualCard       @relation(fields: [cardId], references: [id])
+  expense           Expense?          @relation(fields: [expenseId], references: [id])
+
+  @@index([cardId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("supplier_transactions")
+}
+
+model SavedProduct {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  source          String   @db.VarChar(50) // amazon, ebay, aliexpress, google
+  externalId      String   @map("external_id") @db.VarChar(255)
+  title           String   @db.VarChar(500)
+  price           Decimal  @db.Decimal(10, 2)
+  currency        String   @default("GBP") @db.VarChar(3)
+  imageUrl        String?  @map("image_url") @db.VarChar(500)
+  productUrl      String   @map("product_url") @db.VarChar(1000)
+  sellerName      String?  @map("seller_name") @db.VarChar(255)
+  sellerRating    Decimal? @map("seller_rating") @db.Decimal(3, 2)
+  metadata        Json?    // Additional product info
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  createdBy       String   @map("created_by") @db.Uuid // Admin user ID
+
+  @@unique([source, externalId])
+  @@index([source])
+  @@index([createdBy])
+  @@map("saved_products")
 }
 
 model Income {
@@ -770,6 +841,19 @@ enum IncomeStatus {
   PENDING    // Payment received, order not yet delivered
   CONFIRMED  // Order delivered, income confirmed
   REVERSED   // Refunded or cancelled
+}
+
+enum CardStatus {
+  ACTIVE
+  FROZEN
+  CANCELLED
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  DECLINED
+  REFUNDED
 }
 
 enum ReportPeriod {

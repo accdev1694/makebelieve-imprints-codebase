@@ -220,6 +220,11 @@ function AdminDashboardContent() {
                 Accounting
               </Button>
             </Link>
+            <Link href="/admin/purchasing">
+              <Button variant="outline" className="border-cyan-500/50 text-cyan-500 hover:text-cyan-600">
+                Purchasing
+              </Button>
+            </Link>
             <Button variant="outline" disabled>
               Settings (Coming Soon)
             </Button>

@@ -10,6 +10,129 @@
  */
 
 import prisma from '@/lib/prisma';
+import * as crypto from 'crypto';
+
+// ============================================================================
+// AWS Signature V4 Helper Functions (for Amazon PA-API)
+// ============================================================================
+
+function getAmzDate(): { amzDate: string; dateStamp: string } {
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
+  const dateStamp = amzDate.slice(0, 8);
+  return { amzDate, dateStamp };
+}
+
+function sha256(data: string): string {
+  return crypto.createHash('sha256').update(data, 'utf8').digest('hex');
+}
+
+function hmacSha256(key: Buffer | string, data: string): Buffer {
+  return crypto.createHmac('sha256', key).update(data, 'utf8').digest();
+}
+
+function getSignatureKey(
+  secretKey: string,
+  dateStamp: string,
+  region: string,
+  service: string
+): Buffer {
+  const kDate = hmacSha256(`AWS4${secretKey}`, dateStamp);
+  const kRegion = hmacSha256(kDate, region);
+  const kService = hmacSha256(kRegion, service);
+  const kSigning = hmacSha256(kService, 'aws4_request');
+  return kSigning;
+}
+
+function createAwsSignatureV4(
+  method: string,
+  host: string,
+  path: string,
+  headers: Record<string, string>,
+  payload: string,
+  accessKey: string,
+  secretKey: string,
+  region: string,
+  service: string
+): { signedHeaders: Record<string, string>; authorization: string } {
+  const { amzDate, dateStamp } = getAmzDate();
+
+  // Add required headers
+  const allHeaders: Record<string, string> = {
+    ...headers,
+    host,
+    'x-amz-date': amzDate,
+  };
+
+  // Create canonical headers (sorted, lowercase)
+  const sortedHeaderKeys = Object.keys(allHeaders).sort();
+  const canonicalHeaders = sortedHeaderKeys
+    .map((key) => `${key.toLowerCase()}:${allHeaders[key].trim()}`)
+    .join('\n') + '\n';
+  const signedHeaders = sortedHeaderKeys.map((k) => k.toLowerCase()).join(';');
+
+  // Create canonical request
+  const payloadHash = sha256(payload);
+  const canonicalRequest = [
+    method,
+    path,
+    '', // No query string for POST
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash,
+  ].join('\n');
+
+  // Create string to sign
+  const algorithm = 'AWS4-HMAC-SHA256';
+  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const stringToSign = [
+    algorithm,
+    amzDate,
+    credentialScope,
+    sha256(canonicalRequest),
+  ].join('\n');
+
+  // Calculate signature
+  const signingKey = getSignatureKey(secretKey, dateStamp, region, service);
+  const signature = hmacSha256(signingKey, stringToSign).toString('hex');
+
+  // Create authorization header
+  const authorization = `${algorithm} Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  return {
+    signedHeaders: {
+      ...allHeaders,
+      'x-amz-date': amzDate,
+    },
+    authorization,
+  };
+}
+
+// ============================================================================
+// AliExpress TOP API Signature Helper
+// ============================================================================
+
+function createAliExpressSignature(
+  params: Record<string, string>,
+  secretKey: string
+): string {
+  // Sort parameters alphabetically
+  const sortedKeys = Object.keys(params).sort();
+
+  // Concatenate key-value pairs
+  let signString = secretKey;
+  for (const key of sortedKeys) {
+    signString += key + params[key];
+  }
+  signString += secretKey;
+
+  // Create HMAC-SHA256 signature and convert to uppercase hex
+  return crypto
+    .createHmac('sha256', secretKey)
+    .update(signString, 'utf8')
+    .digest('hex')
+    .toUpperCase();
+}
 
 export interface ProductSearchResult {
   id: string;
@@ -66,7 +189,8 @@ function getConfiguredSources(): string[] {
 }
 
 /**
- * Search Amazon Product Advertising API
+ * Search Amazon Product Advertising API 5.0
+ * Uses AWS Signature Version 4 for authentication
  */
 async function searchAmazon(query: string, limit: number = 10): Promise<ProductSearchResult[]> {
   const accessKey = process.env.AMAZON_ACCESS_KEY;
@@ -79,28 +203,132 @@ async function searchAmazon(query: string, limit: number = 10): Promise<ProductS
   }
 
   try {
-    // Amazon PA-API 5.0 requires request signing
-    // This is a simplified implementation - production would use aws4 signing
-    const endpoint = 'https://webservices.amazon.co.uk/paapi5/searchitems';
+    const host = 'webservices.amazon.co.uk';
+    const path = '/paapi5/searchitems';
+    const region = 'eu-west-1';
+    const service = 'ProductAdvertisingAPI';
 
     const requestBody = {
       PartnerTag: partnerTag,
       PartnerType: 'Associates',
       Keywords: query,
       SearchIndex: 'All',
-      ItemCount: limit,
+      ItemCount: Math.min(limit, 10), // Amazon limits to 10 per request
       Resources: [
         'ItemInfo.Title',
-        'Offers.Listings.Price',
-        'Images.Primary.Large',
         'ItemInfo.ByLineInfo',
+        'ItemInfo.ProductInfo',
+        'Offers.Listings.Price',
+        'Offers.Listings.DeliveryInfo.IsPrimeEligible',
+        'Offers.Listings.Condition',
+        'Offers.Listings.MerchantInfo',
+        'Images.Primary.Large',
       ],
     };
 
-    // Note: Full implementation requires AWS Signature Version 4
-    // For now, return empty array if not properly configured
-    console.log('Amazon search requires AWS signature implementation');
-    return [];
+    const payload = JSON.stringify(requestBody);
+
+    // Headers required for PA-API
+    const headers: Record<string, string> = {
+      'content-type': 'application/json; charset=utf-8',
+      'content-encoding': 'amz-1.0',
+      'x-amz-target': 'com.amazon.paapi5.v1.ProductAdvertisingAPIv1.SearchItems',
+    };
+
+    // Create AWS Signature V4
+    const { signedHeaders, authorization } = createAwsSignatureV4(
+      'POST',
+      host,
+      path,
+      headers,
+      payload,
+      accessKey,
+      secretKey,
+      region,
+      service
+    );
+
+    const response = await fetch(`https://${host}${path}`, {
+      method: 'POST',
+      headers: {
+        ...signedHeaders,
+        'content-type': 'application/json; charset=utf-8',
+        'content-encoding': 'amz-1.0',
+        'x-amz-target': 'com.amazon.paapi5.v1.ProductAdvertisingAPIv1.SearchItems',
+        'Authorization': authorization,
+      },
+      body: payload,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Amazon API error:', response.status, errorText);
+      return [];
+    }
+
+    const data = await response.json();
+
+    if (!data.SearchResult?.Items) {
+      return [];
+    }
+
+    return data.SearchResult.Items.map((item: Record<string, unknown>) => {
+      const itemInfo = item.ItemInfo as Record<string, unknown> | undefined;
+      const offers = item.Offers as Record<string, unknown> | undefined;
+      const images = item.Images as Record<string, unknown> | undefined;
+
+      // Get the best available price
+      const listings = (offers?.Listings as Record<string, unknown>[]) || [];
+      const firstListing = listings[0];
+      const price = firstListing?.Price as Record<string, unknown> | undefined;
+      const merchant = firstListing?.MerchantInfo as Record<string, unknown> | undefined;
+      const condition = firstListing?.Condition as Record<string, unknown> | undefined;
+      const deliveryInfo = firstListing?.DeliveryInfo as Record<string, unknown> | undefined;
+
+      // Get title
+      const titleInfo = itemInfo?.Title as Record<string, unknown> | undefined;
+      const title = (titleInfo?.DisplayValue as string) || 'Unknown Product';
+
+      // Get manufacturer/brand
+      const byLineInfo = itemInfo?.ByLineInfo as Record<string, unknown> | undefined;
+      const brand = byLineInfo?.Brand as Record<string, unknown> | undefined;
+      const manufacturer = byLineInfo?.Manufacturer as Record<string, unknown> | undefined;
+      const sellerName = (brand?.DisplayValue as string) ||
+        (manufacturer?.DisplayValue as string) ||
+        (merchant?.Name as string) ||
+        'Amazon';
+
+      // Get image
+      const primaryImage = images?.Primary as Record<string, unknown> | undefined;
+      const largeImage = primaryImage?.Large as Record<string, unknown> | undefined;
+      const imageUrl = largeImage?.URL as string | undefined;
+
+      // Get condition text
+      const conditionValue = condition?.Value as string;
+      const conditionText = conditionValue === 'New' ? 'New' :
+        conditionValue === 'Used' ? 'Used' : conditionValue;
+
+      // Check Prime eligibility
+      const isPrime = deliveryInfo?.IsPrimeEligible as boolean;
+
+      return {
+        id: item.ASIN as string,
+        source: 'amazon' as const,
+        title,
+        price: price?.Amount ? parseFloat(price.Amount as string) : 0,
+        currency: (price?.Currency as string) || 'GBP',
+        imageUrl,
+        productUrl: item.DetailPageURL as string,
+        sellerName,
+        condition: conditionText,
+        shipping: isPrime ? 'Prime' : undefined,
+        metadata: {
+          asin: item.ASIN,
+          isPrime,
+          condition: conditionValue,
+        },
+      };
+    });
 
   } catch (error) {
     console.error('Amazon search error:', error);
@@ -167,10 +395,12 @@ async function searchEbay(query: string, limit: number = 10): Promise<ProductSea
 
 /**
  * Search AliExpress Affiliate API
+ * Uses TOP (Taobao Open Platform) signature for authentication
  */
 async function searchAliExpress(query: string, limit: number = 10): Promise<ProductSearchResult[]> {
   const appKey = process.env.ALIEXPRESS_APP_KEY;
   const secretKey = process.env.ALIEXPRESS_SECRET_KEY;
+  const trackingId = process.env.ALIEXPRESS_TRACKING_ID;
 
   if (!appKey || !secretKey) {
     console.log('AliExpress API not configured');
@@ -178,22 +408,121 @@ async function searchAliExpress(query: string, limit: number = 10): Promise<Prod
   }
 
   try {
-    // AliExpress Affiliate API
-    const endpoint = 'https://api.aliexpress.com/sync';
+    const endpoint = 'https://api-sg.aliexpress.com/sync';
+    const method = 'aliexpress.affiliate.product.query';
+    const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
-    const params = new URLSearchParams({
+    // Build base parameters
+    const baseParams: Record<string, string> = {
       app_key: appKey,
-      method: 'aliexpress.affiliate.product.query',
+      method,
+      sign_method: 'sha256',
+      timestamp,
+      format: 'json',
+      v: '2.0',
+    };
+
+    // Build business parameters
+    const businessParams: Record<string, string> = {
       keywords: query,
-      page_size: limit.toString(),
+      page_size: Math.min(limit, 50).toString(), // AliExpress max is 50
+      page_no: '1',
       target_currency: 'GBP',
       target_language: 'EN',
-      ship_to_country: 'UK',
+      ship_to_country: 'GB',
+      sort: 'SALE_PRICE_ASC',
+    };
+
+    // Add tracking ID if configured
+    if (trackingId) {
+      businessParams.tracking_id = trackingId;
+    }
+
+    // Combine all parameters for signing
+    const allParams = { ...baseParams, ...businessParams };
+
+    // Generate signature
+    const signature = createAliExpressSignature(allParams, secretKey);
+    allParams.sign = signature;
+
+    // Build request URL
+    const urlParams = new URLSearchParams(allParams);
+    const response = await fetch(`${endpoint}?${urlParams.toString()}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+      },
     });
 
-    // Note: Full implementation requires request signing
-    console.log('AliExpress search requires API signature implementation');
-    return [];
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('AliExpress API error:', response.status, errorText);
+      return [];
+    }
+
+    const data = await response.json();
+
+    // Check for API errors
+    if (data.error_response) {
+      console.error('AliExpress API error:', data.error_response);
+      return [];
+    }
+
+    // Extract products from response
+    const result = data.aliexpress_affiliate_product_query_response?.resp_result;
+    if (!result?.result?.products?.product) {
+      return [];
+    }
+
+    const products = result.result.products.product;
+
+    return products.map((item: Record<string, unknown>) => {
+      // Get price info
+      const targetPrice = item.target_sale_price as string;
+      const originalPrice = item.target_original_price as string;
+      const price = parseFloat(targetPrice || originalPrice || '0');
+
+      // Get image URL (prefer main image)
+      const imageUrl = (item.product_main_image_url as string) ||
+        ((item.product_small_image_urls as Record<string, string[]>)?.string?.[0]);
+
+      // Get seller/shop info
+      const shopName = item.shop_name as string;
+      const shopUrl = item.shop_url as string;
+
+      // Get product ratings
+      const evaluateRate = item.evaluate_rate as string;
+      const rating = evaluateRate ? parseFloat(evaluateRate.replace('%', '')) / 100 : undefined;
+
+      // Get shipping info
+      const shippingInfo = item.logistics_info_dto as Record<string, unknown> | undefined;
+      const freeShipping = shippingInfo?.free_shipping as boolean;
+
+      // Get discount info
+      const discount = item.discount as string;
+
+      return {
+        id: item.product_id as string,
+        source: 'aliexpress' as const,
+        title: item.product_title as string,
+        price,
+        currency: 'GBP',
+        imageUrl,
+        productUrl: item.promotion_link as string || item.product_detail_url as string,
+        sellerName: shopName || 'AliExpress Seller',
+        sellerRating: rating,
+        shipping: freeShipping ? 'Free shipping' : undefined,
+        metadata: {
+          productId: item.product_id,
+          originalPrice: parseFloat(originalPrice || '0'),
+          discount,
+          salesCount: item.lastest_volume as number,
+          shopUrl,
+          categoryId: item.first_level_category_id,
+          hotProduct: item.hot_product_commission_rate,
+        },
+      };
+    });
 
   } catch (error) {
     console.error('AliExpress search error:', error);
@@ -473,7 +802,7 @@ export function getConfiguredSourcesStatus(): {
     {
       source: 'aliexpress',
       configured: !!(process.env.ALIEXPRESS_APP_KEY && process.env.ALIEXPRESS_SECRET_KEY),
-      envVars: ['ALIEXPRESS_APP_KEY', 'ALIEXPRESS_SECRET_KEY'],
+      envVars: ['ALIEXPRESS_APP_KEY', 'ALIEXPRESS_SECRET_KEY', 'ALIEXPRESS_TRACKING_ID (optional)'],
     },
     {
       source: 'google',

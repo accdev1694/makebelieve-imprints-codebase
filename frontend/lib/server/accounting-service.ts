@@ -126,10 +126,11 @@ export async function createIncomeFromOrder(
 /**
  * Create invoice from order payment
  * Called when checkout.session.completed webhook fires
+ * Returns the invoice ID for PDF generation
  */
 export async function createInvoiceFromOrder(
   order: OrderWithCustomer
-): Promise<void> {
+): Promise<string | null> {
   // Check if invoice already exists for this order
   const existingInvoice = await prisma.invoice.findFirst({
     where: { orderId: order.id },
@@ -137,7 +138,7 @@ export async function createInvoiceFromOrder(
 
   if (existingInvoice) {
     console.log(`Invoice already exists for order ${order.id}`);
-    return;
+    return existingInvoice.id;
   }
 
   const invoiceNumber = await generateInvoiceNumber();
@@ -150,7 +151,7 @@ export async function createInvoiceFromOrder(
 
   const now = new Date();
 
-  await prisma.invoice.create({
+  const invoice = await prisma.invoice.create({
     data: {
       invoiceNumber,
       orderId: order.id,
@@ -167,6 +168,7 @@ export async function createInvoiceFromOrder(
   });
 
   console.log(`Invoice ${invoiceNumber} created for order ${order.id}`);
+  return invoice.id;
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   createRefundEntry,
   getOrderForAccounting,
 } from '@/lib/server/accounting-service';
+import { generateAndSendInvoice } from '@/lib/server/invoice-service';
 
 // Lazy initialization of Stripe to avoid build-time errors
 let stripe: Stripe | null = null;
@@ -146,12 +147,23 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
 
   console.log(`Order ${orderId} payment completed`);
 
-  // Auto-accounting: Create income entry and invoice for this order
+  // Auto-accounting: Create income entry, invoice, and send invoice email
   try {
     const orderForAccounting = await getOrderForAccounting(orderId);
     if (orderForAccounting) {
+      // Create income entry
       await createIncomeFromOrder(orderForAccounting, 'PENDING');
-      await createInvoiceFromOrder(orderForAccounting);
+
+      // Create invoice and get its ID
+      const invoiceId = await createInvoiceFromOrder(orderForAccounting);
+
+      // Generate PDF and send invoice email
+      if (invoiceId) {
+        const invoiceResult = await generateAndSendInvoice(invoiceId);
+        if (!invoiceResult.success) {
+          console.error('Failed to generate/send invoice:', invoiceResult.error);
+        }
+      }
     }
   } catch (accountingError) {
     // Log but don't fail the webhook - order processing is more critical

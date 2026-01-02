@@ -19,28 +19,53 @@ const FROM_EMAIL = process.env.EMAIL_FROM || 'MakeBelieve Imprints <noreply@make
 const APP_NAME = 'MakeBelieve Imprints';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://makebelieveimprints.co.uk';
 
+interface Attachment {
+  filename: string;
+  content: string; // base64 encoded
+  contentType?: string;
+}
+
 interface SendEmailOptions {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  attachments?: Attachment[];
 }
 
 /**
  * Send an email using Resend
  */
-export async function sendEmail({ to, subject, html, text }: SendEmailOptions): Promise<boolean> {
+export async function sendEmail({ to, subject, html, text, attachments }: SendEmailOptions): Promise<boolean> {
   try {
     const resend = getResendClient();
     console.log('Sending email to:', to, 'from:', FROM_EMAIL);
 
-    const { data, error } = await resend.emails.send({
+    // Build email options
+    const emailOptions: {
+      from: string;
+      to: string;
+      subject: string;
+      html: string;
+      text?: string;
+      attachments?: Array<{ filename: string; content: Buffer }>;
+    } = {
       from: FROM_EMAIL,
       to,
       subject,
       html,
       text,
-    });
+    };
+
+    // Add attachments if provided
+    if (attachments && attachments.length > 0) {
+      emailOptions.attachments = attachments.map((att) => ({
+        filename: att.filename,
+        content: Buffer.from(att.content, 'base64'),
+      }));
+    }
+
+    const { data, error } = await resend.emails.send(emailOptions);
 
     if (error) {
       console.error('Resend API error:', JSON.stringify(error, null, 2));
@@ -1663,4 +1688,128 @@ ${APP_NAME} Admin Alert
   `.trim();
 
   return sendEmail({ to: adminEmail, subject, html, text });
+}
+
+/**
+ * Send invoice email with PDF attachment
+ */
+export async function sendInvoiceEmail(
+  email: string,
+  customerName: string,
+  invoiceNumber: string,
+  orderReference: string,
+  totalAmount: number,
+  pdfBase64: string
+): Promise<boolean> {
+  const formattedTotal = new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+  }).format(totalAmount);
+
+  const orderUrl = `${APP_URL}/orders`;
+
+  const subject = `Your Invoice ${invoiceNumber} from ${APP_NAME}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
+      </div>
+
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0;">Thank You for Your Order!</h2>
+
+        <p>Hi ${customerName},</p>
+
+        <p>Thank you for your order with ${APP_NAME}! Your payment has been successfully processed.</p>
+
+        <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10b981;">
+          <p style="margin: 0 0 10px; font-weight: bold; color: #166534;">Payment Confirmed</p>
+          <p style="margin: 0; color: #166534;">Your invoice is attached to this email.</p>
+        </div>
+
+        <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">Invoice Number:</td>
+              <td style="padding: 8px 0; text-align: right; font-weight: bold;">${invoiceNumber}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">Order Reference:</td>
+              <td style="padding: 8px 0; text-align: right; font-weight: bold;">#${orderReference}</td>
+            </tr>
+            <tr style="border-top: 1px solid #e5e7eb;">
+              <td style="padding: 12px 0; color: #1f2937; font-weight: bold;">Total Paid:</td>
+              <td style="padding: 12px 0; text-align: right; font-weight: bold; font-size: 18px; color: #6366f1;">${formattedTotal}</td>
+            </tr>
+          </table>
+        </div>
+
+        <p>We'll start processing your order right away. You'll receive another email once your order has been dispatched.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${orderUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1;">
+            View Your Orders
+          </a>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+        <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
+          If you have any questions about your order, please reply to this email or contact us at hello@makebelieveimprints.co.uk
+        </p>
+      </div>
+
+      <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+        <p>&copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+        <p>Custom Print Services | United Kingdom</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Thank You for Your Order!
+
+Hi ${customerName},
+
+Thank you for your order with ${APP_NAME}! Your payment has been successfully processed.
+
+Invoice Number: ${invoiceNumber}
+Order Reference: #${orderReference}
+Total Paid: ${formattedTotal}
+
+Your invoice is attached to this email as a PDF.
+
+We'll start processing your order right away. You'll receive another email once your order has been dispatched.
+
+View your orders: ${orderUrl}
+
+If you have any questions, please reply to this email or contact us at hello@makebelieveimprints.co.uk
+
+---
+${APP_NAME}
+Custom Print Services | United Kingdom
+  `.trim();
+
+  return sendEmail({
+    to: email,
+    subject,
+    html,
+    text,
+    attachments: [
+      {
+        filename: `Invoice-${invoiceNumber}.pdf`,
+        content: pdfBase64,
+        contentType: 'application/pdf',
+      },
+    ],
+  });
 }

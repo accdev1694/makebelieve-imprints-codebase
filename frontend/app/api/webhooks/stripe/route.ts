@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import prisma from '@/lib/prisma';
 import {
   createIncomeFromOrder,
+  createInvoiceFromOrder,
   createRefundEntry,
   getOrderForAccounting,
 } from '@/lib/server/accounting-service';
@@ -145,15 +146,16 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
 
   console.log(`Order ${orderId} payment completed`);
 
-  // Auto-accounting: Create income entry for this order
+  // Auto-accounting: Create income entry and invoice for this order
   try {
     const orderForAccounting = await getOrderForAccounting(orderId);
     if (orderForAccounting) {
       await createIncomeFromOrder(orderForAccounting, 'PENDING');
+      await createInvoiceFromOrder(orderForAccounting);
     }
   } catch (accountingError) {
     // Log but don't fail the webhook - order processing is more critical
-    console.error('Failed to create income entry:', accountingError);
+    console.error('Failed to create accounting entries:', accountingError);
   }
 }
 

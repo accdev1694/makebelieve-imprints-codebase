@@ -4,7 +4,7 @@
  */
 
 import prisma from '@/lib/prisma';
-import { Order, IncomeCategory, IncomeStatus } from '@prisma/client';
+import { Order, IncomeCategory, IncomeStatus, InvoiceStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
 // UK tax year runs April 6 to April 5
@@ -40,6 +40,30 @@ async function generateIncomeNumber(): Promise<string> {
 
   const sequence = String(count + 1).padStart(4, '0');
   return `INC-${dateStr}-${sequence}`;
+}
+
+// Generate invoice number: INV-YYYYMMDD-XXXX
+async function generateInvoiceNumber(): Promise<string> {
+  const today = new Date();
+  const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+
+  // Count today's invoices to generate sequence
+  const startOfDay = new Date(today);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const count = await prisma.invoice.count({
+    where: {
+      createdAt: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+    },
+  });
+
+  const sequence = String(count + 1).padStart(4, '0');
+  return `INV-${dateStr}-${sequence}`;
 }
 
 interface OrderWithCustomer extends Order {
@@ -97,6 +121,52 @@ export async function createIncomeFromOrder(
   });
 
   console.log(`Income entry ${incomeNumber} created for order ${order.id} (status: ${status})`);
+}
+
+/**
+ * Create invoice from order payment
+ * Called when checkout.session.completed webhook fires
+ */
+export async function createInvoiceFromOrder(
+  order: OrderWithCustomer
+): Promise<void> {
+  // Check if invoice already exists for this order
+  const existingInvoice = await prisma.invoice.findFirst({
+    where: { orderId: order.id },
+  });
+
+  if (existingInvoice) {
+    console.log(`Invoice already exists for order ${order.id}`);
+    return;
+  }
+
+  const invoiceNumber = await generateInvoiceNumber();
+
+  // Calculate amounts (20% VAT included in price)
+  const total = new Decimal(order.totalPrice);
+  const vatRate = new Decimal(20);
+  const vatAmount = total.dividedBy(6).toDecimalPlaces(2); // VAT = Price / 6 for 20% inclusive
+  const subtotal = total.minus(vatAmount);
+
+  const now = new Date();
+
+  await prisma.invoice.create({
+    data: {
+      invoiceNumber,
+      orderId: order.id,
+      subtotal,
+      vatRate,
+      vatAmount,
+      total,
+      currency: 'GBP',
+      issueDate: now,
+      dueDate: now, // Already paid, so due date is same as issue date
+      status: InvoiceStatus.PAID,
+      notes: `Auto-generated invoice for order #${order.id.slice(0, 8).toUpperCase()}`,
+    },
+  });
+
+  console.log(`Invoice ${invoiceNumber} created for order ${order.id}`);
 }
 
 /**

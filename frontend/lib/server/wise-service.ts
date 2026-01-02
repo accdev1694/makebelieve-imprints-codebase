@@ -572,8 +572,10 @@ export async function connectWiseAccount(
       return { success: false, error: 'No profiles found for this API token' };
     }
 
-    // Use the first profile (typically personal, or business if that's the only one)
-    const profile = profiles[0];
+    // Prefer Business profile over Personal (Business has better API access for statements)
+    const businessProfile = profiles.find(p => p.type === 'BUSINESS');
+    const profile = businessProfile || profiles[0];
+    
     const profileName = profile.type === 'PERSONAL'
       ? `${profile.details.firstName} ${profile.details.lastName}`
       : profile.details.name || 'Business Account';

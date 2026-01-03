@@ -154,9 +154,31 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
       console.log(`[Cancel] Payment status updated to REFUNDED`);
     } else if (processRefund && order.payment) {
-      console.log(`[Cancel] Skipping refund - payment status: ${order.payment.status}, stripePaymentId: ${order.payment.stripePaymentId || 'null'}`);
+      // Payment exists but status is not COMPLETED - cannot refund
+      console.error(`[Cancel] Cannot process refund - payment status: ${order.payment.status}, stripePaymentId: ${order.payment.stripePaymentId || 'null'}`);
+      return NextResponse.json(
+        {
+          error: `Cannot process refund: Payment status is "${order.payment.status}". Refunds can only be processed for COMPLETED payments.`,
+          details: {
+            paymentStatus: order.payment.status,
+            stripePaymentId: order.payment.stripePaymentId || null,
+          },
+          suggestion: order.payment.status === 'PENDING'
+            ? 'The Stripe webhook may not have updated the payment status. Check Stripe Dashboard > Developers > Webhooks for failed deliveries.'
+            : 'If you need to cancel without refund, set processRefund to false.',
+        },
+        { status: 400 }
+      );
     } else if (processRefund) {
-      console.log(`[Cancel] Skipping refund - no payment record found`);
+      // No payment record exists - cannot refund
+      console.error(`[Cancel] Cannot process refund - no payment record found for order ${orderId}`);
+      return NextResponse.json(
+        {
+          error: 'Cannot process refund: No payment record found for this order.',
+          suggestion: 'If this order was never paid for, set processRefund to false to cancel without refund.',
+        },
+        { status: 400 }
+      );
     }
 
     // Update order with cancellation info

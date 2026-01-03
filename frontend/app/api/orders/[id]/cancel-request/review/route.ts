@@ -126,6 +126,30 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             refundedAt: new Date(),
           },
         });
+      } else if (processRefund && order.payment) {
+        // Payment exists but cannot be refunded - don't silently continue
+        return NextResponse.json(
+          {
+            error: `Cannot process refund: Payment status is "${order.payment.status}". Refunds can only be processed for COMPLETED payments.`,
+            details: {
+              paymentStatus: order.payment.status,
+              stripePaymentId: order.payment.stripePaymentId || null,
+            },
+            suggestion: order.payment.status === 'PENDING'
+              ? 'The Stripe webhook may not have updated the payment status. Check Stripe Dashboard > Developers > Webhooks.'
+              : 'If you need to approve without refund, set processRefund to false.',
+          },
+          { status: 400 }
+        );
+      } else if (processRefund) {
+        // No payment record - cannot refund
+        return NextResponse.json(
+          {
+            error: 'Cannot process refund: No payment record found for this order.',
+            suggestion: 'If this order was never paid for, set processRefund to false.',
+          },
+          { status: 400 }
+        );
       }
 
       // Update cancellation request and order in transaction

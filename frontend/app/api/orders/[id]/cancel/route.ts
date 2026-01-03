@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
-import { createRefund } from '@/lib/server/stripe-service';
+import { createRefund, resolvePaymentIntentId } from '@/lib/server/stripe-service';
 import { sendOrderCancelledBySellerEmail } from '@/lib/server/email';
 import { CancellationReason, OrderStatus } from '@prisma/client';
 import { createRefundEntry, getOrderForAccounting } from '@/lib/server/accounting-service';
@@ -97,9 +97,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     let refundAmount: number | null = null;
 
     // Process refund if payment exists and processRefund is true
-    if (processRefund && order.payment && order.payment.status === 'COMPLETED') {
+    if (processRefund && order.payment) {
       console.log(`[Cancel] Processing refund for order ${orderId}`);
-      console.log(`[Cancel] Payment record: id=${order.payment.id}, stripePaymentId=${order.payment.stripePaymentId}`);
+      console.log(`[Cancel] Payment record: id=${order.payment.id}, status=${order.payment.status}, stripePaymentId=${order.payment.stripePaymentId}`);
 
       if (!order.payment.stripePaymentId) {
         console.error(`[Cancel] No stripePaymentId found for order ${orderId}`);
@@ -112,21 +112,48 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         );
       }
 
-      // Validate stripePaymentId is a Payment Intent (not a Checkout Session)
-      if (!order.payment.stripePaymentId.startsWith('pi_')) {
-        console.error(`[Cancel] Invalid payment ID format: ${order.payment.stripePaymentId}`);
+      // Resolve the Payment Intent ID - handles both pi_xxx and cs_xxx formats
+      // This provides a fallback when the webhook hasn't updated the payment record
+      const resolved = await resolvePaymentIntentId(order.payment.stripePaymentId);
+
+      if (!resolved.paymentIntentId) {
+        console.error(`[Cancel] Failed to resolve payment intent: ${resolved.error}`);
         return NextResponse.json(
           {
-            error: `Cannot process refund: Invalid payment ID format. Expected Payment Intent (pi_xxx), found "${order.payment.stripePaymentId.substring(0, 15)}...". The Stripe webhook may not have updated the payment record correctly.`,
-            suggestion: 'Check Stripe Dashboard > Developers > Webhooks for failed deliveries, or manually process the refund in Stripe.'
+            error: `Cannot process refund: ${resolved.error}`,
+            suggestion: 'Check Stripe Dashboard to verify the payment status.',
           },
           { status: 400 }
         );
       }
 
-      console.log(`[Cancel] Creating refund for payment intent: ${order.payment.stripePaymentId}`);
+      if (!resolved.isPaid) {
+        console.error(`[Cancel] Payment was not completed according to Stripe`);
+        return NextResponse.json(
+          {
+            error: 'Cannot process refund: Payment was not completed in Stripe.',
+            suggestion: 'Verify the payment status in Stripe Dashboard. If unpaid, cancel without refund.',
+          },
+          { status: 400 }
+        );
+      }
+
+      // If we resolved from a checkout session, update the local payment record for future use
+      if (order.payment.stripePaymentId.startsWith('cs_')) {
+        console.log(`[Cancel] Updating payment record with resolved Payment Intent ID: ${resolved.paymentIntentId}`);
+        await prisma.payment.update({
+          where: { id: order.payment.id },
+          data: {
+            stripePaymentId: resolved.paymentIntentId,
+            status: 'COMPLETED',
+            paidAt: order.payment.paidAt || new Date(),
+          },
+        });
+      }
+
+      console.log(`[Cancel] Creating refund for payment intent: ${resolved.paymentIntentId}`);
       const refundResult = await createRefund(
-        order.payment.stripePaymentId,
+        resolved.paymentIntentId,
         reason === 'FRAUD_SUSPECTED' ? 'fraudulent' : 'requested_by_customer',
         undefined, // full refund
         `cancel_${orderId}` // idempotency key prevents duplicate refunds
@@ -153,22 +180,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         },
       });
       console.log(`[Cancel] Payment status updated to REFUNDED`);
-    } else if (processRefund && order.payment) {
-      // Payment exists but status is not COMPLETED - cannot refund
-      console.error(`[Cancel] Cannot process refund - payment status: ${order.payment.status}, stripePaymentId: ${order.payment.stripePaymentId || 'null'}`);
-      return NextResponse.json(
-        {
-          error: `Cannot process refund: Payment status is "${order.payment.status}". Refunds can only be processed for COMPLETED payments.`,
-          details: {
-            paymentStatus: order.payment.status,
-            stripePaymentId: order.payment.stripePaymentId || null,
-          },
-          suggestion: order.payment.status === 'PENDING'
-            ? 'The Stripe webhook may not have updated the payment status. Check Stripe Dashboard > Developers > Webhooks for failed deliveries.'
-            : 'If you need to cancel without refund, set processRefund to false.',
-        },
-        { status: 400 }
-      );
     } else if (processRefund) {
       // No payment record exists - cannot refund
       console.error(`[Cancel] Cannot process refund - no payment record found for order ${orderId}`);

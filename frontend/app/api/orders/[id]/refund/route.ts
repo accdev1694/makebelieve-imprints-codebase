@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
-import { createRefund } from '@/lib/server/stripe-service';
+import { createRefund, resolvePaymentIntentId } from '@/lib/server/stripe-service';
 import { sendRefundConfirmationEmail } from '@/lib/server/email';
 import { createRefundEntry, getOrderForAccounting } from '@/lib/server/accounting-service';
 import {
@@ -72,21 +72,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check if payment was completed
-    if (order.payment.status !== 'COMPLETED') {
-      return NextResponse.json(
-        {
-          error: `Payment status is "${order.payment.status}". Refunds can only be processed for completed payments. The Stripe webhook may not have updated the payment status - please check webhook logs in Stripe Dashboard.`,
-          details: {
-            paymentStatus: order.payment.status,
-            stripePaymentId: order.payment.stripePaymentId,
-            suggestion: 'Check Stripe Dashboard > Developers > Webhooks to verify the checkout.session.completed event was received and processed successfully.'
-          }
-        },
-        { status: 400 }
-      );
-    }
-
     // Check if already refunded
     if (order.payment.refundedAt) {
       return NextResponse.json(
@@ -103,32 +88,55 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get the payment intent ID
-    const paymentIntentId = order.payment.stripePaymentId;
-    if (!paymentIntentId) {
+    const storedPaymentId = order.payment.stripePaymentId;
+    if (!storedPaymentId) {
       return NextResponse.json(
         { error: 'Order has no Stripe payment ID. The payment may not have been processed correctly.' },
         { status: 400 }
       );
     }
 
-    // Validate that stripePaymentId is a Payment Intent (starts with 'pi_'), not a Checkout Session (starts with 'cs_')
-    if (!paymentIntentId.startsWith('pi_')) {
+    // Resolve the Payment Intent ID - handles both pi_xxx and cs_xxx formats
+    // This provides a fallback when the webhook hasn't updated the payment record
+    const resolved = await resolvePaymentIntentId(storedPaymentId);
+
+    if (!resolved.paymentIntentId) {
       return NextResponse.json(
         {
-          error: `Invalid Stripe Payment ID format. Expected a Payment Intent ID (pi_xxx), but found "${paymentIntentId.substring(0, 15)}...". This usually means the Stripe webhook did not update the payment record after checkout completed.`,
-          details: {
-            currentPaymentId: paymentIntentId,
-            suggestion: 'Check Stripe Dashboard > Developers > Webhooks for failed webhook deliveries. You may need to manually update the payment record with the correct Payment Intent ID from Stripe.'
-          }
+          error: `Cannot process refund: ${resolved.error}`,
+          suggestion: 'Check Stripe Dashboard to verify the payment status.',
         },
         { status: 400 }
       );
     }
 
+    if (!resolved.isPaid) {
+      return NextResponse.json(
+        {
+          error: 'Cannot process refund: Payment was not completed in Stripe.',
+          suggestion: 'Verify the payment status in Stripe Dashboard.',
+        },
+        { status: 400 }
+      );
+    }
+
+    // If we resolved from a checkout session, update the local payment record for future use
+    if (storedPaymentId.startsWith('cs_')) {
+      console.log(`[Refund] Updating payment record with resolved Payment Intent ID: ${resolved.paymentIntentId}`);
+      await prisma.payment.update({
+        where: { id: order.payment.id },
+        data: {
+          stripePaymentId: resolved.paymentIntentId,
+          status: 'COMPLETED',
+          paidAt: order.payment.paidAt || new Date(),
+        },
+      });
+    }
+
     // Issue refund via Stripe FIRST
     // Use orderId as idempotency key to prevent duplicate refunds on retry
     const refundResult = await createRefund(
-      paymentIntentId,
+      resolved.paymentIntentId,
       'requested_by_customer',
       undefined, // full refund
       `refund_${orderId}` // idempotency key

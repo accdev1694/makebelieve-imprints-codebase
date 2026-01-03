@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
-import { createRefund } from '@/lib/server/stripe-service';
+import { createRefund, resolvePaymentIntentId } from '@/lib/server/stripe-service';
 import {
   sendCancellationRequestApprovedEmail,
   sendCancellationRequestRejectedEmail,
@@ -89,20 +89,46 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       let refundAmount: number | null = null;
 
       // Process refund if payment exists and processRefund is true
-      if (processRefund && order.payment && order.payment.status === 'COMPLETED' && order.payment.stripePaymentId) {
-        // Validate stripePaymentId is a Payment Intent (not a Checkout Session)
-        if (!order.payment.stripePaymentId.startsWith('pi_')) {
+      if (processRefund && order.payment && order.payment.stripePaymentId) {
+        // Resolve the Payment Intent ID - handles both pi_xxx and cs_xxx formats
+        // This provides a fallback when the webhook hasn't updated the payment record
+        const resolved = await resolvePaymentIntentId(order.payment.stripePaymentId);
+
+        if (!resolved.paymentIntentId) {
           return NextResponse.json(
             {
-              error: `Cannot process refund: Invalid payment ID format. Expected Payment Intent (pi_xxx), found "${order.payment.stripePaymentId.substring(0, 15)}...". The Stripe webhook may not have updated the payment record.`,
-              suggestion: 'Check Stripe Dashboard > Developers > Webhooks for failed deliveries.'
+              error: `Cannot process refund: ${resolved.error}`,
+              suggestion: 'Check Stripe Dashboard to verify the payment status.',
             },
             { status: 400 }
           );
         }
 
+        if (!resolved.isPaid) {
+          return NextResponse.json(
+            {
+              error: 'Cannot process refund: Payment was not completed in Stripe.',
+              suggestion: 'Verify the payment status in Stripe Dashboard. If unpaid, set processRefund to false.',
+            },
+            { status: 400 }
+          );
+        }
+
+        // If we resolved from a checkout session, update the local payment record for future use
+        if (order.payment.stripePaymentId.startsWith('cs_')) {
+          console.log(`[CancelReview] Updating payment record with resolved Payment Intent ID: ${resolved.paymentIntentId}`);
+          await prisma.payment.update({
+            where: { id: order.payment.id },
+            data: {
+              stripePaymentId: resolved.paymentIntentId,
+              status: 'COMPLETED',
+              paidAt: order.payment.paidAt || new Date(),
+            },
+          });
+        }
+
         const refundResult = await createRefund(
-          order.payment.stripePaymentId,
+          resolved.paymentIntentId,
           'requested_by_customer',
           undefined, // full refund
           `cancel_request_${orderId}` // idempotency key
@@ -126,21 +152,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             refundedAt: new Date(),
           },
         });
-      } else if (processRefund && order.payment) {
-        // Payment exists but cannot be refunded - don't silently continue
-        return NextResponse.json(
-          {
-            error: `Cannot process refund: Payment status is "${order.payment.status}". Refunds can only be processed for COMPLETED payments.`,
-            details: {
-              paymentStatus: order.payment.status,
-              stripePaymentId: order.payment.stripePaymentId || null,
-            },
-            suggestion: order.payment.status === 'PENDING'
-              ? 'The Stripe webhook may not have updated the payment status. Check Stripe Dashboard > Developers > Webhooks.'
-              : 'If you need to approve without refund, set processRefund to false.',
-          },
-          { status: 400 }
-        );
       } else if (processRefund) {
         // No payment record - cannot refund
         return NextResponse.json(

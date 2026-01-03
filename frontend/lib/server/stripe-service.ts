@@ -111,3 +111,76 @@ export async function getPaymentIntent(
     return null;
   }
 }
+
+/**
+ * Get a Checkout Session by ID
+ */
+export async function getCheckoutSession(
+  sessionId: string
+): Promise<Stripe.Checkout.Session | null> {
+  try {
+    const stripeClient = getStripe();
+    return await stripeClient.checkout.sessions.retrieve(sessionId);
+  } catch (error) {
+    console.error('Error retrieving checkout session:', error);
+    return null;
+  }
+}
+
+/**
+ * Resolve a Stripe payment ID to a Payment Intent ID
+ * If given a Checkout Session ID (cs_xxx), retrieves the associated Payment Intent ID
+ * If already a Payment Intent ID (pi_xxx), returns it as-is
+ * Also returns whether the payment was successful
+ */
+export async function resolvePaymentIntentId(
+  stripePaymentId: string
+): Promise<{ paymentIntentId: string | null; isPaid: boolean; error?: string }> {
+  try {
+    const stripeClient = getStripe();
+
+    // Already a Payment Intent ID
+    if (stripePaymentId.startsWith('pi_')) {
+      const paymentIntent = await stripeClient.paymentIntents.retrieve(stripePaymentId);
+      return {
+        paymentIntentId: stripePaymentId,
+        isPaid: paymentIntent.status === 'succeeded',
+      };
+    }
+
+    // Checkout Session ID - need to look up the Payment Intent
+    if (stripePaymentId.startsWith('cs_')) {
+      const session = await stripeClient.checkout.sessions.retrieve(stripePaymentId);
+
+      if (!session.payment_intent) {
+        return {
+          paymentIntentId: null,
+          isPaid: false,
+          error: 'Checkout session has no payment intent - payment may not have been completed',
+        };
+      }
+
+      const paymentIntentId = typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent.id;
+
+      return {
+        paymentIntentId,
+        isPaid: session.payment_status === 'paid',
+      };
+    }
+
+    return {
+      paymentIntentId: null,
+      isPaid: false,
+      error: `Unknown payment ID format: ${stripePaymentId.substring(0, 10)}...`,
+    };
+  } catch (error) {
+    console.error('Error resolving payment intent ID:', error);
+    return {
+      paymentIntentId: null,
+      isPaid: false,
+      error: error instanceof Error ? error.message : 'Failed to resolve payment ID',
+    };
+  }
+}

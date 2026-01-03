@@ -288,7 +288,7 @@ model Order {
   resolutions          Resolution[]
   review               Review?
   cancellationRequest  CancellationRequest?
-  income               Income?          // Auto-accounting relation
+  incomes              Income[]         // Auto-accounting relation (can have multiple: sale + refund)
 
   @@index([customerId])
   @@index([status])
@@ -670,11 +670,12 @@ model Income {
   // Tax year tracking
   taxYear            String?             @map("tax_year") @db.VarChar(9)
 
-  // Order linking for auto-accounting
-  orderId            String?             @unique @map("order_id") @db.Uuid
+  // Order linking for auto-accounting (not unique - allows refund entries for same order)
+  orderId            String?             @map("order_id") @db.Uuid
   status             IncomeStatus        @default(PENDING)
   order              Order?              @relation(fields: [orderId], references: [id])
 
+  @@index([orderId])
   @@index([category])
   @@index([source])
   @@index([incomeDate(sort: Desc)])

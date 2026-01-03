@@ -184,29 +184,54 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     },
   });
 
-  console.log(`Order ${orderId} payment completed`);
+  console.log(`[Webhook] Order ${orderId} payment completed - starting accounting process`);
 
   // Auto-accounting: Create income entry, invoice, and send invoice email
   try {
+    console.log(`[Webhook] Fetching order ${orderId} for accounting...`);
     const orderForAccounting = await getOrderForAccounting(orderId);
-    if (orderForAccounting) {
-      // Create income entry
+
+    if (!orderForAccounting) {
+      console.error(`[Webhook] Could not find order ${orderId} for accounting - skipping`);
+      return;
+    }
+
+    console.log(`[Webhook] Order found: customer=${orderForAccounting.customer.email}, total=${orderForAccounting.totalPrice}`);
+
+    // Create income entry
+    try {
+      console.log(`[Webhook] Creating income entry for order ${orderId}...`);
       await createIncomeFromOrder(orderForAccounting, 'PENDING');
+      console.log(`[Webhook] Income entry created successfully`);
+    } catch (incomeError) {
+      console.error(`[Webhook] Failed to create income entry:`, incomeError);
+    }
 
-      // Create invoice and get its ID
-      const invoiceId = await createInvoiceFromOrder(orderForAccounting);
+    // Create invoice and get its ID
+    let invoiceId: string | null = null;
+    try {
+      console.log(`[Webhook] Creating invoice for order ${orderId}...`);
+      invoiceId = await createInvoiceFromOrder(orderForAccounting);
+      console.log(`[Webhook] Invoice created: ${invoiceId}`);
+    } catch (invoiceError) {
+      console.error(`[Webhook] Failed to create invoice:`, invoiceError);
+    }
 
-      // Generate PDF and send invoice email
-      if (invoiceId) {
-        const invoiceResult = await generateAndSendInvoice(invoiceId);
-        if (!invoiceResult.success) {
-          console.error('Failed to generate/send invoice:', invoiceResult.error);
-        }
+    // Generate PDF and send invoice email
+    if (invoiceId) {
+      console.log(`[Webhook] Generating and sending invoice ${invoiceId}...`);
+      const invoiceResult = await generateAndSendInvoice(invoiceId);
+      if (invoiceResult.success) {
+        console.log(`[Webhook] Invoice sent successfully to ${orderForAccounting.customer.email}`);
+      } else {
+        console.error(`[Webhook] Failed to generate/send invoice: ${invoiceResult.error}`);
       }
+    } else {
+      console.warn(`[Webhook] No invoice ID - skipping PDF generation`);
     }
   } catch (accountingError) {
     // Log but don't fail the webhook - order processing is more critical
-    console.error('Failed to create accounting entries:', accountingError);
+    console.error('[Webhook] CRITICAL: Failed to complete accounting process:', accountingError);
   }
 }
 

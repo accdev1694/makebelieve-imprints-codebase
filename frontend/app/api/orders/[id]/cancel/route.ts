@@ -92,30 +92,48 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     let refundAmount: number | null = null;
 
     // Process refund if payment exists and processRefund is true
-    if (processRefund && order.payment && order.payment.status === 'COMPLETED' && order.payment.stripePaymentId) {
-      // Validate stripePaymentId is a Payment Intent (not a Checkout Session)
-      if (!order.payment.stripePaymentId.startsWith('pi_')) {
+    if (processRefund && order.payment && order.payment.status === 'COMPLETED') {
+      console.log(`[Cancel] Processing refund for order ${orderId}`);
+      console.log(`[Cancel] Payment record: id=${order.payment.id}, stripePaymentId=${order.payment.stripePaymentId}`);
+
+      if (!order.payment.stripePaymentId) {
+        console.error(`[Cancel] No stripePaymentId found for order ${orderId}`);
         return NextResponse.json(
           {
-            error: `Cannot process refund: Invalid payment ID format. Expected Payment Intent (pi_xxx), found "${order.payment.stripePaymentId.substring(0, 15)}...". The Stripe webhook may not have updated the payment record.`,
-            suggestion: 'Check Stripe Dashboard > Developers > Webhooks for failed deliveries.'
+            error: 'Cannot process refund: No Stripe payment ID found. The payment may not have been recorded properly.',
+            suggestion: 'Check Stripe Dashboard to verify the payment, then manually process the refund.'
           },
           { status: 400 }
         );
       }
 
+      // Validate stripePaymentId is a Payment Intent (not a Checkout Session)
+      if (!order.payment.stripePaymentId.startsWith('pi_')) {
+        console.error(`[Cancel] Invalid payment ID format: ${order.payment.stripePaymentId}`);
+        return NextResponse.json(
+          {
+            error: `Cannot process refund: Invalid payment ID format. Expected Payment Intent (pi_xxx), found "${order.payment.stripePaymentId.substring(0, 15)}...". The Stripe webhook may not have updated the payment record correctly.`,
+            suggestion: 'Check Stripe Dashboard > Developers > Webhooks for failed deliveries, or manually process the refund in Stripe.'
+          },
+          { status: 400 }
+        );
+      }
+
+      console.log(`[Cancel] Creating refund for payment intent: ${order.payment.stripePaymentId}`);
       const refundResult = await createRefund(
         order.payment.stripePaymentId,
         reason === 'FRAUD_SUSPECTED' ? 'fraudulent' : 'requested_by_customer'
       );
 
       if (!refundResult.success) {
+        console.error(`[Cancel] Refund failed: ${refundResult.error}`);
         return NextResponse.json(
           { error: `Refund failed: ${refundResult.error}. Order not cancelled.` },
           { status: 400 }
         );
       }
 
+      console.log(`[Cancel] Refund created successfully: ${refundResult.refundId}, amount: ${refundResult.amount}`);
       refundId = refundResult.refundId || null;
       refundAmount = refundResult.amount || null;
 
@@ -127,6 +145,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           refundedAt: new Date(),
         },
       });
+      console.log(`[Cancel] Payment status updated to REFUNDED`);
+    } else if (processRefund && order.payment) {
+      console.log(`[Cancel] Skipping refund - payment status: ${order.payment.status}, stripePaymentId: ${order.payment.stripePaymentId || 'null'}`);
+    } else if (processRefund) {
+      console.log(`[Cancel] Skipping refund - no payment record found`);
     }
 
     // Update order with cancellation info

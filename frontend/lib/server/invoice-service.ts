@@ -108,6 +108,8 @@ export async function generateAndSendInvoice(invoiceId: string): Promise<{
   pdfUrl?: string;
   error?: string;
 }> {
+  console.log(`[Invoice Service] Starting invoice generation for: ${invoiceId}`);
+
   try {
     // Get invoice with order details
     const invoice = await prisma.invoice.findUnique({
@@ -137,47 +139,73 @@ export async function generateAndSendInvoice(invoiceId: string): Promise<{
     });
 
     if (!invoice) {
+      console.error(`[Invoice Service] Invoice not found: ${invoiceId}`);
       return { success: false, error: 'Invoice not found' };
     }
 
-    // Generate PDF
-    const pdfBuffer = await generateInvoicePDF(invoice as unknown as InvoiceWithOrder);
+    console.log(`[Invoice Service] Found invoice ${invoice.invoiceNumber} for customer ${invoice.order.customer.email}`);
 
-    // Convert to base64 for email attachment
-    const pdfBase64 = pdfBuffer.toString('base64');
+    let pdfBase64: string | null = null;
+    let pdfDataUrl: string | null = null;
 
-    // Send email with attachment
-    const emailSent = await sendInvoiceEmail(
-      invoice.order.customer.email,
-      invoice.order.customer.name || 'Customer',
-      invoice.invoiceNumber,
-      invoice.order.id.slice(0, 8).toUpperCase(),
-      typeof invoice.total === 'number' ? invoice.total : Number(invoice.total),
-      pdfBase64
-    );
-
-    if (!emailSent) {
-      console.error(`Failed to send invoice email for ${invoice.invoiceNumber}`);
-      // Don't fail the whole process if email fails
+    // Try to generate PDF - if it fails, still send email without attachment
+    try {
+      console.log(`[Invoice Service] Generating PDF for ${invoice.invoiceNumber}...`);
+      const pdfBuffer = await generateInvoicePDF(invoice as unknown as InvoiceWithOrder);
+      pdfBase64 = pdfBuffer.toString('base64');
+      pdfDataUrl = `data:application/pdf;base64,${pdfBase64}`;
+      console.log(`[Invoice Service] PDF generated successfully (${pdfBuffer.length} bytes)`);
+    } catch (pdfError) {
+      console.error(`[Invoice Service] PDF generation failed for ${invoice.invoiceNumber}:`, pdfError);
+      // Continue without PDF - we'll send a plain email
     }
 
-    // Store PDF as data URL (for now - can be upgraded to R2 later)
-    const pdfDataUrl = `data:application/pdf;base64,${pdfBase64}`;
+    // Send email (with or without PDF attachment)
+    let emailSent = false;
+    try {
+      console.log(`[Invoice Service] Sending email to ${invoice.order.customer.email}...`);
+      emailSent = await sendInvoiceEmail(
+        invoice.order.customer.email,
+        invoice.order.customer.name || 'Customer',
+        invoice.invoiceNumber,
+        invoice.order.id.slice(0, 8).toUpperCase(),
+        typeof invoice.total === 'number' ? invoice.total : Number(invoice.total),
+        pdfBase64 || '' // Empty string if PDF generation failed
+      );
+      console.log(`[Invoice Service] Email ${emailSent ? 'sent successfully' : 'FAILED'} to ${invoice.order.customer.email}`);
+    } catch (emailError) {
+      console.error(`[Invoice Service] Email sending failed for ${invoice.invoiceNumber}:`, emailError);
+    }
 
-    // Update invoice with PDF URL
-    await prisma.invoice.update({
-      where: { id: invoiceId },
-      data: { pdfUrl: pdfDataUrl },
-    });
+    // Update invoice with PDF URL if we have one
+    if (pdfDataUrl) {
+      try {
+        await prisma.invoice.update({
+          where: { id: invoiceId },
+          data: { pdfUrl: pdfDataUrl },
+        });
+        console.log(`[Invoice Service] Invoice ${invoice.invoiceNumber} PDF URL stored`);
+      } catch (updateError) {
+        console.error(`[Invoice Service] Failed to update invoice with PDF URL:`, updateError);
+      }
+    }
 
-    console.log(`Invoice ${invoice.invoiceNumber} PDF generated and sent to ${invoice.order.customer.email}`);
-
-    return {
-      success: true,
-      pdfUrl: pdfDataUrl,
-    };
+    if (emailSent) {
+      console.log(`[Invoice Service] SUCCESS - Invoice ${invoice.invoiceNumber} processed and sent to ${invoice.order.customer.email}`);
+      return {
+        success: true,
+        pdfUrl: pdfDataUrl || undefined,
+      };
+    } else {
+      console.error(`[Invoice Service] PARTIAL SUCCESS - Invoice ${invoice.invoiceNumber} processed but email failed`);
+      return {
+        success: false,
+        pdfUrl: pdfDataUrl || undefined,
+        error: 'Email sending failed',
+      };
+    }
   } catch (error) {
-    console.error('Error generating/sending invoice:', error);
+    console.error('[Invoice Service] CRITICAL ERROR generating/sending invoice:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

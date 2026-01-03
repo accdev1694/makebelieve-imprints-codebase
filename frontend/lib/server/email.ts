@@ -39,7 +39,7 @@ interface SendEmailOptions {
 export async function sendEmail({ to, subject, html, text, attachments }: SendEmailOptions): Promise<boolean> {
   try {
     const resend = getResendClient();
-    console.log('Sending email to:', to, 'from:', FROM_EMAIL);
+    console.log('[Email] Sending email to:', to, 'from:', FROM_EMAIL, 'subject:', subject);
 
     // Build email options
     const emailOptions: {
@@ -57,25 +57,32 @@ export async function sendEmail({ to, subject, html, text, attachments }: SendEm
       text,
     };
 
-    // Add attachments if provided
+    // Add attachments if provided and not empty
     if (attachments && attachments.length > 0) {
-      emailOptions.attachments = attachments.map((att) => ({
-        filename: att.filename,
-        content: Buffer.from(att.content, 'base64'),
-      }));
+      const validAttachments = attachments.filter((att) => att.content && att.content.length > 0);
+      if (validAttachments.length > 0) {
+        emailOptions.attachments = validAttachments.map((att) => ({
+          filename: att.filename,
+          content: Buffer.from(att.content, 'base64'),
+        }));
+        console.log(`[Email] Including ${validAttachments.length} attachment(s)`);
+      } else {
+        console.log('[Email] No valid attachments to include');
+      }
     }
 
+    console.log('[Email] Calling Resend API...');
     const { data, error } = await resend.emails.send(emailOptions);
 
     if (error) {
-      console.error('Resend API error:', JSON.stringify(error, null, 2));
+      console.error('[Email] Resend API error:', JSON.stringify(error, null, 2));
       return false;
     }
 
-    console.log('Email sent successfully, ID:', data?.id);
+    console.log('[Email] Email sent successfully, ID:', data?.id);
     return true;
   } catch (error) {
-    console.error('Exception sending email:', error);
+    console.error('[Email] Exception sending email:', error);
     return false;
   }
 }

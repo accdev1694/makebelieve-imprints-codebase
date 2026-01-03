@@ -5,6 +5,10 @@
     },
     "app/api/orders/[id]/items/[itemId]/issue/route.ts": {
       "maxDuration": 30
+    },
+    "app/api/webhooks/stripe/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "crons": [

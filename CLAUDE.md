@@ -121,6 +121,8 @@ Key models: User, Order, OrderItem, Product, ProductVariant, Design, Invoice, Ex
 
 **Important**: After schema changes, run `npx prisma migrate dev --name <description>` to create a migration, or `npx prisma db push` for quick iteration without migration history.
 
+**Raw SQL via Neon MCP**: When running SQL queries directly against the database (not through Prisma), use **snake_case table names** (e.g., `orders`, `order_items`, `cancellation_requests`), NOT PascalCase Prisma model names. Prisma models like `Order` map to tables like `orders` via `@@map()` directives.
+
 ## Testing Strategy
 
 - **Unit tests**: Jest for services and utilities (60%+ coverage on critical paths)

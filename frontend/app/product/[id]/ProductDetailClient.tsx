@@ -61,7 +61,7 @@ export default function ProductDetailClient({ productId }: ProductDetailClientPr
 
   const getPrimaryImage = () => {
     const primaryImg = product?.images?.find((img) => img.isPrimary);
-    return primaryImg?.imageUrl || product?.images?.[0]?.imageUrl || '/placeholder-product.png';
+    return primaryImg?.imageUrl || product?.images?.[0]?.imageUrl || '/placeholder-product.svg';
   };
 
   const getSelectedVariant = () => {

@@ -45,7 +45,7 @@ export function CartItem({ item, compact = false }: CartItemProps) {
         {/* Product Image */}
         <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
           <Image
-            src={item.productImage || '/placeholder-product.png'}
+            src={item.productImage || '/placeholder-product.svg'}
             alt={item.productName}
             fill
             className="object-cover"
@@ -117,7 +117,7 @@ export function CartItem({ item, compact = false }: CartItemProps) {
       {/* Product Image */}
       <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
         <Image
-          src={item.productImage || '/placeholder-product.png'}
+          src={item.productImage || '/placeholder-product.svg'}
           alt={item.productName}
           fill
           className="object-cover"

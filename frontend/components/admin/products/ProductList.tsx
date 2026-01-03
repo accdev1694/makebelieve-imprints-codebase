@@ -104,7 +104,7 @@ export function ProductList({ initialData, categories }: ProductListProps) {
 
   const getProductImage = (product: Product): string => {
     const primaryImage = product.images?.find((img) => img.isPrimary);
-    return primaryImage?.imageUrl || product.images?.[0]?.imageUrl || '/placeholder-product.png';
+    return primaryImage?.imageUrl || product.images?.[0]?.imageUrl || '/placeholder-product.svg';
   };
 
   return (
@@ -210,7 +210,7 @@ export function ProductList({ initialData, categories }: ProductListProps) {
                   alt={product.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/placeholder-product.png';
+                    (e.target as HTMLImageElement).src = '/placeholder-product.svg';
                   }}
                 />
 

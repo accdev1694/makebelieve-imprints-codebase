@@ -200,7 +200,7 @@ export function ImageManager({
                     alt="Preview"
                     className="max-h-32 rounded-md object-contain"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder-product.png';
+                      (e.target as HTMLImageElement).src = '/placeholder-product.svg';
                     }}
                   />
                 </div>
@@ -248,7 +248,7 @@ export function ImageManager({
                   alt={image.altText || 'Product image'}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/placeholder-product.png';
+                    (e.target as HTMLImageElement).src = '/placeholder-product.svg';
                   }}
                 />
 

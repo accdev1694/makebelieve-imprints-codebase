@@ -272,7 +272,7 @@ function CheckoutContent() {
       variantId: defaultVariant?.id,
       productName: product.name,
       productSlug: product.slug,
-      productImage: primaryImage?.imageUrl || '/placeholder-product.png',
+      productImage: primaryImage?.imageUrl || '/placeholder-product.svg',
       unitPrice: defaultVariant?.price || product.basePrice,
       quantity: 1,
       size: defaultVariant?.size,
@@ -717,7 +717,7 @@ function CheckoutContent() {
                         <div key={item.id} className="flex gap-3 py-2 border-b border-gray-100 last:border-0">
                           <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
                             <Image
-                              src={item.productImage || '/placeholder-product.png'}
+                              src={item.productImage || '/placeholder-product.svg'}
                               alt={item.productName}
                               fill
                               className="object-cover"

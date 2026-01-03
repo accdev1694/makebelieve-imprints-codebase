@@ -192,7 +192,7 @@ function DownloadsContent() {
                     {/* Product Image */}
                     <div className="relative w-full sm:w-40 h-40 flex-shrink-0 bg-gray-100">
                       <Image
-                        src={download.product.images[0]?.imageUrl || '/placeholder-product.png'}
+                        src={download.product.images[0]?.imageUrl || '/placeholder-product.svg'}
                         alt={download.product.name}
                         fill
                         className="object-cover"

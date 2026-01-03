@@ -139,10 +139,10 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     return;
   }
 
-  // Update order status to confirmed
+  // Update order status to payment_confirmed (awaiting admin confirmation)
   await prisma.order.update({
     where: { id: orderId },
-    data: { status: 'confirmed' },
+    data: { status: 'payment_confirmed' },
   });
 
   // Create or update payment record

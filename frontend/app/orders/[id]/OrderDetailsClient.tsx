@@ -164,12 +164,12 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
     loadOrder();
   }, [orderId]);
 
-  // Handle payment success: Clear cart when order is confirmed
+  // Handle payment success: Clear cart when payment is confirmed
   useEffect(() => {
     if (paymentStatus === 'success' && order && !paymentProcessed) {
-      // Check if order is actually confirmed (payment went through)
-      const confirmedStatuses = ['confirmed', 'printing', 'shipped', 'delivered'];
-      if (confirmedStatuses.includes(order.status)) {
+      // Check if payment was successful (order moved past pending)
+      const paidStatuses = ['payment_confirmed', 'confirmed', 'printing', 'shipped', 'delivered'];
+      if (paidStatuses.includes(order.status)) {
         // Check if this order matches the pending order
         const pendingOrderId = sessionStorage.getItem('pendingOrderId');
         if (pendingOrderId === orderId) {
@@ -594,7 +594,8 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                 <div className="space-y-6">
                   {[
                     { key: 'placed', label: 'Order Placed', desc: 'Your order has been received', check: true },
-                    { key: 'payment', label: 'Payment Confirmed', desc: 'Payment successfully processed', check: ['confirmed', 'payment_confirmed', 'printing', 'shipped', 'delivered'].includes(order.status) },
+                    { key: 'payment', label: 'Payment Received', desc: 'Payment successfully processed', check: ['payment_confirmed', 'confirmed', 'printing', 'shipped', 'delivered'].includes(order.status) },
+                    { key: 'confirmed', label: 'Order Confirmed', desc: 'Your order has been confirmed by our team', check: ['confirmed', 'printing', 'shipped', 'delivered'].includes(order.status) },
                     { key: 'printing', label: 'Printing', desc: 'Your design is being printed', check: ['printing', 'shipped', 'delivered'].includes(order.status) },
                     { key: 'shipped', label: 'Shipped', desc: 'Your order is on its way', check: ['shipped', 'delivered'].includes(order.status), tracking: order.trackingNumber },
                     { key: 'delivered', label: 'Delivered', desc: 'Order successfully delivered', check: order.status === 'delivered', isLast: true },

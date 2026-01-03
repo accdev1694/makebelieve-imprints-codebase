@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import prisma from '@/lib/prisma';
-import { requireAuth, handleApiError } from '@/lib/server/auth';
+import { requireAuth } from '@/lib/server/auth';
 
 // Lazy initialization of Stripe to avoid build-time errors
 let stripe: Stripe | null = null;
@@ -15,6 +15,17 @@ function getStripe(): Stripe {
     stripe = new Stripe(key);
   }
   return stripe;
+}
+
+/**
+ * Custom error response for checkout that provides helpful messages
+ */
+function checkoutError(message: string, status: number = 500, details?: string) {
+  console.error(`Checkout error: ${message}`, details ? `Details: ${details}` : '');
+  return NextResponse.json(
+    { error: message },
+    { status }
+  );
 }
 
 /**
@@ -57,9 +68,25 @@ export async function POST(request: NextRequest) {
 
     // Verify ownership
     if (order.customerId !== user.userId && user.type !== 'admin') {
-      return NextResponse.json(
-        { error: 'Not authorized' },
-        { status: 403 }
+      return checkoutError('Not authorized to checkout this order', 403);
+    }
+
+    // Validate customer email exists
+    if (!order.customer?.email) {
+      return checkoutError(
+        'Unable to process checkout: customer email is missing. Please update your account details.',
+        400,
+        `Order ${orderId} has no customer email`
+      );
+    }
+
+    // Validate order has a positive total
+    const orderTotal = Number(order.totalPrice);
+    if (!orderTotal || orderTotal <= 0) {
+      return checkoutError(
+        'Unable to process checkout: order total is invalid. Please contact support.',
+        400,
+        `Order ${orderId} has invalid total: ${order.totalPrice}`
       );
     }
 
@@ -114,6 +141,27 @@ export async function POST(request: NextRequest) {
         },
         quantity: 1,
       });
+    }
+
+    // Validate all line items have positive amounts
+    for (const item of lineItems) {
+      const amount = item.price_data?.unit_amount;
+      if (!amount || amount <= 0) {
+        return checkoutError(
+          'Unable to process checkout: one or more items have an invalid price. Please contact support.',
+          400,
+          `Line item "${item.price_data?.product_data?.name}" has invalid unit_amount: ${amount}`
+        );
+      }
+    }
+
+    // Validate we have at least one line item
+    if (lineItems.length === 0) {
+      return checkoutError(
+        'Unable to process checkout: no items to purchase.',
+        400,
+        `Order ${orderId} has no valid line items`
+      );
     }
 
     // Get the base URL for redirects
@@ -191,6 +239,60 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Checkout error:', error);
-    return handleApiError(error);
+
+    // Handle Stripe-specific errors with helpful messages
+    if (error instanceof Stripe.errors.StripeError) {
+      const stripeError = error as Stripe.errors.StripeError;
+      console.error('Stripe error details:', {
+        type: stripeError.type,
+        code: stripeError.code,
+        message: stripeError.message,
+      });
+
+      // Map common Stripe errors to user-friendly messages
+      switch (stripeError.type) {
+        case 'StripeCardError':
+          return checkoutError('There was an issue with the payment. Please try again.', 400);
+        case 'StripeInvalidRequestError':
+          return checkoutError(
+            'Unable to process payment. Please try again or contact support.',
+            400,
+            stripeError.message
+          );
+        case 'StripeAPIError':
+          return checkoutError(
+            'Payment service is temporarily unavailable. Please try again in a few moments.',
+            503
+          );
+        case 'StripeConnectionError':
+          return checkoutError(
+            'Unable to connect to payment service. Please check your connection and try again.',
+            503
+          );
+        case 'StripeAuthenticationError':
+          return checkoutError(
+            'Payment service configuration error. Please contact support.',
+            500,
+            'Stripe authentication failed - check API keys'
+          );
+        default:
+          return checkoutError(
+            'An error occurred while processing payment. Please try again.',
+            500,
+            stripeError.message
+          );
+      }
+    }
+
+    // Handle other errors
+    if (error instanceof Error) {
+      return checkoutError(
+        'An unexpected error occurred. Please try again or contact support.',
+        500,
+        error.message
+      );
+    }
+
+    return checkoutError('An unexpected error occurred. Please try again.', 500);
   }
 }

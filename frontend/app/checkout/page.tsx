@@ -98,7 +98,7 @@ function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { items: cartItems, subtotal, tax, total, clearCart, itemCount, addItem } = useCart();
+  const { items: cartItems, subtotal, tax, total, itemCount, addItem } = useCart();
 
   const designId = searchParams.get('designId');
 
@@ -374,9 +374,10 @@ function CheckoutContent() {
         throw new Error(result.error || 'Failed to create checkout session');
       }
 
-      // Clear the cart before redirecting to Stripe
-      if (mode === 'cart') {
-        clearCart();
+      // Store pending order info for cart clearing after successful payment
+      // Cart will be cleared on the order details page after payment confirmation
+      if (mode === 'cart' && order?.id) {
+        sessionStorage.setItem('pendingOrderId', order.id);
       }
 
       // Redirect to Stripe Checkout

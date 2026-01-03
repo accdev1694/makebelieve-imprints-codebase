@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +27,7 @@ import { storageService } from '@/lib/api/storage';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Camera, AlertCircle, MessageSquare, Lock, RefreshCw } from 'lucide-react';
+import { X, Camera, AlertCircle, MessageSquare, Lock, RefreshCw, CheckCircle, XCircle, CreditCard } from 'lucide-react';
 import { useCart, AddToCartPayload } from '@/contexts/CartContext';
 
 // Enhanced issue reasons with NEVER_ARRIVED
@@ -107,11 +107,17 @@ interface OrderDetailsClientProps {
 
 function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   const router = useRouter();
-  const { addItem, openCart } = useCart();
+  const searchParams = useSearchParams();
+  const { addItem, openCart, clearCart } = useCart();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Payment status from URL parameter
+  const paymentStatus = searchParams.get('payment');
+  const [paymentProcessed, setPaymentProcessed] = useState(false);
+  const [retryingPayment, setRetryingPayment] = useState(false);
 
   // Per-item issue state
   const [itemIssues, setItemIssues] = useState<Record<string, ItemIssue>>({});
@@ -157,6 +163,52 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
 
     loadOrder();
   }, [orderId]);
+
+  // Handle payment success: Clear cart when order is confirmed
+  useEffect(() => {
+    if (paymentStatus === 'success' && order && !paymentProcessed) {
+      // Check if order is actually confirmed (payment went through)
+      const confirmedStatuses = ['confirmed', 'printing', 'shipped', 'delivered'];
+      if (confirmedStatuses.includes(order.status)) {
+        // Check if this order matches the pending order
+        const pendingOrderId = sessionStorage.getItem('pendingOrderId');
+        if (pendingOrderId === orderId) {
+          clearCart();
+          sessionStorage.removeItem('pendingOrderId');
+        }
+        setPaymentProcessed(true);
+      }
+    }
+  }, [paymentStatus, order, orderId, paymentProcessed, clearCart]);
+
+  // Retry payment for pending orders
+  const handleRetryPayment = useCallback(async () => {
+    if (!order || order.status !== 'pending') return;
+
+    setRetryingPayment(true);
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create checkout session');
+      }
+
+      if (result.data?.url) {
+        window.location.href = result.data.url;
+      }
+    } catch (err) {
+      console.error('Failed to retry payment:', err);
+      setError('Failed to retry payment. Please try again.');
+    } finally {
+      setRetryingPayment(false);
+    }
+  }, [order]);
 
   // Fetch issues for all items in this order
   useEffect(() => {
@@ -429,6 +481,106 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
           </Badge>
         </div>
 
+        {/* Payment Success Banner */}
+        {paymentStatus === 'success' && paymentProcessed && (
+          <Card className="mb-6 border-green-500/50 bg-green-500/5">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-green-500/10">
+                  <CheckCircle className="h-6 w-6 text-green-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-green-600">Payment Successful!</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Thank you for your order. We&apos;ll start processing it right away.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Payment Cancelled/Failed Banner */}
+        {paymentStatus === 'cancelled' && order.status === 'pending' && (
+          <Card className="mb-6 border-amber-500/50 bg-amber-500/5">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-amber-500/10">
+                    <XCircle className="h-6 w-6 text-amber-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-amber-600">Payment Not Completed</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Your order is saved but payment was not completed. You can retry payment or continue shopping.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <Button
+                    onClick={handleRetryPayment}
+                    disabled={retryingPayment}
+                    className="bg-amber-500 hover:bg-amber-600"
+                  >
+                    {retryingPayment ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Retry Payment
+                      </>
+                    )}
+                  </Button>
+                  <Link href="/cart">
+                    <Button variant="outline">Back to Cart</Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Pending Payment Banner (for orders without payment param) */}
+        {!paymentStatus && order.status === 'pending' && (
+          <Card className="mb-6 border-blue-500/50 bg-blue-500/5">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-blue-500/10">
+                    <CreditCard className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-blue-600">Payment Required</h3>
+                    <p className="text-sm text-muted-foreground">
+                      This order is awaiting payment. Complete the payment to confirm your order.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleRetryPayment}
+                  disabled={retryingPayment}
+                  className="flex-shrink-0"
+                >
+                  {retryingPayment ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Complete Payment
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Order Status Timeline */}
         <Card className="card-glow mb-6">
           <CardHeader>
@@ -442,7 +594,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                 <div className="space-y-6">
                   {[
                     { key: 'placed', label: 'Order Placed', desc: 'Your order has been received', check: true },
-                    { key: 'payment', label: 'Payment Confirmed', desc: 'Payment successfully processed', check: ['payment_confirmed', 'printing', 'shipped', 'delivered'].includes(order.status) },
+                    { key: 'payment', label: 'Payment Confirmed', desc: 'Payment successfully processed', check: ['confirmed', 'payment_confirmed', 'printing', 'shipped', 'delivered'].includes(order.status) },
                     { key: 'printing', label: 'Printing', desc: 'Your design is being printed', check: ['printing', 'shipped', 'delivered'].includes(order.status) },
                     { key: 'shipped', label: 'Shipped', desc: 'Your order is on its way', check: ['shipped', 'delivered'].includes(order.status), tracking: order.trackingNumber },
                     { key: 'delivered', label: 'Delivered', desc: 'Order successfully delivered', check: order.status === 'delivered', isLast: true },

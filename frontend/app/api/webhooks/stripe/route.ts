@@ -67,6 +67,12 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      case 'checkout.session.expired': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        await handleCheckoutExpired(session);
+        break;
+      }
+
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         await handlePaymentSuccess(paymentIntent);
@@ -108,6 +114,29 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   if (!orderId) {
     console.error('No orderId in session metadata - payment received but order cannot be updated');
     throw new Error('Missing orderId in checkout session metadata');
+  }
+
+  // CRITICAL: Verify payment was actually successful
+  if (session.payment_status !== 'paid') {
+    console.warn(`Checkout session ${session.id} completed but payment_status is '${session.payment_status}', not 'paid'. Skipping order confirmation.`);
+    return;
+  }
+
+  // Idempotency check: Don't process if order is already confirmed or beyond
+  const existingOrder = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { status: true },
+  });
+
+  if (!existingOrder) {
+    console.error(`Order ${orderId} not found for checkout session ${session.id}`);
+    throw new Error(`Order ${orderId} not found`);
+  }
+
+  const alreadyProcessedStatuses = ['confirmed', 'printing', 'shipped', 'delivered', 'refunded'];
+  if (alreadyProcessedStatuses.includes(existingOrder.status)) {
+    console.log(`Order ${orderId} already processed (status: ${existingOrder.status}). Skipping duplicate webhook.`);
+    return;
   }
 
   // Update order status to confirmed
@@ -169,6 +198,61 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     // Log but don't fail the webhook - order processing is more critical
     console.error('Failed to create accounting entries:', accountingError);
   }
+}
+
+/**
+ * Handle expired checkout session (user abandoned payment)
+ * This cleans up pending orders that were never paid
+ */
+async function handleCheckoutExpired(session: Stripe.Checkout.Session) {
+  const orderId = session.metadata?.orderId;
+
+  if (!orderId) {
+    console.log(`Expired checkout session ${session.id} has no orderId in metadata`);
+    return;
+  }
+
+  // Check current order status
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { status: true },
+  });
+
+  if (!order) {
+    console.log(`Order ${orderId} not found for expired session ${session.id}`);
+    return;
+  }
+
+  // Only cancel if order is still pending (not already paid via different session)
+  if (order.status !== 'pending') {
+    console.log(`Order ${orderId} is already ${order.status}, not cancelling for expired session`);
+    return;
+  }
+
+  // Mark order as cancelled due to expired payment session
+  await prisma.$transaction([
+    prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: 'cancelled',
+        cancellationReason: 'PAYMENT_ISSUE',
+        cancellationNotes: 'Payment session expired - customer did not complete checkout',
+        cancelledAt: new Date(),
+      },
+    }),
+    prisma.payment.updateMany({
+      where: { orderId, status: 'PENDING' },
+      data: {
+        status: 'FAILED',
+        gatewayResponse: {
+          error: 'Checkout session expired',
+          sessionId: session.id,
+        },
+      },
+    }),
+  ]);
+
+  console.log(`Order ${orderId} cancelled due to expired checkout session ${session.id}`);
 }
 
 /**

@@ -143,11 +143,9 @@ export async function createInvoiceFromOrder(
 
   const invoiceNumber = await generateInvoiceNumber();
 
-  // Calculate amounts (20% VAT included in price)
-  const total = new Decimal(order.totalPrice);
-  const vatRate = new Decimal(20);
-  const vatAmount = total.dividedBy(6).toDecimalPlaces(2); // VAT = Price / 6 for 20% inclusive
-  const subtotal = total.minus(vatAmount);
+  // Calculate amounts using centralized VAT function (20% UK standard rate, included in price)
+  const totalPrice = Number(order.totalPrice);
+  const { netAmount, vatAmount } = calculateVATFromGross(totalPrice, UK_VAT_RATES.STANDARD);
 
   const now = new Date();
 
@@ -155,10 +153,10 @@ export async function createInvoiceFromOrder(
     data: {
       invoiceNumber,
       orderId: order.id,
-      subtotal,
-      vatRate,
-      vatAmount,
-      total,
+      subtotal: new Decimal(netAmount),
+      vatRate: new Decimal(UK_VAT_RATES.STANDARD),
+      vatAmount: new Decimal(vatAmount),
+      total: new Decimal(totalPrice),
       currency: 'GBP',
       issueDate: now,
       dueDate: now, // Already paid, so due date is same as issue date

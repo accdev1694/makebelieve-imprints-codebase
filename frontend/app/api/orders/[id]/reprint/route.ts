@@ -4,6 +4,11 @@ import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import { sendReprintConfirmationEmail } from '@/lib/server/email';
 import { createReprintExpense } from '@/lib/server/accounting-service';
 import { Prisma } from '@prisma/client';
+import {
+  auditReprintCreation,
+  extractAuditContext,
+  ActorType,
+} from '@/lib/server/audit-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -139,6 +144,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     createReprintExpense(orderId, result.reprintOrder.id, reason).catch((error) => {
       console.error('Failed to create reprint expense:', error);
     });
+
+    // Audit: Log reprint creation
+    const auditContext = extractAuditContext(request.headers, {
+      userId: admin.userId,
+      email: admin.email,
+      type: ActorType.ADMIN,
+    });
+    auditReprintCreation(
+      orderId,
+      result.reprintOrder.id,
+      auditContext,
+      reason
+    ).catch((err) => console.error('[Audit] Failed to log reprint:', err));
 
     return NextResponse.json({
       success: true,

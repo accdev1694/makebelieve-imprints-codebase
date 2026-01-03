@@ -5,6 +5,11 @@ import { createRefund } from '@/lib/server/stripe-service';
 import { sendOrderCancelledBySellerEmail } from '@/lib/server/email';
 import { CancellationReason, OrderStatus } from '@prisma/client';
 import { createRefundEntry, getOrderForAccounting } from '@/lib/server/accounting-service';
+import {
+  auditOrderCancellation,
+  extractAuditContext,
+  ActorType,
+} from '@/lib/server/audit-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -217,6 +222,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         console.error('Failed to create refund entry:', accountingError);
       }
     }
+
+    // Audit: Log order cancellation
+    const auditContext = extractAuditContext(request.headers, {
+      userId: admin.userId,
+      email: admin.email,
+      type: ActorType.ADMIN,
+    });
+    auditOrderCancellation(
+      orderId,
+      reason,
+      auditContext,
+      order.status // previous status
+    ).catch((err) => console.error('[Audit] Failed to log cancellation:', err));
 
     return NextResponse.json({
       success: true,

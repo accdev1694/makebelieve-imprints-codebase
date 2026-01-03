@@ -122,7 +122,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       console.log(`[Cancel] Creating refund for payment intent: ${order.payment.stripePaymentId}`);
       const refundResult = await createRefund(
         order.payment.stripePaymentId,
-        reason === 'FRAUD_SUSPECTED' ? 'fraudulent' : 'requested_by_customer'
+        reason === 'FRAUD_SUSPECTED' ? 'fraudulent' : 'requested_by_customer',
+        undefined, // full refund
+        `cancel_${orderId}` // idempotency key prevents duplicate refunds
       );
 
       if (!refundResult.success) {

@@ -8,6 +8,12 @@ import {
 } from '@/lib/server/email';
 import { OrderStatus } from '@prisma/client';
 import { createRefundEntry, getOrderForAccounting } from '@/lib/server/accounting-service';
+import {
+  auditCancellationReview,
+  auditOrderCancellation,
+  extractAuditContext,
+  ActorType,
+} from '@/lib/server/audit-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -97,7 +103,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         const refundResult = await createRefund(
           order.payment.stripePaymentId,
-          'requested_by_customer'
+          'requested_by_customer',
+          undefined, // full refund
+          `cancel_request_${orderId}` // idempotency key
         );
 
         if (!refundResult.success) {
@@ -174,6 +182,27 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
       }
 
+      // Audit: Log cancellation approval
+      const auditContext = extractAuditContext(request.headers, {
+        userId: admin.userId,
+        email: admin.email,
+        type: ActorType.ADMIN,
+      });
+      auditCancellationReview(
+        order.cancellationRequest.id,
+        orderId,
+        true,
+        auditContext,
+        notes
+      ).catch((err) => console.error('[Audit] Failed to log cancellation approval:', err));
+
+      auditOrderCancellation(
+        orderId,
+        order.cancellationRequest.reason,
+        auditContext,
+        'cancellation_requested'
+      ).catch((err) => console.error('[Audit] Failed to log order cancellation:', err));
+
       return NextResponse.json({
         success: true,
         message: refundAmount
@@ -188,15 +217,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
     } else {
       // REJECT action
-      // Update cancellation request and restore order status
-      const parsedStatus = order.cancellationRequest.notes?.includes('previous_status:')
-        ? order.cancellationRequest.notes.split('previous_status:')[1]?.trim()
-        : null;
-      // Validate that the parsed status is a valid OrderStatus, fallback to 'confirmed'
-      const validStatuses: OrderStatus[] = ['pending', 'confirmed', 'payment_confirmed', 'printing', 'shipped', 'delivered', 'cancelled', 'refunded', 'cancellation_requested'];
-      const previousStatus: OrderStatus = (parsedStatus && validStatuses.includes(parsedStatus as OrderStatus))
-        ? (parsedStatus as OrderStatus)
-        : 'confirmed';
+      // Update cancellation request and restore order to its previous status
+      // Use the stored previousStatus field instead of parsing from notes
+      const previousStatus: OrderStatus = order.cancellationRequest.previousStatus;
 
       await prisma.$transaction([
         // Update cancellation request
@@ -209,11 +232,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             reviewNotes: notes || 'Cancellation request rejected',
           },
         }),
-        // Restore order to previous status (confirmed by default)
+        // Restore order to previous status
         prisma.order.update({
           where: { id: orderId },
           data: {
-            status: previousStatus || 'confirmed',
+            status: previousStatus,
           },
         }),
       ]);
@@ -228,12 +251,26 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         console.error('Failed to send cancellation rejection email:', error);
       });
 
+      // Audit: Log cancellation rejection
+      const auditContext = extractAuditContext(request.headers, {
+        userId: admin.userId,
+        email: admin.email,
+        type: ActorType.ADMIN,
+      });
+      auditCancellationReview(
+        order.cancellationRequest.id,
+        orderId,
+        false,
+        auditContext,
+        notes
+      ).catch((err) => console.error('[Audit] Failed to log cancellation rejection:', err));
+
       return NextResponse.json({
         success: true,
         message: 'Cancellation request rejected',
         data: {
           orderId,
-          status: previousStatus || 'confirmed',
+          status: previousStatus,
         },
       });
     }

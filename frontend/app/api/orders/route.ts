@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
 import { OrderStatus } from '@prisma/client';
-import { recordPromoUsage } from '@/lib/server/promo-service';
+import { validateAndRecordPromoUsage } from '@/lib/server/promo-service';
 
 // Order statuses considered "archived" (concluded) - legacy, used by admin
 const ARCHIVED_STATUSES: OrderStatus[] = ['delivered', 'cancelled', 'refunded'];
@@ -224,27 +224,20 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Record promo usage within the same transaction if a promo code was applied
+        // Validate and record promo usage within the same transaction if a promo code was applied
+        // This prevents race conditions where multiple orders could bypass usage limits
         if (body.promoCode && body.discountAmount > 0) {
-          const promo = await tx.promo.findUnique({
-            where: { code: body.promoCode.toUpperCase() },
+          const promoResult = await validateAndRecordPromoUsage(tx, body.promoCode, {
+            userId: user.userId,
+            email: user.email?.toLowerCase(),
+            orderId: newOrder.id,
+            discountAmount: body.discountAmount,
+            cartTotal: body.subtotal || body.totalPrice,
           });
 
-          if (promo) {
-            await tx.promoUsage.create({
-              data: {
-                promoId: promo.id,
-                userId: user.userId,
-                email: user.email?.toLowerCase(),
-                orderId: newOrder.id,
-                discountAmount: body.discountAmount,
-              },
-            });
-
-            await tx.promo.update({
-              where: { id: promo.id },
-              data: { currentUses: { increment: 1 } },
-            });
+          if (!promoResult.success) {
+            // Throw to rollback the transaction - the promo is no longer valid
+            throw new Error(`Promo code error: ${promoResult.error}`);
           }
         }
 
@@ -301,27 +294,20 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Record promo usage for legacy orders too
+        // Validate and record promo usage for legacy orders too
+        // This prevents race conditions where multiple orders could bypass usage limits
         if (promoCode && discountAmount > 0) {
-          const promo = await tx.promo.findUnique({
-            where: { code: promoCode.toUpperCase() },
+          const promoResult = await validateAndRecordPromoUsage(tx, promoCode, {
+            userId: user.userId,
+            email: user.email?.toLowerCase(),
+            orderId: newOrder.id,
+            discountAmount: discountAmount,
+            cartTotal: orderData.totalPrice,
           });
 
-          if (promo) {
-            await tx.promoUsage.create({
-              data: {
-                promoId: promo.id,
-                userId: user.userId,
-                email: user.email?.toLowerCase(),
-                orderId: newOrder.id,
-                discountAmount: discountAmount,
-              },
-            });
-
-            await tx.promo.update({
-              where: { id: promo.id },
-              data: { currentUses: { increment: 1 } },
-            });
+          if (!promoResult.success) {
+            // Throw to rollback the transaction - the promo is no longer valid
+            throw new Error(`Promo code error: ${promoResult.error}`);
           }
         }
 

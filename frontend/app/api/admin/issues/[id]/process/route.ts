@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import { createRefund } from '@/lib/server/stripe-service';
+import { createReprintExpense } from '@/lib/server/accounting-service';
 import { Prisma, IssueResolutionType } from '@prisma/client';
+import {
+  auditIssueResolution,
+  auditReprintCreation,
+  extractAuditContext,
+  ActorType,
+} from '@/lib/server/audit-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -149,6 +156,35 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       // TODO: Send reprint confirmation email
 
+      // Create expense entry to track reprint material costs
+      createReprintExpense(
+        order.id,
+        result.reprintOrder.id,
+        issue.reason // Use issue reason (e.g., DAMAGED_IN_TRANSIT, QUALITY_ISSUE)
+      ).catch((error) => {
+        console.error('Failed to create reprint expense:', error);
+      });
+
+      // Audit: Log reprint creation and issue resolution
+      const auditContext = extractAuditContext(request.headers, {
+        userId: admin.userId,
+        email: admin.email,
+        type: ActorType.ADMIN,
+      });
+      auditReprintCreation(
+        order.id,
+        result.reprintOrder.id,
+        auditContext,
+        issue.reason
+      ).catch((err) => console.error('[Audit] Failed to log reprint creation:', err));
+
+      auditIssueResolution(
+        issueId,
+        'REPRINT',
+        auditContext,
+        { reprintOrderId: result.reprintOrder.id }
+      ).catch((err) => console.error('[Audit] Failed to log issue resolution:', err));
+
       return NextResponse.json({
         success: true,
         message: 'Reprint order created successfully',
@@ -244,11 +280,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         },
       });
 
-      // Process Stripe refund
+      // Process Stripe refund with idempotency key to prevent duplicates
       const refundResult = await createRefund(
         payment.stripePaymentId,
         'requested_by_customer',
-        refundAmount
+        refundAmount,
+        `issue_${issueId}` // idempotency key
       );
 
       if ('error' in refundResult || !refundResult.success) {
@@ -324,6 +361,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
 
       // TODO: Send refund confirmation email
+
+      // Audit: Log issue resolution
+      const auditContext = extractAuditContext(request.headers, {
+        userId: admin.userId,
+        email: admin.email,
+        type: ActorType.ADMIN,
+      });
+      auditIssueResolution(
+        issueId,
+        resolvedRefundType,
+        auditContext,
+        {
+          refundAmount: refundResult.amount || refundAmount,
+          stripeRefundId: refundResult.refundId,
+        }
+      ).catch((err) => console.error('[Audit] Failed to log issue resolution:', err));
 
       return NextResponse.json({
         success: true,

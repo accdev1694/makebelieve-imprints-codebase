@@ -7,6 +7,7 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { InvoicePDF, InvoiceData, InvoiceItem } from '@/lib/pdf/invoice';
 import prisma from '@/lib/prisma';
 import { sendInvoiceEmail } from './email';
+import { uploadToR2, isR2Configured, generateInvoiceKey } from './r2-storage';
 
 interface OrderWithDetails {
   id: string;
@@ -146,15 +147,32 @@ export async function generateAndSendInvoice(invoiceId: string): Promise<{
     console.log(`[Invoice Service] Found invoice ${invoice.invoiceNumber} for customer ${invoice.order.customer.email}`);
 
     let pdfBase64: string | null = null;
-    let pdfDataUrl: string | null = null;
+    let pdfUrl: string | null = null;
 
     // Try to generate PDF - if it fails, still send email without attachment
     try {
       console.log(`[Invoice Service] Generating PDF for ${invoice.invoiceNumber}...`);
       const pdfBuffer = await generateInvoicePDF(invoice as unknown as InvoiceWithOrder);
       pdfBase64 = pdfBuffer.toString('base64');
-      pdfDataUrl = `data:application/pdf;base64,${pdfBase64}`;
       console.log(`[Invoice Service] PDF generated successfully (${pdfBuffer.length} bytes)`);
+
+      // Upload to R2 if configured, otherwise fall back to data URL (not recommended for production)
+      if (isR2Configured()) {
+        const storageKey = generateInvoiceKey(invoice.invoiceNumber);
+        const uploadResult = await uploadToR2(pdfBuffer, storageKey, 'application/pdf');
+
+        if (uploadResult.success && uploadResult.url) {
+          pdfUrl = uploadResult.url;
+          console.log(`[Invoice Service] PDF uploaded to R2: ${pdfUrl}`);
+        } else {
+          console.warn(`[Invoice Service] R2 upload failed, using fallback: ${uploadResult.error}`);
+          // Don't store data URL in DB - just use for email attachment
+        }
+      } else {
+        console.warn(`[Invoice Service] R2 not configured - PDF will not be stored permanently`);
+        // Note: We intentionally don't store data URLs in the database anymore
+        // as they bloat the DB. PDFs should be stored in R2 for production use.
+      }
     } catch (pdfError) {
       console.error(`[Invoice Service] PDF generation failed for ${invoice.invoiceNumber}:`, pdfError);
       // Continue without PDF - we'll send a plain email
@@ -177,14 +195,14 @@ export async function generateAndSendInvoice(invoiceId: string): Promise<{
       console.error(`[Invoice Service] Email sending failed for ${invoice.invoiceNumber}:`, emailError);
     }
 
-    // Update invoice with PDF URL if we have one
-    if (pdfDataUrl) {
+    // Update invoice with PDF URL if we have one (only store R2 URLs, not data URLs)
+    if (pdfUrl) {
       try {
         await prisma.invoice.update({
           where: { id: invoiceId },
-          data: { pdfUrl: pdfDataUrl },
+          data: { pdfUrl },
         });
-        console.log(`[Invoice Service] Invoice ${invoice.invoiceNumber} PDF URL stored`);
+        console.log(`[Invoice Service] Invoice ${invoice.invoiceNumber} PDF URL stored: ${pdfUrl}`);
       } catch (updateError) {
         console.error(`[Invoice Service] Failed to update invoice with PDF URL:`, updateError);
       }
@@ -194,13 +212,13 @@ export async function generateAndSendInvoice(invoiceId: string): Promise<{
       console.log(`[Invoice Service] SUCCESS - Invoice ${invoice.invoiceNumber} processed and sent to ${invoice.order.customer.email}`);
       return {
         success: true,
-        pdfUrl: pdfDataUrl || undefined,
+        pdfUrl: pdfUrl || undefined,
       };
     } else {
       console.error(`[Invoice Service] PARTIAL SUCCESS - Invoice ${invoice.invoiceNumber} processed but email failed`);
       return {
         success: false,
-        pdfUrl: pdfDataUrl || undefined,
+        pdfUrl: pdfUrl || undefined,
         error: 'Email sending failed',
       };
     }

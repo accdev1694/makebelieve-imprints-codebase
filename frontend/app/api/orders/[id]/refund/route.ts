@@ -4,6 +4,11 @@ import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import { createRefund } from '@/lib/server/stripe-service';
 import { sendRefundConfirmationEmail } from '@/lib/server/email';
 import { createRefundEntry, getOrderForAccounting } from '@/lib/server/accounting-service';
+import {
+  auditRefund,
+  extractAuditContext,
+  ActorType,
+} from '@/lib/server/audit-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -120,72 +125,70 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Create resolution record first as PROCESSING
-    const resolution = await prisma.resolution.create({
-      data: {
-        orderId: orderId,
-        type: 'REFUND',
-        reason: reason,
-        notes: notes || null,
-        refundAmount: order.payment.amount,
-        status: 'PROCESSING',
-        createdBy: admin.userId,
-      },
-    });
-
-    // Issue refund via Stripe
-    const refundResult = await createRefund(paymentIntentId, 'requested_by_customer');
+    // Issue refund via Stripe FIRST
+    // Use orderId as idempotency key to prevent duplicate refunds on retry
+    const refundResult = await createRefund(
+      paymentIntentId,
+      'requested_by_customer',
+      undefined, // full refund
+      `refund_${orderId}` // idempotency key
+    );
 
     if (!refundResult.success) {
-      // Update resolution to failed
-      await prisma.resolution.update({
-        where: { id: resolution.id },
-        data: {
-          status: 'FAILED',
-          notes: `${notes || ''}\n\nRefund failed: ${refundResult.error}`.trim(),
-        },
-      });
-
       return NextResponse.json(
         { error: `Refund failed: ${refundResult.error}` },
         { status: 400 }
       );
     }
 
-    // Update resolution and order in transaction
-    await prisma.$transaction([
-      // Update resolution to completed
-      prisma.resolution.update({
-        where: { id: resolution.id },
+    // Stripe succeeded - now create resolution and update everything atomically
+    // If this fails, the idempotency key prevents duplicate Stripe refunds on retry
+    const resolution = await prisma.$transaction(async (tx) => {
+      // Create resolution record as COMPLETED
+      // Note: order.payment is validated to exist earlier in this function
+      const newResolution = await tx.resolution.create({
         data: {
+          orderId: orderId,
+          type: 'REFUND',
+          reason: reason,
+          notes: notes || null,
+          refundAmount: order.payment!.amount,
           status: 'COMPLETED',
+          createdBy: admin.userId,
           stripeRefundId: refundResult.refundId,
           processedAt: new Date(),
         },
-      }),
+      });
+
       // Update payment record
-      prisma.payment.update({
-        where: { id: order.payment.id },
+      await tx.payment.update({
+        where: { id: order.payment!.id },
         data: {
           refundedAt: new Date(),
           status: 'REFUNDED',
         },
-      }),
+      });
+
       // Update order status
-      prisma.order.update({
+      await tx.order.update({
         where: { id: orderId },
         data: {
           status: 'refunded',
         },
-      }),
-    ]);
+      });
+
+      return newResolution;
+    });
+
+    // Store payment amount before null check scope ends
+    const paymentAmount = Number(order.payment!.amount);
 
     // Send refund confirmation email to customer
     sendRefundConfirmationEmail(
       order.customer.email,
       order.customer.name,
       orderId,
-      Number(order.payment.amount),
+      paymentAmount,
       reason
     ).catch((error) => {
       console.error('Failed to send refund confirmation email:', error);
@@ -197,13 +200,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       if (orderForAccounting) {
         await createRefundEntry(
           orderForAccounting,
-          Number(order.payment.amount),
+          paymentAmount,
           `Refund - ${reason}`
         );
       }
     } catch (accountingError) {
       console.error('Failed to create refund entry:', accountingError);
     }
+
+    // Audit: Log refund
+    const auditContext = extractAuditContext(request.headers, {
+      userId: admin.userId,
+      email: admin.email,
+      type: ActorType.ADMIN,
+    });
+    auditRefund(
+      orderId,
+      auditContext,
+      {
+        amount: Number(refundResult.amount || paymentAmount),
+        stripeRefundId: refundResult.refundId,
+        reason,
+      }
+    ).catch((err) => console.error('[Audit] Failed to log refund:', err));
 
     return NextResponse.json({
       success: true,

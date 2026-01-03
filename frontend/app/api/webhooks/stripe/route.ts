@@ -8,6 +8,13 @@ import {
   getOrderForAccounting,
 } from '@/lib/server/accounting-service';
 import { generateAndSendInvoice } from '@/lib/server/invoice-service';
+import {
+  auditPaymentCompleted,
+  auditWebhookProcessed,
+  auditRefund,
+  AuditEntityType,
+  ActorType,
+} from '@/lib/server/audit-service';
 
 // Lazy initialization of Stripe to avoid build-time errors
 let stripe: Stripe | null = null;
@@ -133,7 +140,8 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     throw new Error(`Order ${orderId} not found`);
   }
 
-  const alreadyProcessedStatuses = ['confirmed', 'printing', 'shipped', 'delivered', 'refunded'];
+  // Include payment_confirmed to prevent duplicate processing of checkout.session.completed
+  const alreadyProcessedStatuses = ['payment_confirmed', 'confirmed', 'printing', 'shipped', 'delivered', 'refunded', 'cancelled'];
   if (alreadyProcessedStatuses.includes(existingOrder.status)) {
     console.log(`Order ${orderId} already processed (status: ${existingOrder.status}). Skipping duplicate webhook.`);
     return;
@@ -185,6 +193,13 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   });
 
   console.log(`[Webhook] Order ${orderId} payment completed - starting accounting process`);
+
+  // Audit: Log payment completion
+  auditPaymentCompleted(orderId, {
+    stripePaymentId: paymentIntentId,
+    amount: (session.amount_total || 0) / 100,
+    currency: (session.currency || 'gbp').toUpperCase(),
+  }).catch((err) => console.error('[Audit] Failed to log payment:', err));
 
   // Auto-accounting: Create income entry, invoice, and send invoice email
   try {
@@ -420,6 +435,17 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   }
 
   console.log(`Order ${payment.orderId} marked as refunded via webhook`);
+
+  // Audit: Log refund via webhook
+  auditRefund(
+    payment.orderId,
+    { actorType: ActorType.WEBHOOK },
+    {
+      amount: (charge.amount_refunded || charge.amount) / 100,
+      stripeRefundId: charge.refunds?.data[0]?.id,
+      reason: 'Stripe webhook - charge.refunded',
+    }
+  ).catch((err) => console.error('[Audit] Failed to log refund:', err));
 
   // Auto-accounting: Create refund entry
   try {

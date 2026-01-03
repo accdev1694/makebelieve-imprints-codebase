@@ -117,14 +117,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Create cancellation request and update order status in transaction
+    // Store the previous status so we can restore it if the request is rejected
     const [cancellationRequest] = await prisma.$transaction([
-      // Create the cancellation request
+      // Create the cancellation request with previousStatus
       prisma.cancellationRequest.create({
         data: {
           orderId,
           reason,
           notes: notes || null,
           status: 'PENDING',
+          previousStatus: order.status, // Store current status before changing
         },
       }),
       // Update order status to cancellation_requested

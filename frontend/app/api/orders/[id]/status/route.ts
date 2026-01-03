@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import { updateIncomeStatus } from '@/lib/server/accounting-service';
+import {
+  validateTransition,
+  STATUS_LABELS,
+} from '@/lib/server/order-state-machine';
+import {
+  auditOrderStatusChange,
+  extractAuditContext,
+  ActorType,
+} from '@/lib/server/audit-service';
+import { OrderStatus } from '@prisma/client';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -10,14 +20,45 @@ interface RouteParams {
 /**
  * PUT /api/orders/[id]/status
  * Update order status (admin only)
+ * Uses centralized state machine for validation
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    await requireAdmin(request);
+    const admin = await requireAdmin(request);
 
     const { id } = await params;
     const body = await request.json();
-    const { status } = body;
+    const { status, force } = body as { status: OrderStatus; force?: boolean };
+
+    // Get current order to validate transition
+    const currentOrder = await prisma.order.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+
+    if (!currentOrder) {
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404 }
+      );
+    }
+
+    // Validate transition unless force is specified (admin override)
+    if (!force) {
+      const validation = validateTransition(currentOrder.status, status);
+      if (!validation.valid) {
+        return NextResponse.json(
+          {
+            error: validation.error,
+            currentStatus: currentOrder.status,
+            currentStatusLabel: STATUS_LABELS[currentOrder.status],
+            requestedStatus: status,
+            requestedStatusLabel: STATUS_LABELS[status],
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     const order = await prisma.order.update({
       where: { id },
@@ -53,9 +94,27 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Audit: Log status change
+    const auditContext = extractAuditContext(request.headers, {
+      userId: admin.userId,
+      email: admin.email,
+      type: ActorType.ADMIN,
+    });
+    auditOrderStatusChange(
+      id,
+      currentOrder.status,
+      status,
+      auditContext,
+      force ? { forced: true } : undefined
+    ).catch((err) => console.error('[Audit] Failed to log status change:', err));
+
     return NextResponse.json({
       success: true,
-      data: { order },
+      data: {
+        order,
+        previousStatus: currentOrder.status,
+        newStatus: status,
+      },
     });
   } catch (error) {
     return handleApiError(error);

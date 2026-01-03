@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import { sendReprintConfirmationEmail } from '@/lib/server/email';
+import { createReprintExpense } from '@/lib/server/accounting-service';
 import { Prisma } from '@prisma/client';
 
 interface RouteParams {
@@ -132,6 +133,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       reason
     ).catch((error) => {
       console.error('Failed to send reprint confirmation email:', error);
+    });
+
+    // Create expense entry to track reprint material costs
+    createReprintExpense(orderId, result.reprintOrder.id, reason).catch((error) => {
+      console.error('Failed to create reprint expense:', error);
     });
 
     return NextResponse.json({

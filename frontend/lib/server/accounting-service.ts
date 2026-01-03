@@ -6,6 +6,7 @@
 import prisma from '@/lib/prisma';
 import { Order, IncomeCategory, IncomeStatus, InvoiceStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import { calculateVATFromGross, UK_VAT_RATES } from './tax-utils';
 
 // UK tax year runs April 6 to April 5
 function getTaxYear(date: Date): string {
@@ -94,10 +95,9 @@ export async function createIncomeFromOrder(
   const incomeNumber = await generateIncomeNumber();
   const taxYear = getTaxYear(new Date());
 
-  // Calculate VAT (20% standard rate, included in price)
-  const totalPrice = new Decimal(order.totalPrice);
-  const vatAmount = totalPrice.dividedBy(6).toDecimalPlaces(2); // VAT = Price / 6 for 20% inclusive
-  const netAmount = totalPrice.minus(vatAmount);
+  // Calculate VAT using centralized tax utility (20% standard UK rate, included in price)
+  const totalPrice = Number(order.totalPrice);
+  const { netAmount, vatAmount } = calculateVATFromGross(totalPrice, UK_VAT_RATES.STANDARD);
 
   await prisma.income.create({
     data: {
@@ -105,14 +105,14 @@ export async function createIncomeFromOrder(
       orderId: order.id,
       category: IncomeCategory.PRODUCT_SALES,
       description: `Order #${order.id.slice(0, 8).toUpperCase()} - Online Sale`,
-      amount: totalPrice,
+      amount: new Decimal(totalPrice),
       currency: 'GBP',
       source: 'MakeBelieve Imprints Website',
       customerName: order.customer.name || order.customer.email,
       incomeDate: new Date(),
       taxYear,
-      vatAmount,
-      vatRate: new Decimal(20),
+      vatAmount: new Decimal(vatAmount),
+      vatRate: new Decimal(UK_VAT_RATES.STANDARD),
       isVatIncluded: true,
       externalReference: order.id,
       status: status as IncomeStatus,
@@ -210,10 +210,10 @@ export async function createRefundEntry(
 ): Promise<void> {
   const incomeNumber = await generateIncomeNumber();
   const taxYear = getTaxYear(new Date());
-  const amount = new Decimal(refundAmount);
+  const amount = Number(refundAmount);
 
-  // Calculate VAT portion of refund
-  const vatAmount = amount.dividedBy(6).toDecimalPlaces(2);
+  // Calculate VAT portion of refund using centralized tax utility
+  const { netAmount, vatAmount } = calculateVATFromGross(amount, UK_VAT_RATES.STANDARD);
 
   // Create negative income entry (refund)
   await prisma.income.create({
@@ -222,18 +222,18 @@ export async function createRefundEntry(
       orderId: order.id,
       category: IncomeCategory.PRODUCT_SALES,
       description: `REFUND - Order #${order.id.slice(0, 8).toUpperCase()} - ${reason}`,
-      amount: amount.negated(), // Negative amount for refund
+      amount: new Decimal(-amount), // Negative amount for refund
       currency: 'GBP',
       source: 'MakeBelieve Imprints Website',
       customerName: order.customer.name || order.customer.email,
       incomeDate: new Date(),
       taxYear,
-      vatAmount: vatAmount.negated(),
-      vatRate: new Decimal(20),
+      vatAmount: new Decimal(-vatAmount),
+      vatRate: new Decimal(UK_VAT_RATES.STANDARD),
       isVatIncluded: true,
       externalReference: order.id,
       status: 'CONFIRMED' as IncomeStatus, // Refunds are immediately confirmed
-      notes: `Auto-generated refund entry. Reason: ${reason}`,
+      notes: `Auto-generated refund entry. Net: £${netAmount.toFixed(2)}, VAT: £${vatAmount.toFixed(2)}. Reason: ${reason}`,
     },
   });
 
@@ -270,4 +270,101 @@ export async function getOrderForAccounting(orderId: string): Promise<OrderWithC
       },
     },
   });
+}
+
+// Generate expense number: EXP-YYYYMMDD-XXXX
+async function generateExpenseNumber(): Promise<string> {
+  const today = new Date();
+  const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+
+  const startOfDay = new Date(today);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const count = await prisma.expense.count({
+    where: {
+      createdAt: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+    },
+  });
+
+  const sequence = String(count + 1).padStart(4, '0');
+  return `EXP-${dateStr}-${sequence}`;
+}
+
+/**
+ * Create expense entry for reprint orders
+ * This tracks the cost of materials used for free reprints
+ *
+ * @param originalOrderId - The original order that had an issue
+ * @param reprintOrderId - The new reprint order created
+ * @param reason - The reason for the reprint (e.g., DAMAGED_IN_TRANSIT, QUALITY_ISSUE)
+ * @param estimatedCost - Optional estimated material cost (defaults to calculated estimate)
+ */
+export async function createReprintExpense(
+  originalOrderId: string,
+  reprintOrderId: string,
+  reason: string,
+  estimatedCost?: number
+): Promise<void> {
+  try {
+    // Get original order to estimate material cost
+    const originalOrder = await prisma.order.findUnique({
+      where: { id: originalOrderId },
+      include: {
+        items: {
+          include: {
+            product: true,
+            variant: true,
+          },
+        },
+      },
+    });
+
+    if (!originalOrder) {
+      console.warn(`[Accounting] Cannot create reprint expense - original order ${originalOrderId} not found`);
+      return;
+    }
+
+    // Estimate material cost as ~30% of original order value (typical margin)
+    // This is a rough estimate - can be refined based on actual costs
+    const originalTotal = Number(originalOrder.totalPrice);
+    const materialCostEstimate = estimatedCost ?? Math.max(originalTotal * 0.3, 2.00); // Minimum £2
+
+    const expenseNumber = await generateExpenseNumber();
+    const taxYear = getTaxYear(new Date());
+
+    // Calculate VAT using centralized tax utility (we can reclaim VAT on materials)
+    const { vatAmount } = calculateVATFromGross(materialCostEstimate, UK_VAT_RATES.STANDARD);
+
+    // Build description with item details
+    const itemDescriptions = originalOrder.items
+      .map(item => `${item.quantity}x ${item.product?.name || 'Unknown'}${item.variant?.name ? ` (${item.variant.name})` : ''}`)
+      .join(', ');
+
+    await prisma.expense.create({
+      data: {
+        expenseNumber,
+        category: 'MATERIALS',
+        description: `Reprint materials - ${reason} - Order #${originalOrderId.slice(0, 8).toUpperCase()}: ${itemDescriptions}`,
+        amount: new Decimal(materialCostEstimate),
+        currency: 'GBP',
+        purchaseDate: new Date(),
+        taxYear,
+        vatAmount: new Decimal(vatAmount),
+        vatRate: new Decimal(UK_VAT_RATES.STANDARD),
+        isVatReclaimable: true,
+        importSource: 'MANUAL',
+        notes: `Auto-generated expense for reprint order ${reprintOrderId.slice(0, 8).toUpperCase()}. Original order: ${originalOrderId.slice(0, 8).toUpperCase()}. Reason: ${reason}. This is an estimated material cost.`,
+      },
+    });
+
+    console.log(`[Accounting] Reprint expense ${expenseNumber} created for order ${originalOrderId} -> ${reprintOrderId} (£${materialCostEstimate.toFixed(2)})`);
+  } catch (error) {
+    // Log but don't throw - expense tracking shouldn't block reprint creation
+    console.error('[Accounting] Failed to create reprint expense:', error);
+  }
 }

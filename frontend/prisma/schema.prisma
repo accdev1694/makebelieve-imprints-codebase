@@ -312,6 +312,10 @@ model CancellationRequest {
   reason        CancellationReason
   notes         String?
 
+  // Previous order status (to restore if rejected)
+  // Default to 'confirmed' for existing records during migration
+  previousStatus OrderStatus              @default(confirmed) @map("previous_status")
+
   // Status tracking
   status        CancellationRequestStatus @default(PENDING)
   createdAt     DateTime                  @default(now()) @map("created_at")
@@ -1396,4 +1400,86 @@ enum IssueResolutionType {
   REPRINT
   FULL_REFUND
   PARTIAL_REFUND
+}
+
+// ============================================
+// AUDIT TRAIL SYSTEM
+// Tracks critical operations for accountability
+// ============================================
+
+model AuditLog {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // What happened
+  action          AuditAction
+  entityType      AuditEntityType @map("entity_type")
+  entityId        String          @map("entity_id") @db.Uuid
+
+  // Who did it
+  actorId         String?         @map("actor_id") @db.Uuid  // null for system actions
+  actorType       ActorType       @map("actor_type")
+  actorEmail      String?         @map("actor_email") @db.VarChar(255)
+
+  // Details
+  previousState   Json?           @map("previous_state")  // Snapshot before change
+  newState        Json?           @map("new_state")       // Snapshot after change
+  metadata        Json?                                   // Additional context
+  ipAddress       String?         @map("ip_address") @db.VarChar(45)
+  userAgent       String?         @map("user_agent") @db.VarChar(500)
+
+  // Timestamp
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+enum AuditAction {
+  // Order actions
+  ORDER_CREATED
+  ORDER_STATUS_CHANGED
+  ORDER_CANCELLED
+  ORDER_REFUNDED
+
+  // Payment actions
+  PAYMENT_COMPLETED
+  PAYMENT_FAILED
+  REFUND_INITIATED
+  REFUND_COMPLETED
+
+  // Issue/Resolution actions
+  ISSUE_CREATED
+  ISSUE_REVIEWED
+  ISSUE_RESOLVED
+  ISSUE_REJECTED
+
+  // Admin actions
+  CANCELLATION_APPROVED
+  CANCELLATION_REJECTED
+  REPRINT_CREATED
+  INVOICE_GENERATED
+
+  // System actions
+  WEBHOOK_PROCESSED
+  STATUS_AUTO_UPDATED
+}
+
+enum AuditEntityType {
+  ORDER
+  PAYMENT
+  ISSUE
+  RESOLUTION
+  CANCELLATION_REQUEST
+  INVOICE
+  INCOME
+}
+
+enum ActorType {
+  CUSTOMER
+  ADMIN
+  SYSTEM      // Automated processes
+  WEBHOOK     // External webhooks (e.g., Stripe)
 }

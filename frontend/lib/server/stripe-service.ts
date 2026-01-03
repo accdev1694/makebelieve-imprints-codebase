@@ -32,12 +32,14 @@ export interface RefundResult {
  *
  * @param paymentIntentId - The Stripe payment intent ID
  * @param reason - The reason for the refund
- * @param amount - Optional amount in pence (full refund if not specified)
+ * @param amount - Optional amount in pounds (full refund if not specified)
+ * @param idempotencyKey - Optional key to prevent duplicate refunds (recommended: use orderId or resolutionId)
  */
 export async function createRefund(
   paymentIntentId: string,
   reason: 'duplicate' | 'fraudulent' | 'requested_by_customer' = 'requested_by_customer',
-  amount?: number
+  amount?: number,
+  idempotencyKey?: string
 ): Promise<RefundResult> {
   try {
     const stripeClient = getStripe();
@@ -52,7 +54,13 @@ export async function createRefund(
       refundParams.amount = Math.round(amount * 100);
     }
 
-    const refund = await stripeClient.refunds.create(refundParams);
+    // Use idempotency key to prevent duplicate refunds on retry
+    const requestOptions: Stripe.RequestOptions = {};
+    if (idempotencyKey) {
+      requestOptions.idempotencyKey = `refund_${idempotencyKey}`;
+    }
+
+    const refund = await stripeClient.refunds.create(refundParams, requestOptions);
 
     return {
       success: true,

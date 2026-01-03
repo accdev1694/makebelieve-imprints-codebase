@@ -172,8 +172,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         },
       });
 
-      // Create Stripe refund
-      const refundResult = await createRefund(payment.stripePaymentId, 'requested_by_customer');
+      // Create Stripe refund with idempotency key to prevent duplicates
+      const refundResult = await createRefund(
+        payment.stripePaymentId,
+        'requested_by_customer',
+        undefined, // full refund
+        `resolution_${resolutionId}` // idempotency key
+      );
 
       if ('error' in refundResult) {
         await prisma.resolution.update({

@@ -145,10 +145,20 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     data: { status: 'payment_confirmed' },
   });
 
+  // Extract payment intent ID properly (can be string or object)
+  const paymentIntentId = typeof session.payment_intent === 'string'
+    ? session.payment_intent
+    : session.payment_intent?.id;
+
+  if (!paymentIntentId) {
+    console.error(`Checkout session ${session.id} has no payment_intent - cannot record payment`);
+    throw new Error('Missing payment_intent in checkout session');
+  }
+
   // Create or update payment record
   const gatewayResponse = {
     sessionId: session.id,
-    paymentIntent: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id,
+    paymentIntent: paymentIntentId,
     paymentStatus: session.payment_status,
     amountTotal: session.amount_total,
     currency: session.currency,
@@ -158,7 +168,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     where: { orderId },
     update: {
       status: 'COMPLETED',
-      stripePaymentId: session.payment_intent as string,
+      stripePaymentId: paymentIntentId,
       paidAt: new Date(),
       gatewayResponse,
     },
@@ -168,7 +178,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       currency: (session.currency || 'gbp').toUpperCase(),
       paymentMethod: 'CARD',
       status: 'COMPLETED',
-      stripePaymentId: session.payment_intent as string,
+      stripePaymentId: paymentIntentId,
       paidAt: new Date(),
       gatewayResponse,
     },

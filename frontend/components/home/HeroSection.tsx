@@ -43,25 +43,25 @@ export function HeroSection() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4">
-            <Link href="/products">
-              <Button size="lg" className="btn-gradient px-8 py-6 text-lg w-full sm:w-auto">
+            <Link href="/products" className="w-full sm:w-auto">
+              <Button size="lg" className="btn-gradient px-8 py-6 text-lg w-full">
                 Browse Products
               </Button>
             </Link>
-            <Link href="/templates">
+            <Link href="/templates" className="w-full sm:w-auto">
               <Button
                 size="lg"
                 variant="outline"
-                className="px-8 py-6 text-lg border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/50 w-full sm:w-auto"
+                className="px-8 py-6 text-lg border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/50 w-full"
               >
                 Browse Templates
               </Button>
             </Link>
-            <Link href="/design/new">
+            <Link href="/design/new" className="w-full sm:w-auto">
               <Button
                 size="lg"
                 variant="outline"
-                className="px-8 py-6 text-lg border-2 border-primary/50 bg-primary/10 backdrop-blur-sm text-white hover:bg-primary/20 hover:border-primary/70 w-full sm:w-auto"
+                className="px-8 py-6 text-lg border-2 border-primary/50 bg-primary/10 backdrop-blur-sm text-white hover:bg-primary/20 hover:border-primary/70 w-full"
               >
                 Start Custom Design
               </Button>

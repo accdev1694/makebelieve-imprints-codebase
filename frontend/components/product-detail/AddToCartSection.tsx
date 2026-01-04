@@ -138,7 +138,7 @@ export function AddToCartSection({
           </Button>
 
           {isCustomizable && (
-            <Link href={`/design/new?product=${productId}`} className="block">
+            <Link href={`/design/new?product=${productId}`} className="block w-full">
               <Button size="lg" variant="outline" className="w-full border-primary/50">
                 Customize This Product
               </Button>

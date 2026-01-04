@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { User, LayoutDashboard, Package, Palette, Settings, LogOut, ShieldCheck } from 'lucide-react';
+import { User, LayoutDashboard, Package, Palette, Heart, Settings, LogOut, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +11,7 @@ const MENU_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'My Orders', href: '/orders', icon: Package },
   { label: 'My Designs', href: '/design/my-designs', icon: Palette },
+  { label: 'Favourites', href: '/account/wishlist', icon: Heart },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 

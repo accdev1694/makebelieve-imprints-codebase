@@ -145,14 +145,20 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                     <p className="font-medium">{user.name}</p>
                     <p className="text-muted-foreground text-xs">{user.email}</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" asChild>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button variant="outline" size="sm" asChild>
                       <Link href="/dashboard" onClick={onClose}>
                         Dashboard
                       </Link>
                     </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/account/wishlist" onClick={onClose}>
+                        Favourites
+                      </Link>
+                    </Button>
                     <Button
                       variant="outline"
+                      size="sm"
                       onClick={() => {
                         logout();
                         onClose();

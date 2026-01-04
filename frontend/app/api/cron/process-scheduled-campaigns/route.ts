@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendCampaign, sendRecurringCampaign } from '@/lib/server/campaign-service';
+import {
+  findEligibleRecoveryUsers,
+  createRecoveryCampaign,
+  processRecoveryCampaign,
+  markExpiredCampaigns,
+  getRecoverySettings,
+} from '@/lib/server/recovery-service';
 
 // Helper to get ISO week number
 function getISOWeek(date: Date): number {
@@ -110,10 +117,47 @@ export async function GET(request: NextRequest) {
       console.log(`Recurring ${campaign.name}: sent=${result.sentCount}, failed=${result.failedCount}`);
     }
 
-    if (results.length === 0) {
+    // 3. Process recovery campaigns (abandoned cart/wishlist)
+    const recoveryStats = { created: 0, sent: 0, expired: 0, skipped: false };
+
+    const recoverySettings = await getRecoverySettings();
+    if (recoverySettings.isPaused) {
+      console.log('[Recovery] Automation is paused, skipping');
+      recoveryStats.skipped = true;
+    } else {
+      // Mark expired campaigns first
+      recoveryStats.expired = await markExpiredCampaigns();
+
+      // Find eligible users and create campaigns
+      const eligibleUsers = await findEligibleRecoveryUsers();
+      console.log(`[Recovery] Found ${eligibleUsers.length} eligible users`);
+
+      // Limit to 50 per run to avoid timeouts
+      const usersToProcess = eligibleUsers.slice(0, 50);
+
+      for (const user of usersToProcess) {
+        try {
+          const campaignId = await createRecoveryCampaign(user);
+          recoveryStats.created++;
+
+          // Send the email immediately
+          const sent = await processRecoveryCampaign(campaignId);
+          if (sent) {
+            recoveryStats.sent++;
+          }
+        } catch (err) {
+          console.error(`[Recovery] Error processing user ${user.userId}:`, err);
+        }
+      }
+
+      console.log(`[Recovery] Created: ${recoveryStats.created}, Sent: ${recoveryStats.sent}, Expired: ${recoveryStats.expired}`);
+    }
+
+    if (results.length === 0 && recoveryStats.created === 0 && recoveryStats.expired === 0) {
       return NextResponse.json({
         message: 'No campaigns to process',
         processed: 0,
+        recovery: recoveryStats,
       });
     }
 
@@ -121,9 +165,10 @@ export async function GET(request: NextRequest) {
     const failCount = results.filter(r => !r.success).length;
 
     return NextResponse.json({
-      message: `Processed ${results.length} campaigns (${successCount} succeeded, ${failCount} failed)`,
+      message: `Processed ${results.length} email campaigns (${successCount} succeeded, ${failCount} failed)`,
       processed: results.length,
       results,
+      recovery: recoveryStats,
     });
   } catch (error) {
     console.error('Error processing scheduled campaigns:', error);

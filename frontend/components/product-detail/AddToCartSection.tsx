@@ -126,7 +126,7 @@ export function AddToCartSection({
         </div>
 
         {/* Add to Cart Buttons */}
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <Button
             size="lg"
             className="w-full btn-gradient gap-2"
@@ -138,7 +138,7 @@ export function AddToCartSection({
           </Button>
 
           {isCustomizable && (
-            <Link href={`/design/new?product=${productId}`}>
+            <Link href={`/design/new?product=${productId}`} className="block">
               <Button size="lg" variant="outline" className="w-full border-primary/50">
                 Customize This Product
               </Button>

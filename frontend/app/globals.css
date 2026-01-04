@@ -73,8 +73,8 @@
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 4 75% 56%; /* crimson */
+    --accent-foreground: 0 0% 100%;
     --destructive: 4 75% 50%;
     --destructive-foreground: 0 0% 100%;
     --border: 214 32% 91%;

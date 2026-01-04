@@ -42,11 +42,8 @@ export function AddToCartSection({
     setQuantity((prev) => Math.max(1, Math.min(99, prev + delta)));
   };
 
-  const handleAddToCart = async () => {
+  const handleAddToCart = () => {
     setIsAddingToCart(true);
-
-    // Small delay for UX feedback
-    await new Promise((resolve) => setTimeout(resolve, 300));
 
     // Add item to cart using context
     addItem({

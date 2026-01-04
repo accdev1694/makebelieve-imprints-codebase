@@ -48,11 +48,20 @@ export function HeroSection() {
                 Browse Products
               </Button>
             </Link>
-            <Link href="/design/new">
+            <Link href="/templates">
               <Button
                 size="lg"
                 variant="outline"
                 className="px-8 py-6 text-lg border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/50 w-full sm:w-auto"
+              >
+                Browse Templates
+              </Button>
+            </Link>
+            <Link href="/design/new">
+              <Button
+                size="lg"
+                variant="outline"
+                className="px-8 py-6 text-lg border-2 border-primary/50 bg-primary/10 backdrop-blur-sm text-white hover:bg-primary/20 hover:border-primary/70 w-full sm:w-auto"
               >
                 Start Custom Design
               </Button>

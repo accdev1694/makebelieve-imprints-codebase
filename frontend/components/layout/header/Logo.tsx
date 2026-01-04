@@ -26,7 +26,7 @@ export function Logo({ className, size = 'md' }: LogoProps) {
         width={width}
         height={height}
         priority
-        className="object-contain"
+        className="object-contain rounded-lg border-2 border-foreground/20 dark:border-white/30"
       />
     </Link>
   );

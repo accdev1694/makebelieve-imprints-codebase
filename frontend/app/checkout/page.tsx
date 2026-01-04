@@ -98,7 +98,16 @@ function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const { items: cartItems, subtotal, tax, total, itemCount, addItem } = useCart();
+  const {
+    selectedItemsArray: cartItems,
+    selectedSubtotal: subtotal,
+    selectedTax: tax,
+    selectedTotal: total,
+    selectedCount: itemCount,
+    selectedItemIds,
+    addItem,
+    clearSelectedItems,
+  } = useCart();
 
   const designId = searchParams.get('designId');
 
@@ -375,9 +384,10 @@ function CheckoutContent() {
       }
 
       // Store pending order info for cart clearing after successful payment
-      // Cart will be cleared on the order details page after payment confirmation
+      // Only selected items will be cleared on the order details page after payment confirmation
       if (mode === 'cart' && order?.id) {
         sessionStorage.setItem('pendingOrderId', order.id);
+        sessionStorage.setItem('orderedItemIds', JSON.stringify([...selectedItemIds]));
       }
 
       // Redirect to Stripe Checkout

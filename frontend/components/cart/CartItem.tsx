@@ -1,32 +1,61 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { CartItem as CartItemType, useCart } from '@/contexts/CartContext';
 import { formatPrice } from '@/lib/api/products';
 
 interface CartItemProps {
   item: CartItemType;
   compact?: boolean;
+  showCheckbox?: boolean;
+  isSelected?: boolean;
+  onSelectionChange?: (itemId: string, selected: boolean) => void;
 }
 
-export function CartItem({ item, compact = false }: CartItemProps) {
+export function CartItem({
+  item,
+  compact = false,
+  showCheckbox = false,
+  isSelected = false,
+  onSelectionChange,
+}: CartItemProps) {
   const { removeItem, updateQuantity } = useCart();
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
 
   const handleIncrement = () => {
     updateQuantity(item.id, item.quantity + 1);
   };
 
   const handleDecrement = () => {
-    if (item.quantity > 1) {
+    if (item.quantity === 1) {
+      setShowRemoveDialog(true);
+    } else {
       updateQuantity(item.id, item.quantity - 1);
     }
   };
 
   const handleRemove = () => {
     removeItem(item.id);
+  };
+
+  const handleConfirmRemove = () => {
+    removeItem(item.id);
+    setShowRemoveDialog(false);
   };
 
   const itemTotal = item.unitPrice * item.quantity;
@@ -41,151 +70,221 @@ export function CartItem({ item, compact = false }: CartItemProps) {
 
   if (compact) {
     return (
-      <div className="flex gap-3 py-3 border-b border-border last:border-0">
-        {/* Product Image */}
-        <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-          <Image
-            src={item.productImage || '/placeholder-product.svg'}
-            alt={item.productName}
-            fill
-            className="object-cover"
-            sizes="64px"
-          />
-        </div>
-
-        {/* Product Details */}
-        <div className="flex-1 min-w-0">
-          <Link
-            href={`/product/${item.productSlug || item.productId}`}
-            className="font-medium text-sm text-foreground hover:text-primary line-clamp-1"
-          >
-            {item.productName}
-          </Link>
-          {variantDescription && (
-            <p className="text-xs text-muted-foreground mt-0.5">{variantDescription}</p>
-          )}
-          {item.customization && (
-            <p className="text-xs text-primary mt-0.5">
-              {item.customization.type === 'TEMPLATE_BASED' && 'Template: '}
-              {item.customization.type === 'UPLOAD_OWN' && 'Custom Design'}
-              {item.customization.templateName}
-            </p>
-          )}
-
-          {/* Quantity and Price */}
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-6 w-6"
-                onClick={handleDecrement}
-                disabled={item.quantity <= 1}
-              >
-                <Minus className="h-3 w-3" />
-              </Button>
-              <span className="w-8 text-center text-sm">{item.quantity}</span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-6 w-6"
-                onClick={handleIncrement}
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
+      <>
+        <div className="flex gap-3 py-3 border-b border-border last:border-0">
+          {/* Selection Checkbox */}
+          {showCheckbox && (
+            <div className="flex items-center">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={(checked: boolean | 'indeterminate') =>
+                  onSelectionChange?.(item.id, checked === true)
+                }
+                className="h-5 w-5"
+              />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-sm">{formatPrice(itemTotal)}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                onClick={handleRemove}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+          )}
+
+          {/* Product Image */}
+          <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+            <Image
+              src={item.productImage || '/placeholder-product.svg'}
+              alt={item.productName}
+              fill
+              className="object-cover"
+              sizes="64px"
+            />
+          </div>
+
+          {/* Product Details */}
+          <div className="flex-1 min-w-0">
+            <Link
+              href={`/product/${item.productSlug || item.productId}`}
+              className="font-medium text-sm text-foreground hover:text-primary line-clamp-1"
+            >
+              {item.productName}
+            </Link>
+            {variantDescription && (
+              <p className="text-xs text-muted-foreground mt-0.5">{variantDescription}</p>
+            )}
+            {item.customization && (
+              <p className="text-xs text-primary mt-0.5">
+                {item.customization.type === 'TEMPLATE_BASED' && 'Template: '}
+                {item.customization.type === 'UPLOAD_OWN' && 'Custom Design'}
+                {item.customization.templateName}
+              </p>
+            )}
+
+            {/* Quantity and Price */}
+            <div className="flex items-center justify-between mt-2">
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={handleDecrement}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="w-8 text-center text-sm">{item.quantity}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={handleIncrement}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm">{formatPrice(itemTotal)}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                  onClick={handleRemove}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+
+        {/* Remove Confirmation Dialog */}
+        <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove from cart?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will remove &ldquo;{item.productName}&rdquo; from your cart.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmRemove}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
     );
   }
 
   // Full-size cart item (for cart page)
   return (
-    <div className="flex gap-4 py-4 border-b border-border last:border-0">
-      {/* Product Image */}
-      <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-        <Image
-          src={item.productImage || '/placeholder-product.svg'}
-          alt={item.productName}
-          fill
-          className="object-cover"
-          sizes="(max-width: 640px) 96px, 128px"
-        />
-      </div>
-
-      {/* Product Details */}
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between">
-          <div>
-            <Link
-              href={`/product/${item.productSlug || item.productId}`}
-              className="font-medium text-foreground hover:text-primary line-clamp-2"
-            >
-              {item.productName}
-            </Link>
-            {variantDescription && (
-              <p className="text-sm text-muted-foreground mt-1">{variantDescription}</p>
-            )}
-            {item.customization && (
-              <p className="text-sm text-primary mt-1">
-                {item.customization.type === 'TEMPLATE_BASED' && `Template: ${item.customization.templateName}`}
-                {item.customization.type === 'UPLOAD_OWN' && 'Custom Design'}
-                {item.customization.type === 'FULLY_CUSTOM' && 'Fully Custom'}
-              </p>
-            )}
+    <>
+      <div className="flex gap-4 py-4 border-b border-border last:border-0">
+        {/* Selection Checkbox */}
+        {showCheckbox && (
+          <div className="flex items-start pt-1">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={(checked: boolean | 'indeterminate') =>
+                onSelectionChange?.(item.id, checked === true)
+              }
+              className="h-5 w-5"
+            />
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
-            onClick={handleRemove}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+        )}
+
+        {/* Product Image */}
+        <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+          <Image
+            src={item.productImage || '/placeholder-product.svg'}
+            alt={item.productName}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 96px, 128px"
+          />
         </div>
 
-        {/* Price and Quantity */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="flex items-center gap-2">
+        {/* Product Details */}
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between">
+            <div>
+              <Link
+                href={`/product/${item.productSlug || item.productId}`}
+                className="font-medium text-foreground hover:text-primary line-clamp-2"
+              >
+                {item.productName}
+              </Link>
+              {variantDescription && (
+                <p className="text-sm text-muted-foreground mt-1">{variantDescription}</p>
+              )}
+              {item.customization && (
+                <p className="text-sm text-primary mt-1">
+                  {item.customization.type === 'TEMPLATE_BASED' && `Template: ${item.customization.templateName}`}
+                  {item.customization.type === 'UPLOAD_OWN' && 'Custom Design'}
+                  {item.customization.type === 'FULLY_CUSTOM' && 'Fully Custom'}
+                </p>
+              )}
+            </div>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="h-8 w-8"
-              onClick={handleDecrement}
-              disabled={item.quantity <= 1}
+              className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
+              onClick={handleRemove}
             >
-              <Minus className="h-4 w-4" />
-            </Button>
-            <span className="w-12 text-center font-medium">{item.quantity}</span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={handleIncrement}
-            >
-              <Plus className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-          <div className="text-right">
-            <p className="text-lg font-semibold">{formatPrice(itemTotal)}</p>
-            {item.quantity > 1 && (
-              <p className="text-sm text-muted-foreground">{formatPrice(item.unitPrice)} each</p>
-            )}
+
+          {/* Price and Quantity */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleDecrement}
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="w-12 text-center font-medium">{item.quantity}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleIncrement}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-semibold">{formatPrice(itemTotal)}</p>
+              {item.quantity > 1 && (
+                <p className="text-sm text-muted-foreground">{formatPrice(item.unitPrice)} each</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Remove Confirmation Dialog */}
+      <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove from cart?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove &ldquo;{item.productName}&rdquo; from your cart.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmRemove}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

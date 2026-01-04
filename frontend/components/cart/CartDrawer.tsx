@@ -6,12 +6,26 @@ import { X, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { CartItem } from './CartItem';
 import { CartSummary } from './CartSummary';
 import { cn } from '@/lib/utils';
 
 export function CartDrawer() {
-  const { items, isOpen, closeCart, itemCount } = useCart();
+  const {
+    items,
+    isOpen,
+    closeCart,
+    itemCount,
+    selectedItemIds,
+    selectedCount,
+    isAllSelected,
+    isIndeterminate,
+    selectItem,
+    deselectItem,
+    selectAll,
+    deselectAll,
+  } = useCart();
 
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={(open: boolean) => !open && closeCart()}>
@@ -55,6 +69,20 @@ export function CartDrawer() {
               </DialogPrimitive.Close>
             </div>
 
+            {/* Select All (only show when there are items) */}
+            {items.length > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2 border-b bg-muted/30">
+                <Checkbox
+                  checked={isAllSelected ? true : isIndeterminate ? 'indeterminate' : false}
+                  onCheckedChange={(checked: boolean | 'indeterminate') => (checked === true ? selectAll() : deselectAll())}
+                  className="h-4 w-4"
+                />
+                <span className="text-sm text-muted-foreground">
+                  {selectedItemIds.size} of {items.length} selected
+                </span>
+              </div>
+            )}
+
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto px-4">
               {items.length === 0 ? (
@@ -73,7 +101,16 @@ export function CartDrawer() {
               ) : (
                 <div className="py-2">
                   {items.map((item) => (
-                    <CartItem key={item.id} item={item} compact />
+                    <CartItem
+                      key={item.id}
+                      item={item}
+                      compact
+                      showCheckbox={true}
+                      isSelected={selectedItemIds.has(item.id)}
+                      onSelectionChange={(id, selected) =>
+                        selected ? selectItem(id) : deselectItem(id)
+                      }
+                    />
                   ))}
                 </div>
               )}
@@ -85,8 +122,20 @@ export function CartDrawer() {
                 <CartSummary showDetails={false} />
 
                 <div className="space-y-2">
-                  <Button asChild className="w-full" size="lg" onClick={closeCart}>
-                    <Link href="/checkout">Proceed to Checkout</Link>
+                  <Button
+                    asChild={selectedCount > 0}
+                    className="w-full"
+                    size="lg"
+                    onClick={selectedCount > 0 ? closeCart : undefined}
+                    disabled={selectedCount === 0}
+                  >
+                    {selectedCount > 0 ? (
+                      <Link href="/checkout">
+                        Checkout ({selectedCount} {selectedCount === 1 ? 'item' : 'items'})
+                      </Link>
+                    ) : (
+                      <span>Select items to checkout</span>
+                    )}
                   </Button>
                   <Button
                     asChild

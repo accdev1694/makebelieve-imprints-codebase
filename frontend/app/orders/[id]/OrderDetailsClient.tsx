@@ -108,7 +108,7 @@ interface OrderDetailsClientProps {
 function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { addItem, openCart, clearCart } = useCart();
+  const { addItem, openCart, removeItem } = useCart();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -167,7 +167,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
     loadOrder();
   }, [orderId]);
 
-  // Handle payment success: Clear cart when payment is confirmed
+  // Handle payment success: Clear only ordered items from cart when payment is confirmed
   useEffect(() => {
     if (paymentStatus === 'success' && order && !paymentProcessed) {
       // Check if payment was successful (order moved past pending)
@@ -176,13 +176,25 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
         // Check if this order matches the pending order
         const pendingOrderId = sessionStorage.getItem('pendingOrderId');
         if (pendingOrderId === orderId) {
-          clearCart();
+          // Get the specific item IDs that were ordered and remove only those
+          const orderedItemIdsJson = sessionStorage.getItem('orderedItemIds');
+          if (orderedItemIdsJson) {
+            try {
+              const orderedItemIds = JSON.parse(orderedItemIdsJson) as string[];
+              // Remove each ordered item from cart
+              orderedItemIds.forEach((itemId) => removeItem(itemId));
+            } catch {
+              // Fallback: if parsing fails, just continue
+              console.error('Failed to parse orderedItemIds');
+            }
+          }
           sessionStorage.removeItem('pendingOrderId');
+          sessionStorage.removeItem('orderedItemIds');
         }
         setPaymentProcessed(true);
       }
     }
-  }, [paymentStatus, order, orderId, paymentProcessed, clearCart]);
+  }, [paymentStatus, order, orderId, paymentProcessed, removeItem]);
 
   // Retry payment for pending orders
   const handleRetryPayment = useCallback(async () => {

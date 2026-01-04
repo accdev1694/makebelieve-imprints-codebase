@@ -6,12 +6,25 @@ import { ArrowLeft, ShoppingBag, Trash2 } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { CartItem } from '@/components/cart/CartItem';
 import { CartSummary } from '@/components/cart/CartSummary';
 import { Separator } from '@/components/ui/separator';
 
 export default function CartPage() {
-  const { items, clearCart, itemCount } = useCart();
+  const {
+    items,
+    clearCart,
+    itemCount,
+    selectedItemIds,
+    selectedCount,
+    isAllSelected,
+    isIndeterminate,
+    selectItem,
+    deselectItem,
+    selectAll,
+    deselectAll,
+  } = useCart();
 
   // Set page title
   useEffect(() => {
@@ -70,7 +83,18 @@ export default function CartPage() {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Cart Items</CardTitle>
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={isAllSelected ? true : isIndeterminate ? 'indeterminate' : false}
+                      onCheckedChange={(checked: boolean | 'indeterminate') => (checked === true ? selectAll() : deselectAll())}
+                    />
+                    <div>
+                      <CardTitle>Cart Items</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedItemIds.size} of {items.length} items selected
+                      </p>
+                    </div>
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -84,7 +108,15 @@ export default function CartPage() {
                 <CardContent>
                   <div className="divide-y divide-border">
                     {items.map((item) => (
-                      <CartItem key={item.id} item={item} />
+                      <CartItem
+                        key={item.id}
+                        item={item}
+                        showCheckbox={true}
+                        isSelected={selectedItemIds.has(item.id)}
+                        onSelectionChange={(id, selected) =>
+                          selected ? selectItem(id) : deselectItem(id)
+                        }
+                      />
                     ))}
                   </div>
                 </CardContent>
@@ -118,8 +150,19 @@ export default function CartPage() {
                   </div>
 
                   {/* Checkout Button */}
-                  <Button asChild size="lg" className="w-full">
-                    <Link href="/checkout">Proceed to Checkout</Link>
+                  <Button
+                    asChild={selectedCount > 0}
+                    size="lg"
+                    className="w-full"
+                    disabled={selectedCount === 0}
+                  >
+                    {selectedCount > 0 ? (
+                      <Link href="/checkout">
+                        Checkout ({selectedCount} {selectedCount === 1 ? 'item' : 'items'})
+                      </Link>
+                    ) : (
+                      <span>Select items to checkout</span>
+                    )}
                   </Button>
 
                   {/* Security Note */}

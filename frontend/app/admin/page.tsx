@@ -215,6 +215,11 @@ function AdminDashboardContent() {
             <Link href="/admin/campaigns">
               <Button variant="outline">Email Campaigns</Button>
             </Link>
+            <Link href="/admin/recovery-campaigns">
+              <Button variant="outline" className="border-amber-500/50 text-amber-500 hover:text-amber-600">
+                Recovery Campaigns
+              </Button>
+            </Link>
             <Link href="/admin/accounting">
               <Button variant="outline" className="border-green-500/50 text-green-500 hover:text-green-600">
                 Accounting

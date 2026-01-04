@@ -138,23 +138,23 @@
   }
 
   .btn-primary {
-    @apply btn bg-primary text-white hover:bg-primary-600 focus:ring-primary shadow-md hover:shadow-glow-primary;
+    @apply btn bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary shadow-md;
   }
 
   .btn-secondary {
-    @apply btn bg-white text-primary border border-primary hover:bg-primary-50 focus:ring-primary;
+    @apply btn bg-secondary text-secondary-foreground border border-primary hover:bg-secondary/80 focus:ring-primary;
   }
 
   .btn-success {
-    @apply btn bg-success text-white hover:bg-success-600 focus:ring-success shadow-md;
+    @apply btn bg-success text-primary-foreground hover:bg-success/90 focus:ring-success shadow-md;
   }
 
   .btn-error {
-    @apply btn bg-error text-white hover:bg-error-600 focus:ring-error shadow-md;
+    @apply btn bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive shadow-md;
   }
 
   .btn-ghost {
-    @apply btn bg-transparent text-slate-700 hover:bg-slate-100 focus:ring-slate-300;
+    @apply btn bg-transparent text-foreground hover:bg-accent focus:ring-ring;
   }
 
   .btn-sm {
@@ -167,16 +167,16 @@
 
   /* Input field styles */
   .input {
-    @apply w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200;
+    @apply w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200;
   }
 
   .input-error {
-    @apply input border-error focus:ring-error focus:border-error;
+    @apply input border-destructive focus:ring-destructive focus:border-destructive;
   }
 
   /* Card styles */
   .card {
-    @apply bg-white rounded-xl shadow-lg border border-slate-100 p-6;
+    @apply bg-card rounded-xl shadow-lg border border-border p-6;
   }
 
   .card-hover {
@@ -243,14 +243,14 @@
 
   /* Button gradient */
   .btn-gradient {
-    background-image: linear-gradient(135deg, #5ed6ff 0%, #1fa2ff 50%, #0b5ed7 100%);
-    @apply text-[#0B0E13] font-semibold rounded-md transition-all duration-300 hover:scale-105 hover:shadow-2xl;
+    background-image: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+    @apply text-primary-foreground font-semibold rounded-md transition-all duration-300 hover:scale-105 hover:shadow-2xl;
   }
 
   /* Card with subtle border glow */
   .card-glow {
-    @apply border border-[#243048] bg-[#121826] rounded-2xl backdrop-blur-sm;
-    box-shadow: 0 0 20px hsl(var(--color-primary) / 0.1);
+    @apply border border-border bg-card rounded-2xl backdrop-blur-sm;
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.1);
   }
 
   /* Hide scrollbar while maintaining scroll functionality */

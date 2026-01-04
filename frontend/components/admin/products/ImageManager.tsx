@@ -123,7 +123,7 @@ export function ImageManager({
 
       {/* Error */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/50 rounded-md p-3 text-sm text-red-500">
+        <div className="bg-destructive/10 border border-destructive/50 rounded-md p-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -268,7 +268,7 @@ export function ImageManager({
                 )}
 
                 {/* Actions overlay */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <div className="absolute inset-0 dark:bg-black/50 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <GripVertical className="absolute top-2 right-2 h-4 w-4 text-white cursor-move" />
 
                   {!image.isPrimary && (

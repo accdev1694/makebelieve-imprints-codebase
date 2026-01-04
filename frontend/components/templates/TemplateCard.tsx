@@ -26,7 +26,7 @@ export function TemplateCard({ template, onSelect, onPreview }: TemplateCardProp
         />
 
         {/* Overlay on Hover */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+        <div className="absolute inset-0 dark:bg-black/60 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
           {onPreview && (
             <Button
               variant="outline"

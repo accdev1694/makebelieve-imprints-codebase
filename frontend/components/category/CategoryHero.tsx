@@ -22,7 +22,6 @@ export function CategoryHero({
   heroImage,
   ctaText = 'Browse Products',
   ctaLink,
-  gradient = 'from-black/90 via-black/85 to-black/75',
 }: CategoryHeroProps) {
   return (
     <section className="relative overflow-hidden">
@@ -36,16 +35,17 @@ export function CategoryHero({
           priority
           sizes="100vw"
         />
-        <div className={`absolute inset-0 bg-gradient-to-r ${gradient}`} />
+        {/* Overlay gradient - adapts to theme */}
+        <div className="absolute inset-0 bg-gradient-to-r dark:from-black/90 dark:via-black/85 dark:to-black/75 from-black/70 via-black/60 to-black/50" />
       </div>
 
       {/* Content */}
       <div className="relative container mx-auto px-4 py-20 md:py-32">
-        <div className="max-w-3xl text-white">
+        <div className="max-w-3xl">
           <p className="text-base md:text-lg font-medium text-white/80 mb-2 uppercase tracking-wider">
             {subtitle}
           </p>
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight text-white">
             {title}
           </h1>
           <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-xl leading-relaxed">
@@ -55,7 +55,7 @@ export function CategoryHero({
             <Button
               asChild
               size="lg"
-              className="bg-white text-indigo-900 font-bold hover:bg-white/90 gap-2"
+              className="dark:bg-white dark:text-indigo-900 dark:hover:bg-white/90 bg-primary text-primary-foreground hover:bg-primary/90 font-bold gap-2"
             >
               <Link href={ctaLink}>
                 {ctaText}

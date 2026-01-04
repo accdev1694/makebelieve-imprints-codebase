@@ -26,8 +26,8 @@ export function CategoryCard({ title, description, image, href, productCount }: 
             className="object-cover transition-transform duration-500 group-hover:scale-110"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
-          {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          {/* Overlay gradient - theme aware */}
+          <div className="absolute inset-0 bg-gradient-to-t dark:from-black/60 dark:via-black/20 from-black/40 via-black/10 to-transparent" />
         </div>
 
         {/* Content */}

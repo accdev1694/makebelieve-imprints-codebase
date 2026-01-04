@@ -144,18 +144,18 @@ export function CategoryLandingPage({
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t dark:from-black/60 from-black/50 to-transparent" />
                 </div>
 
                 {/* Content */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                  <h3 className="text-lg font-semibold mb-1">{subcategory.name}</h3>
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <h3 className="text-lg font-semibold mb-1 text-white">{subcategory.name}</h3>
                   {subcategory._count?.products !== undefined && (
                     <p className="text-sm text-white/80">
                       {subcategory._count.products} product{subcategory._count.products !== 1 ? 's' : ''}
                     </p>
                   )}
-                  <div className="flex items-center mt-2 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center mt-2 text-sm font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
                     Shop Now <ArrowRight className="h-4 w-4 ml-1" />
                   </div>
                 </div>
@@ -198,11 +198,11 @@ export function CategoryLandingPage({
 
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-16">
-        <div className="bg-primary rounded-2xl p-8 md:p-12 text-center text-white">
+        <div className="bg-primary rounded-2xl p-8 md:p-12 text-center text-primary-foreground">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">
             Need Something Custom?
           </h2>
-          <p className="text-white/90 mb-6 max-w-xl mx-auto">
+          <p className="text-primary-foreground/90 mb-6 max-w-xl mx-auto">
             Can&apos;t find exactly what you&apos;re looking for? We offer custom printing services
             tailored to your specific needs.
           </p>
@@ -216,7 +216,7 @@ export function CategoryLandingPage({
               <Button
                 size="lg"
                 variant="outline"
-                className="w-full sm:w-auto border-white text-white hover:bg-white/10"
+                className="w-full sm:w-auto border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"
               >
                 Contact Us
               </Button>

@@ -47,9 +47,9 @@ export function ProductInfo({ product, selectedVariantPrice }: ProductInfoProps)
       {/* Status Badges */}
       <div className="flex flex-wrap gap-2">
         {product.featured && (
-          <Badge className="bg-accent text-white">Featured Product</Badge>
+          <Badge className="bg-accent text-accent-foreground">Featured Product</Badge>
         )}
-        <Badge variant="outline" className="border-green-500 text-green-600">
+        <Badge variant="outline" className="border-emerald-500 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400">
           In Stock
         </Badge>
       </div>

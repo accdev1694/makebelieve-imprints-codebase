@@ -18,8 +18,8 @@ export function HeroSection() {
           priority
           sizes="100vw"
         />
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/65 to-black/50" />
+        {/* Overlay for text readability - adapts to theme */}
+        <div className="absolute inset-0 bg-gradient-to-r dark:from-black/80 dark:via-black/65 dark:to-black/50 from-black/60 via-black/45 to-black/30" />
       </div>
 
       {/* Content */}
@@ -36,7 +36,7 @@ export function HeroSection() {
           </h1>
 
           {/* Subheadline */}
-          <p className="text-xl md:text-2xl text-gray-200 mb-10 leading-relaxed">
+          <p className="text-xl md:text-2xl text-white/90 mb-10 leading-relaxed">
             From business cards to custom gifts - bring your ideas to life with professional
             quality printing and fast delivery.
           </p>
@@ -72,15 +72,15 @@ export function HeroSection() {
           <div className="flex flex-wrap gap-8 mt-12 pt-8 border-t border-white/20">
             <div>
               <div className="text-3xl font-bold text-white">50,000+</div>
-              <div className="text-gray-300 text-sm">Happy Customers</div>
+              <div className="text-white/70 text-sm">Happy Customers</div>
             </div>
             <div>
               <div className="text-3xl font-bold text-white">24-48hr</div>
-              <div className="text-gray-300 text-sm">Fast Turnaround</div>
+              <div className="text-white/70 text-sm">Fast Turnaround</div>
             </div>
             <div>
               <div className="text-3xl font-bold text-white">100%</div>
-              <div className="text-gray-300 text-sm">Quality Guaranteed</div>
+              <div className="text-white/70 text-sm">Quality Guaranteed</div>
             </div>
           </div>
         </div>

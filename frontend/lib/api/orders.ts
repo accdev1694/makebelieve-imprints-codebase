@@ -72,6 +72,7 @@ export interface Order {
   royalmailOrderId?: string | null;
   trackingNumber?: string | null;
   carrier?: string | null;
+  shareToken?: string | null;
   createdAt: string;
   updatedAt: string;
   // Cancellation fields

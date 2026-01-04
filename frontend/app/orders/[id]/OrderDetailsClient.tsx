@@ -27,7 +27,7 @@ import { storageService } from '@/lib/api/storage';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Camera, AlertCircle, MessageSquare, Lock, RefreshCw, CheckCircle, XCircle, CreditCard } from 'lucide-react';
+import { X, Camera, AlertCircle, MessageSquare, Lock, RefreshCw, CheckCircle, XCircle, CreditCard, Share2, Copy, Check } from 'lucide-react';
 import { useCart, AddToCartPayload } from '@/contexts/CartContext';
 
 // Enhanced issue reasons with NEVER_ARRIVED
@@ -141,6 +141,9 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   const [submittingCancel, setSubmittingCancel] = useState(false);
   const [cancelSuccess, setCancelSuccess] = useState(false);
   const [cancelError, setCancelError] = useState('');
+
+  // Share link state
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -416,6 +419,28 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
 
     openCart();
   };
+
+  const handleCopyShareLink = useCallback(async () => {
+    if (!order?.shareToken) return;
+
+    const shareUrl = `${window.location.origin}/track/order/${order.shareToken}`;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = shareUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [order?.shareToken]);
 
   if (loading) {
     return (
@@ -903,6 +928,25 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
             <Link href={`/track?number=${order.trackingNumber}`}>
               <Button variant="outline" className="w-full sm:w-auto">Track Shipment</Button>
             </Link>
+          )}
+          {order.shareToken && (
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto border-cyan-500/50 text-cyan-500 hover:text-cyan-600"
+              onClick={handleCopyShareLink}
+            >
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Link Copied!
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share Order
+                </>
+              )}
+            </Button>
           )}
           {Object.keys(itemIssues).length > 0 && (
             <Link href="/account/issues">

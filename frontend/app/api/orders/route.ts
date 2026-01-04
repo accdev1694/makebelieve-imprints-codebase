@@ -4,6 +4,12 @@ import { requireAuth, handleApiError } from '@/lib/server/auth';
 import { OrderStatus } from '@prisma/client';
 import { validateAndRecordPromoUsage } from '@/lib/server/promo-service';
 import { checkRecoveryConversion, cancelUserCampaigns } from '@/lib/server/recovery-service';
+import { nanoid } from 'nanoid';
+
+// Generate a unique share token for order tracking
+function generateShareToken(): string {
+  return nanoid(16); // 16 character URL-safe token
+}
 
 // Order statuses considered "archived" (concluded) - legacy, used by admin
 const ARCHIVED_STATUSES: OrderStatus[] = ['delivered', 'cancelled', 'refunded'];
@@ -194,6 +200,7 @@ export async function POST(request: NextRequest) {
             totalPrice: body.totalPrice,
             shippingAddress: body.shippingAddress,
             status: 'pending',
+            shareToken: generateShareToken(),
             items: {
               create: body.items.map((item: { productId: string; variantId?: string; designId?: string; quantity: number; unitPrice: number; totalPrice: number; customization?: unknown; metadata?: unknown }) => ({
                 productId: item.productId,
@@ -296,6 +303,7 @@ export async function POST(request: NextRequest) {
             promoCode,
             discountAmount,
             customerId: user.userId,
+            shareToken: generateShareToken(),
           },
           include: {
             design: true,

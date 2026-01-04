@@ -5,12 +5,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { User, LayoutDashboard, Package, Palette, Settings, LogOut, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { User as UserType } from '@/lib/api/auth';
-
-interface UserDropdownProps {
-  user: UserType | null;
-  onLogout: () => Promise<void>;
-}
+import { useAuth } from '@/contexts/AuthContext';
 
 const MENU_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -21,7 +16,8 @@ const MENU_ITEMS = [
 
 const ADMIN_ITEM = { label: 'Admin Dashboard', href: '/admin', icon: ShieldCheck };
 
-export function UserDropdown({ user, onLogout }: UserDropdownProps) {
+export function UserDropdown() {
+  const { user, logout } = useAuth();
   if (!user) {
     return (
       <div className="flex items-center gap-2">
@@ -118,7 +114,7 @@ export function UserDropdown({ user, onLogout }: UserDropdownProps) {
             )}
             onSelect={(e: Event) => {
               e.preventDefault();
-              onLogout();
+              logout();
             }}
           >
             <LogOut className="h-4 w-4" />

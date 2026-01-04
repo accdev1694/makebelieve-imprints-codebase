@@ -27,7 +27,7 @@ export function Header({
   showCart = true,
   className,
 }: HeaderProps) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const headerClasses = cn(
@@ -64,7 +64,7 @@ export function Header({
               {user && <NotificationBell />}
 
               {/* User Dropdown */}
-              <UserDropdown user={user} onLogout={logout} />
+              <UserDropdown />
 
               {/* Theme Toggle */}
               <ThemeToggle />
@@ -91,8 +91,6 @@ export function Header({
       <MobileMenu
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
-        user={user}
-        onLogout={logout}
       />
     </>
   );

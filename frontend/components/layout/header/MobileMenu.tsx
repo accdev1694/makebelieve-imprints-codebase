@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from './Logo';
 import { HeaderSearch } from './HeaderSearch';
 import { cn } from '@/lib/utils';
-import type { User } from '@/lib/api/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import type { NavCategory, NavLink } from '@/lib/types';
 
 const CATEGORIES: NavCategory[] = [
@@ -54,11 +54,10 @@ const NAV_LINKS: NavLink[] = [
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  user: User | null;
-  onLogout: () => Promise<void>;
 }
 
-export function MobileMenu({ isOpen, onClose, user, onLogout }: MobileMenuProps) {
+export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
+  const { user, logout } = useAuth();
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <Dialog.Portal>
@@ -155,7 +154,7 @@ export function MobileMenu({ isOpen, onClose, user, onLogout }: MobileMenuProps)
                     <Button
                       variant="outline"
                       onClick={() => {
-                        onLogout();
+                        logout();
                         onClose();
                       }}
                     >

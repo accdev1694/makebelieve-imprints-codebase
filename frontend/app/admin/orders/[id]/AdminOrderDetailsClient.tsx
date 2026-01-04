@@ -347,7 +347,7 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
       cancelled: 'bg-red-500/10 text-red-500 border-red-500/50',
       refunded: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
     };
-    return colors[status] || 'bg-gray-500/10 text-gray-500 border-gray-500/50';
+    return colors[status] || 'bg-muted text-muted-foreground border-border';
   };
 
   const getResolutionStatusColor = (status: Resolution['status']): string => {

@@ -72,9 +72,9 @@ const getIssueStatusColor = (status: string): string => {
     PROCESSING: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
     COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/50',
     REJECTED: 'bg-red-500/10 text-red-500 border-red-500/50',
-    CLOSED: 'bg-gray-500/10 text-gray-500 border-gray-500/50',
+    CLOSED: 'bg-muted text-muted-foreground border-border',
   };
-  return colors[status] || 'bg-gray-500/10 text-gray-500 border-gray-500/50';
+  return colors[status] || 'bg-muted text-muted-foreground border-border';
 };
 
 // New per-item issue interface
@@ -249,7 +249,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
       cancelled: 'bg-red-500/10 text-red-500 border-red-500/50',
       refunded: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
     };
-    return colors[status] || 'bg-gray-500/10 text-gray-500 border-gray-500/50';
+    return colors[status] || 'bg-muted text-muted-foreground border-border';
   };
 
   const getStatusIcon = (status: OrderStatus): string => {
@@ -702,7 +702,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                                   {ISSUE_STATUS_LABELS[itemIssue.status] || itemIssue.status}
                                 </Badge>
                                 {itemIssue.isConcluded && (
-                                  <Badge className="bg-gray-500/10 text-gray-500 border-gray-500/50 border text-xs">
+                                  <Badge className="bg-muted text-muted-foreground border-border border text-xs">
                                     <Lock className="w-3 h-3" />
                                   </Badge>
                                 )}

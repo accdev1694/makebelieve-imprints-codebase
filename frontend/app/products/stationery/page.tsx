@@ -93,11 +93,11 @@ export default function StationeryPage() {
       )}
 
       {/* All Products */}
-      <section id="products" className="py-16 bg-gray-900">
+      <section id="products" className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white">All Stationery Products</h2>
-            <p className="text-gray-400">Browse our complete collection</p>
+            <h2 className="text-2xl font-bold text-foreground">All Stationery Products</h2>
+            <p className="text-muted-foreground">Browse our complete collection</p>
           </div>
 
           {loading ? (
@@ -115,7 +115,7 @@ export default function StationeryPage() {
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-400">No products found in this category.</p>
+              <p className="text-muted-foreground">No products found in this category.</p>
               <Link href="/products">
                 <Button className="mt-4">Browse All Products</Button>
               </Link>
@@ -137,7 +137,7 @@ export default function StationeryPage() {
                   >
                     Previous
                   </Button>
-                  <span className="flex items-center px-4 text-gray-400">
+                  <span className="flex items-center px-4 text-muted-foreground">
                     Page {page} of {totalPages}
                   </span>
                   <Button

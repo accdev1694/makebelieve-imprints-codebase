@@ -217,7 +217,7 @@ function AdminPromosContent() {
   const getStatusBadge = (promo: Promo) => {
     const now = new Date();
     if (!promo.isActive) {
-      return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30">Inactive</Badge>;
+      return <Badge className="bg-muted text-muted-foreground border-border">Inactive</Badge>;
     }
     if (promo.expiresAt && new Date(promo.expiresAt) < now) {
       return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Expired</Badge>;

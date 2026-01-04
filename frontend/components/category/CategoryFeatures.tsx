@@ -21,7 +21,7 @@ export function CategoryFeatures({
   features,
 }: CategoryFeaturesProps) {
   return (
-    <section className="py-16 bg-gray-50/50">
+    <section className="py-16 bg-muted/50">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         {(title || subtitle) && (
@@ -42,7 +42,7 @@ export function CategoryFeatures({
           {features.map((feature, index) => (
             <Card
               key={index}
-              className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white"
+              className="border-0 shadow-sm hover:shadow-md transition-shadow bg-card"
             >
               <CardContent className="pt-6 text-center">
                 <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 text-primary">

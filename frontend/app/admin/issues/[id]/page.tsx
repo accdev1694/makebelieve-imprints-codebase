@@ -154,7 +154,7 @@ const STATUS_COLORS: Record<IssueStatus, string> = {
   PROCESSING: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
   COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/50',
   REJECTED: 'bg-red-500/10 text-red-500 border-red-500/50',
-  CLOSED: 'bg-gray-500/10 text-gray-500 border-gray-500/50',
+  CLOSED: 'bg-muted text-muted-foreground border-border',
 };
 
 function AdminIssueDetailContent() {
@@ -500,7 +500,7 @@ function AdminIssueDetailContent() {
               {STATUS_LABELS[issue.status]}
             </Badge>
             {issue.isConcluded && (
-              <Badge className="bg-gray-600/10 text-gray-600 border-gray-600/50 border">
+              <Badge className="bg-muted text-muted-foreground border-border border">
                 <Lock className="w-3 h-3 mr-1" />
                 Concluded
               </Badge>
@@ -731,12 +731,12 @@ function AdminIssueDetailContent() {
           <div className="space-y-6">
             {/* Concluded Status Indicator */}
             {issue.isConcluded && (
-              <Card className="border-gray-500/30 bg-gray-500/5">
+              <Card className="border-border bg-muted/50">
                 <CardContent className="py-4">
                   <div className="flex items-start gap-3">
-                    <Lock className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                    <Lock className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-medium text-gray-500">Issue Concluded</p>
+                      <p className="font-medium text-muted-foreground">Issue Concluded</p>
                       <p className="text-sm text-muted-foreground mt-1">
                         This issue has been concluded. No further actions by the customer are possible.
                       </p>
@@ -821,7 +821,7 @@ function AdminIssueDetailContent() {
                   {canConclude && (
                     <Button
                       variant="outline"
-                      className="w-full border-gray-500/50 text-gray-500 hover:text-gray-600"
+                      className="w-full border-border text-muted-foreground hover:text-foreground"
                       onClick={() => setConcludeModalOpen(true)}
                       disabled={actionLoading}
                     >
@@ -1193,7 +1193,7 @@ function AdminIssueDetailContent() {
             <Button
               onClick={handleConclude}
               loading={actionLoading}
-              className="bg-gray-600 hover:bg-gray-700"
+              className="bg-muted-foreground hover:bg-muted-foreground/80"
             >
               <Lock className="w-4 h-4 mr-2" />
               Conclude Issue

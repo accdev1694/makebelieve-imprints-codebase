@@ -110,7 +110,7 @@ const STATUS_COLORS: Record<IssueStatus, string> = {
   PROCESSING: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
   COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/50',
   REJECTED: 'bg-red-500/10 text-red-500 border-red-500/50',
-  CLOSED: 'bg-gray-500/10 text-gray-500 border-gray-500/50',
+  CLOSED: 'bg-muted text-muted-foreground border-border',
 };
 
 type FilterTab = 'all' | 'pending' | 'info_requested' | 'approved' | 'processing' | 'resolved' | 'rejected' | 'carrier';

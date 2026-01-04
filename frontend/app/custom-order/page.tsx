@@ -332,7 +332,7 @@ export default function CustomOrderPage() {
                         <label className="block text-sm font-medium mb-2">
                           Attach Files (optional)
                         </label>
-                        <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-primary transition-colors">
+                        <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors">
                           <input
                             type="file"
                             onChange={handleFileChange}

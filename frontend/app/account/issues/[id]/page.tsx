@@ -131,7 +131,7 @@ const STATUS_COLORS: Record<IssueStatus, string> = {
   PROCESSING: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
   COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/50',
   REJECTED: 'bg-red-500/10 text-red-500 border-red-500/50',
-  CLOSED: 'bg-gray-500/10 text-gray-500 border-gray-500/50',
+  CLOSED: 'bg-muted text-muted-foreground border-border',
 };
 
 function IssueDetailContent() {
@@ -330,7 +330,7 @@ function IssueDetailContent() {
               {STATUS_LABELS[issue.status]}
             </Badge>
             {issue.isConcluded && (
-              <Badge className="bg-gray-600/10 text-gray-600 border-gray-600/50 border">
+              <Badge className="bg-muted text-muted-foreground border-border border">
                 <Lock className="w-3 h-3 mr-1" />
                 Concluded
               </Badge>
@@ -501,11 +501,11 @@ function IssueDetailContent() {
 
               {/* Issue Concluded Notice */}
               {issue.isConcluded && (
-                <div className="mt-4 p-3 bg-gray-500/10 border border-gray-500/30 rounded-lg">
+                <div className="mt-4 p-3 bg-muted/50 border border-border rounded-lg">
                   <div className="flex items-start gap-2">
-                    <Lock className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                    <Lock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-medium text-gray-500">Issue Concluded</p>
+                      <p className="font-medium text-muted-foreground">Issue Concluded</p>
                       <p className="text-sm text-muted-foreground mt-1">
                         This issue has been concluded and no further actions are possible.
                         {issue.concludedAt && (

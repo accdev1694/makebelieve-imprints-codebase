@@ -49,7 +49,7 @@ export function TemplatePreviewModal({
 
         <div className="grid md:grid-cols-2 gap-6 mt-4">
           {/* Template Preview Image */}
-          <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
+          <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
             <Image
               src={template.thumbnailUrl || '/placeholder-template.png'}
               alt={template.name}

@@ -96,8 +96,8 @@ export default function DigitalPage() {
       <section id="products" className="py-16">
         <div className="container mx-auto px-4">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white">All Digital Products</h2>
-            <p className="text-gray-400">Browse our complete digital collection</p>
+            <h2 className="text-2xl font-bold text-foreground">All Digital Products</h2>
+            <p className="text-muted-foreground">Browse our complete digital collection</p>
           </div>
 
           {loading ? (
@@ -115,7 +115,7 @@ export default function DigitalPage() {
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-400">No products found in this category.</p>
+              <p className="text-muted-foreground">No products found in this category.</p>
               <Link href="/products">
                 <Button className="mt-4">Browse All Products</Button>
               </Link>
@@ -137,7 +137,7 @@ export default function DigitalPage() {
                   >
                     Previous
                   </Button>
-                  <span className="flex items-center px-4 text-gray-400">
+                  <span className="flex items-center px-4 text-muted-foreground">
                     Page {page} of {totalPages}
                   </span>
                   <Button

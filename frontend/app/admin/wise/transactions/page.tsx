@@ -70,7 +70,7 @@ const TYPE_LABELS: Record<string, string> = {
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   PENDING: { color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50', label: 'Pending' },
   COMPLETED: { color: 'bg-green-500/10 text-green-500 border-green-500/50', label: 'Completed' },
-  CANCELLED: { color: 'bg-gray-500/10 text-gray-500 border-gray-500/50', label: 'Cancelled' },
+  CANCELLED: { color: 'bg-muted text-muted-foreground border-border', label: 'Cancelled' },
   FAILED: { color: 'bg-red-500/10 text-red-500 border-red-500/50', label: 'Failed' },
   REFUNDED: { color: 'bg-orange-500/10 text-orange-500 border-orange-500/50', label: 'Refunded' },
 };

@@ -398,12 +398,12 @@ function AdminCampaignsContent() {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { className: string; icon: React.ReactNode }> = {
-      DRAFT: { className: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: <FileText className="h-3 w-3" /> },
+      DRAFT: { className: 'bg-muted text-muted-foreground border-border', icon: <FileText className="h-3 w-3" /> },
       SCHEDULED: { className: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: <Clock className="h-3 w-3" /> },
       SENDING: { className: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: <Loader2 className="h-3 w-3 animate-spin" /> },
       SENT: { className: 'bg-green-500/20 text-green-400 border-green-500/30', icon: <CheckCircle className="h-3 w-3" /> },
       FAILED: { className: 'bg-red-500/20 text-red-400 border-red-500/30', icon: <AlertCircle className="h-3 w-3" /> },
-      CANCELLED: { className: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: <X className="h-3 w-3" /> },
+      CANCELLED: { className: 'bg-muted text-muted-foreground border-border', icon: <X className="h-3 w-3" /> },
     };
     const badge = badges[status] || badges.DRAFT;
     return (
@@ -421,7 +421,7 @@ function AdminCampaignsContent() {
       ANNOUNCEMENT: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
       SEASONAL: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
     };
-    return <Badge className={colors[type] || 'bg-gray-500/20'}>{type.toLowerCase()}</Badge>;
+    return <Badge className={colors[type] || 'bg-muted text-muted-foreground'}>{type.toLowerCase()}</Badge>;
   };
 
   if (user && user.userType !== 'PRINTER_ADMIN') {
@@ -481,7 +481,7 @@ function AdminCampaignsContent() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-gray-400">{stats.draft}</p>
+              <p className="text-3xl font-bold text-muted-foreground">{stats.draft}</p>
             </CardContent>
           </Card>
 

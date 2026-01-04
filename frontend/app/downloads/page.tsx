@@ -94,7 +94,7 @@ function DownloadsContent() {
       case 'PRINTING':
         return 'bg-yellow-100 text-yellow-700';
       default:
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -157,8 +157,8 @@ function DownloadsContent() {
         ) : downloads.length === 0 ? (
           <Card className="max-w-md mx-auto">
             <CardContent className="pt-12 pb-8 text-center">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <FileText className="h-10 w-10 text-gray-400" />
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                <FileText className="h-10 w-10 text-muted-foreground" />
               </div>
               <h2 className="text-xl font-semibold mb-2">No Downloads Yet</h2>
               <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
@@ -190,7 +190,7 @@ function DownloadsContent() {
                 <Card key={download.orderItemId} className="overflow-hidden">
                   <div className="flex flex-col sm:flex-row">
                     {/* Product Image */}
-                    <div className="relative w-full sm:w-40 h-40 flex-shrink-0 bg-gray-100">
+                    <div className="relative w-full sm:w-40 h-40 flex-shrink-0 bg-muted">
                       <Image
                         src={download.product.images[0]?.imageUrl || '/placeholder-product.svg'}
                         alt={download.product.name}

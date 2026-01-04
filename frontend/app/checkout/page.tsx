@@ -714,8 +714,8 @@ function CheckoutContent() {
                   {mode === 'cart' && (
                     <div className="space-y-3 max-h-80 overflow-y-auto">
                       {cartItems.map((item) => (
-                        <div key={item.id} className="flex gap-3 py-2 border-b border-gray-100 last:border-0">
-                          <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                        <div key={item.id} className="flex gap-3 py-2 border-b border-border last:border-0">
+                          <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
                             <Image
                               src={item.productImage || '/placeholder-product.svg'}
                               alt={item.productName}
@@ -904,7 +904,7 @@ function CheckoutContent() {
 
                 return (
                   <Card key={product.id} className="group overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="relative aspect-square bg-gray-100">
+                    <div className="relative aspect-square bg-muted">
                       {primaryImage?.imageUrl ? (
                         <Image
                           src={primaryImage.imageUrl}

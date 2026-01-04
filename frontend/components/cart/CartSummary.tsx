@@ -16,16 +16,16 @@ export function CartSummary({ showDetails = true }: CartSummaryProps) {
       {showDetails && (
         <>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Subtotal ({itemCount} items)</span>
+            <span className="text-muted-foreground">Subtotal ({itemCount} items)</span>
             <span className="font-medium">{formatPrice(subtotal)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">VAT (20%)</span>
+            <span className="text-muted-foreground">VAT (20%)</span>
             <span className="font-medium">{formatPrice(tax)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Shipping</span>
-            <span className="text-gray-500">Calculated at checkout</span>
+            <span className="text-muted-foreground">Shipping</span>
+            <span className="text-muted-foreground">Calculated at checkout</span>
           </div>
           <Separator />
         </>
@@ -35,7 +35,7 @@ export function CartSummary({ showDetails = true }: CartSummaryProps) {
         <span className="font-bold text-lg">{formatPrice(total)}</span>
       </div>
       {showDetails && (
-        <p className="text-xs text-gray-500 text-center">
+        <p className="text-xs text-muted-foreground text-center">
           Includes {formatPrice(tax)} VAT
         </p>
       )}

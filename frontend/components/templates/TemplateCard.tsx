@@ -16,7 +16,7 @@ interface TemplateCardProps {
 export function TemplateCard({ template, onSelect, onPreview }: TemplateCardProps) {
   return (
     <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-primary/20">
-      <div className="relative aspect-square bg-gray-100 overflow-hidden">
+      <div className="relative aspect-square bg-muted overflow-hidden">
         <Image
           src={template.thumbnailUrl || '/placeholder-template.png'}
           alt={template.name}
@@ -95,10 +95,10 @@ export function TemplateCard({ template, onSelect, onPreview }: TemplateCardProp
 export function TemplateCardSkeleton() {
   return (
     <Card className="overflow-hidden">
-      <div className="aspect-square bg-gray-200 animate-pulse" />
+      <div className="aspect-square bg-muted animate-pulse" />
       <CardContent className="p-4">
-        <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" />
-        <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4" />
+        <div className="h-4 bg-muted rounded animate-pulse mb-2" />
+        <div className="h-3 bg-muted rounded animate-pulse w-3/4" />
       </CardContent>
     </Card>
   );

@@ -9,7 +9,7 @@ interface StatusSelectProps {
 }
 
 const STATUS_OPTIONS: { value: ProductStatus; label: string; color: string }[] = [
-  { value: 'DRAFT', label: 'Draft', color: 'bg-gray-500' },
+  { value: 'DRAFT', label: 'Draft', color: 'bg-muted-foreground' },
   { value: 'ACTIVE', label: 'Active', color: 'bg-green-500' },
   { value: 'ARCHIVED', label: 'Archived', color: 'bg-yellow-500' },
   { value: 'OUT_OF_STOCK', label: 'Out of Stock', color: 'bg-red-500' },
@@ -52,7 +52,7 @@ export function StatusBadge({ status }: { status: ProductStatus }) {
     <span
       className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium
                   ${status === 'ACTIVE' ? 'bg-green-500/20 text-green-400' : ''}
-                  ${status === 'DRAFT' ? 'bg-gray-500/20 text-gray-400' : ''}
+                  ${status === 'DRAFT' ? 'bg-muted text-muted-foreground' : ''}
                   ${status === 'ARCHIVED' ? 'bg-yellow-500/20 text-yellow-400' : ''}
                   ${status === 'OUT_OF_STOCK' ? 'bg-red-500/20 text-red-400' : ''}`}
     >

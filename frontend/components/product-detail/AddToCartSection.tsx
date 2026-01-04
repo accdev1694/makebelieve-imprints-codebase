@@ -76,7 +76,7 @@ export function AddToCartSection({
   const totalPrice = numericPrice * quantity;
 
   return (
-    <Card className="p-6 card-glow sticky top-24">
+    <Card className="p-6 card-glow sticky top-24 z-40">
       <div className="space-y-6">
         {/* Price Summary */}
         <div className="space-y-2">

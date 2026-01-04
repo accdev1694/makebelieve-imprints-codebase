@@ -29,7 +29,7 @@ export function TemplateFilters({
   const hasActiveFilters = selectedCategory || isPremiumFilter !== null || searchQuery;
 
   return (
-    <Card className="sticky top-24">
+    <Card className="sticky top-24 z-40">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
-import { createRefund } from '@/lib/server/stripe-service';
+import { createRefund, resolvePaymentIntentId } from '@/lib/server/stripe-service';
 import { sendReprintConfirmationEmail, sendRefundConfirmationEmail } from '@/lib/server/email';
 import { Prisma } from '@prisma/client';
 
@@ -151,15 +151,41 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         );
       }
 
-      // Validate stripePaymentId is a Payment Intent (not a Checkout Session)
-      if (!payment.stripePaymentId.startsWith('pi_')) {
+      // Resolve the Payment Intent ID - handles both pi_xxx and cs_xxx formats
+      // This provides a fallback when the webhook hasn't updated the payment record
+      const resolved = await resolvePaymentIntentId(payment.stripePaymentId);
+
+      if (!resolved.paymentIntentId) {
         return NextResponse.json(
           {
-            error: `Cannot process refund: Invalid payment ID format. Expected Payment Intent (pi_xxx), found "${payment.stripePaymentId.substring(0, 15)}...". The Stripe webhook may not have updated the payment record.`,
-            suggestion: 'Check Stripe Dashboard > Developers > Webhooks for failed deliveries.'
+            error: `Cannot process refund: ${resolved.error}`,
+            suggestion: 'Check Stripe Dashboard to verify the payment status.',
           },
           { status: 400 }
         );
+      }
+
+      if (!resolved.isPaid) {
+        return NextResponse.json(
+          {
+            error: 'Cannot process refund: Payment was not completed in Stripe.',
+            suggestion: 'Verify the payment status in Stripe Dashboard.',
+          },
+          { status: 400 }
+        );
+      }
+
+      // If we resolved from a checkout session, update the local payment record for future use
+      if (payment.stripePaymentId.startsWith('cs_')) {
+        console.log(`[Resolution] Updating payment record with resolved Payment Intent ID: ${resolved.paymentIntentId}`);
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            stripePaymentId: resolved.paymentIntentId,
+            status: 'COMPLETED',
+            paidAt: payment.paidAt || new Date(),
+          },
+        });
       }
 
       // Update resolution to processing
@@ -174,7 +200,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       // Create Stripe refund with idempotency key to prevent duplicates
       const refundResult = await createRefund(
-        payment.stripePaymentId,
+        resolved.paymentIntentId,
         'requested_by_customer',
         undefined, // full refund
         `resolution_${resolutionId}` // idempotency key

@@ -5,9 +5,25 @@ import { QueryProvider } from '@/providers/QueryProvider';
 import { NativeProvider } from '@/providers/NativeProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+
+// Script to prevent flash of unstyled content (FOUC) for theme
+const themeScript = `
+(function() {
+  try {
+    const saved = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (saved === 'dark' || (saved === 'system' && prefersDark) || (!saved && prefersDark)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  } catch (e) {}
+})();
+`;
 
 // Configure Inter font (body text)
 const inter = Inter({
@@ -50,19 +66,24 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={`${inter.className} antialiased min-h-screen flex flex-col`} suppressHydrationWarning>
         <QueryProvider>
           <NativeProvider>
-            <AuthProvider>
-              <CartProvider>
-                <Header />
-                <main className="flex-1">
-                  {children}
-                </main>
-                <Footer />
-                <CartDrawer />
-              </CartProvider>
-            </AuthProvider>
+            <ThemeProvider>
+              <AuthProvider>
+                <CartProvider>
+                  <Header />
+                  <main className="flex-1">
+                    {children}
+                  </main>
+                  <Footer />
+                  <CartDrawer />
+                </CartProvider>
+              </AuthProvider>
+            </ThemeProvider>
           </NativeProvider>
         </QueryProvider>
       </body>

@@ -41,9 +41,9 @@ export function CartItem({ item, compact = false }: CartItemProps) {
 
   if (compact) {
     return (
-      <div className="flex gap-3 py-3 border-b border-gray-100 last:border-0">
+      <div className="flex gap-3 py-3 border-b border-border last:border-0">
         {/* Product Image */}
-        <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+        <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
           <Image
             src={item.productImage || '/placeholder-product.svg'}
             alt={item.productName}
@@ -57,12 +57,12 @@ export function CartItem({ item, compact = false }: CartItemProps) {
         <div className="flex-1 min-w-0">
           <Link
             href={`/product/${item.productSlug || item.productId}`}
-            className="font-medium text-sm text-gray-900 hover:text-primary line-clamp-1"
+            className="font-medium text-sm text-foreground hover:text-primary line-clamp-1"
           >
             {item.productName}
           </Link>
           {variantDescription && (
-            <p className="text-xs text-gray-500 mt-0.5">{variantDescription}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{variantDescription}</p>
           )}
           {item.customization && (
             <p className="text-xs text-primary mt-0.5">
@@ -99,7 +99,7 @@ export function CartItem({ item, compact = false }: CartItemProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-gray-400 hover:text-red-500"
+                className="h-6 w-6 text-muted-foreground hover:text-destructive"
                 onClick={handleRemove}
               >
                 <Trash2 className="h-3 w-3" />
@@ -113,9 +113,9 @@ export function CartItem({ item, compact = false }: CartItemProps) {
 
   // Full-size cart item (for cart page)
   return (
-    <div className="flex gap-4 py-4 border-b border-gray-200 last:border-0">
+    <div className="flex gap-4 py-4 border-b border-border last:border-0">
       {/* Product Image */}
-      <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+      <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
         <Image
           src={item.productImage || '/placeholder-product.svg'}
           alt={item.productName}
@@ -131,12 +131,12 @@ export function CartItem({ item, compact = false }: CartItemProps) {
           <div>
             <Link
               href={`/product/${item.productSlug || item.productId}`}
-              className="font-medium text-gray-900 hover:text-primary line-clamp-2"
+              className="font-medium text-foreground hover:text-primary line-clamp-2"
             >
               {item.productName}
             </Link>
             {variantDescription && (
-              <p className="text-sm text-gray-500 mt-1">{variantDescription}</p>
+              <p className="text-sm text-muted-foreground mt-1">{variantDescription}</p>
             )}
             {item.customization && (
               <p className="text-sm text-primary mt-1">
@@ -149,7 +149,7 @@ export function CartItem({ item, compact = false }: CartItemProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-gray-400 hover:text-red-500 flex-shrink-0"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
             onClick={handleRemove}
           >
             <Trash2 className="h-4 w-4" />
@@ -181,7 +181,7 @@ export function CartItem({ item, compact = false }: CartItemProps) {
           <div className="text-right">
             <p className="text-lg font-semibold">{formatPrice(itemTotal)}</p>
             {item.quantity > 1 && (
-              <p className="text-sm text-gray-500">{formatPrice(item.unitPrice)} each</p>
+              <p className="text-sm text-muted-foreground">{formatPrice(item.unitPrice)} each</p>
             )}
           </div>
         </div>

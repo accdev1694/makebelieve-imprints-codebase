@@ -12,6 +12,7 @@ import { HeaderSearch } from './header/HeaderSearch';
 import { UserDropdown } from './header/UserDropdown';
 import { NotificationBell } from './header/NotificationBell';
 import { MobileMenu } from './header/MobileMenu';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface HeaderProps {
   variant?: 'default' | 'minimal' | 'transparent';
@@ -64,6 +65,9 @@ export function Header({
 
               {/* User Dropdown */}
               <UserDropdown user={user} onLogout={logout} />
+
+              {/* Theme Toggle */}
+              <ThemeToggle />
 
               {/* Cart */}
               {showCart && <CartIcon />}

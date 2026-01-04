@@ -29,7 +29,7 @@ export function CartDrawer() {
         <DialogPrimitive.Content
           className={cn(
             'fixed right-0 top-0 z-50 h-full w-full max-w-md',
-            'bg-white shadow-xl',
+            'bg-background shadow-xl',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right',
             'duration-300'
@@ -42,7 +42,7 @@ export function CartDrawer() {
                 <ShoppingBag className="h-5 w-5" />
                 Shopping Cart
                 {itemCount > 0 && (
-                  <span className="text-sm font-normal text-gray-500">
+                  <span className="text-sm font-normal text-muted-foreground">
                     ({itemCount} {itemCount === 1 ? 'item' : 'items'})
                   </span>
                 )}
@@ -59,11 +59,11 @@ export function CartDrawer() {
             <div className="flex-1 overflow-y-auto px-4">
               {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                  <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  <ShoppingBag className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">
                     Your cart is empty
                   </h3>
-                  <p className="text-sm text-gray-500 mb-6 max-w-[200px]">
+                  <p className="text-sm text-muted-foreground mb-6 max-w-[200px]">
                     Looks like you haven&apos;t added any items yet.
                   </p>
                   <Button asChild onClick={closeCart}>
@@ -98,7 +98,7 @@ export function CartDrawer() {
                   </Button>
                 </div>
 
-                <p className="text-xs text-gray-500 text-center">
+                <p className="text-xs text-muted-foreground text-center">
                   Shipping and taxes calculated at checkout
                 </p>
               </div>

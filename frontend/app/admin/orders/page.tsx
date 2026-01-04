@@ -369,16 +369,6 @@ function AdminOrdersContent() {
                               >
                                 View Details
                               </Button>
-                              {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleUpdateStatus(order.id, 'cancelled')}
-                                  disabled={isUpdating}
-                                >
-                                  Cancel
-                                </Button>
-                              )}
                             </div>
                           </div>
                         </div>

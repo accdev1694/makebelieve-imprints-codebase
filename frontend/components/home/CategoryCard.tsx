@@ -38,8 +38,10 @@ export function CategoryCard({ title, description, image, href, productCount }: 
           <p className="text-sm text-muted-foreground mb-4">{description}</p>
 
           <div className="flex items-center justify-between">
-            {productCount && (
-              <span className="text-xs text-muted-foreground">{productCount} products</span>
+            {productCount !== undefined && (
+              <span className="text-xs text-muted-foreground">
+                {productCount} {productCount === 1 ? 'product' : 'products'}
+              </span>
             )}
             <div className="flex items-center gap-2 text-primary text-sm font-medium group-hover:gap-3 transition-all">
               Shop Now

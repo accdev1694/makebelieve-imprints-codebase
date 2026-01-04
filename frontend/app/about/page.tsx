@@ -135,7 +135,7 @@ export default function AboutPage() {
                   Start Designing
                 </Button>
               </Link>
-              <Link href="/">
+              <Link href="/products">
                 <Button size="lg" variant="outline">
                   View Gallery
                 </Button>

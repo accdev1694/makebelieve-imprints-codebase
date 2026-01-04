@@ -5,6 +5,7 @@ import { QueryProvider } from '@/providers/QueryProvider';
 import { NativeProvider } from '@/providers/NativeProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
+import { WishlistProvider } from '@/contexts/WishlistContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { Header } from '@/components/layout/Header';
@@ -75,12 +76,14 @@ export default function RootLayout({
             <ThemeProvider>
               <AuthProvider>
                 <CartProvider>
-                  <Header />
-                  <main className="flex-1">
-                    {children}
-                  </main>
-                  <Footer />
-                  <CartDrawer />
+                  <WishlistProvider>
+                    <Header />
+                    <main className="flex-1">
+                      {children}
+                    </main>
+                    <Footer />
+                    <CartDrawer />
+                  </WishlistProvider>
                 </CartProvider>
               </AuthProvider>
             </ThemeProvider>

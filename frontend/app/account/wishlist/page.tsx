@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -8,25 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
+import { useWishlist, WishlistItem } from '@/contexts/WishlistContext';
 import { Heart, ShoppingCart, Trash2, Share2 } from 'lucide-react';
-
-interface WishlistItem {
-  id: string;
-  productId: string;
-  name: string;
-  slug: string;
-  price: number;
-  image: string;
-  inStock: boolean;
-  addedAt: string;
-}
 
 export default function WishlistPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { addItem } = useCart();
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items: wishlistItems, removeItem } = useWishlist();
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -35,57 +24,16 @@ export default function WishlistPage() {
     }
   }, [user, authLoading, router]);
 
-  // Load wishlist (mock data for now)
-  useEffect(() => {
-    if (user) {
-      // TODO: Fetch from API
-      setWishlistItems([
-        {
-          id: '1',
-          productId: 'prod-1',
-          name: 'Custom Sublimation Mug',
-          slug: 'custom-sublimation-mug',
-          price: 8.99,
-          image: 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=400&q=80',
-          inStock: true,
-          addedAt: '2024-01-15',
-        },
-        {
-          id: '2',
-          productId: 'prod-2',
-          name: 'Premium Canvas Print',
-          slug: 'premium-canvas-print',
-          price: 25.00,
-          image: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=400&q=80',
-          inStock: true,
-          addedAt: '2024-01-10',
-        },
-        {
-          id: '3',
-          productId: 'prod-3',
-          name: 'Custom T-Shirt',
-          slug: 'custom-sublimation-tshirt',
-          price: 12.99,
-          image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&q=80',
-          inStock: false,
-          addedAt: '2024-01-05',
-        },
-      ]);
-      setLoading(false);
-    }
-  }, [user]);
-
-  const handleRemove = (itemId: string) => {
-    setWishlistItems(wishlistItems.filter(item => item.id !== itemId));
-    // TODO: Remove via API
+  const handleRemove = (productId: string) => {
+    removeItem(productId);
   };
 
   const handleAddToCart = (item: WishlistItem) => {
     addItem({
       productId: item.productId,
-      productName: item.name,
-      productSlug: item.slug,
-      productImage: item.image,
+      productName: item.productName,
+      productSlug: item.productSlug,
+      productImage: item.productImage,
       quantity: 1,
       unitPrice: item.price,
     });
@@ -109,7 +57,7 @@ export default function WishlistPage() {
     }
   };
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <main className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-16 text-center">
@@ -170,21 +118,14 @@ export default function WishlistPage() {
               <Card key={item.id} className="overflow-hidden group">
                 <div className="relative aspect-square">
                   <Image
-                    src={item.image}
-                    alt={item.name}
+                    src={item.productImage}
+                    alt={item.productName}
                     fill
                     className="object-cover"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   />
-                  {!item.inStock && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <span className="bg-white text-black px-3 py-1 rounded-full text-sm font-medium">
-                        Out of Stock
-                      </span>
-                    </div>
-                  )}
                   <button
-                    onClick={() => handleRemove(item.id)}
+                    onClick={() => handleRemove(item.productId)}
                     className="absolute top-2 right-2 p-2 bg-white/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
                     title="Remove from wishlist"
                   >
@@ -192,9 +133,9 @@ export default function WishlistPage() {
                   </button>
                 </div>
                 <CardContent className="p-4">
-                  <Link href={`/product/${item.slug}`}>
+                  <Link href={`/product/${item.productSlug}`}>
                     <h3 className="font-medium hover:text-primary transition-colors line-clamp-2">
-                      {item.name}
+                      {item.productName}
                     </h3>
                   </Link>
                   <p className="text-lg font-bold mt-2">£{item.price.toFixed(2)}</p>
@@ -203,11 +144,10 @@ export default function WishlistPage() {
                   </p>
                   <Button
                     className="w-full mt-4 gap-2"
-                    disabled={!item.inStock}
                     onClick={() => handleAddToCart(item)}
                   >
                     <ShoppingCart className="h-4 w-4" />
-                    {item.inStock ? 'Add to Cart' : 'Out of Stock'}
+                    Add to Cart
                   </Button>
                 </CardContent>
               </Card>
@@ -216,19 +156,17 @@ export default function WishlistPage() {
         )}
 
         {/* Add All to Cart */}
-        {wishlistItems.length > 0 && wishlistItems.some(item => item.inStock) && (
+        {wishlistItems.length > 0 && (
           <div className="mt-8 flex justify-center">
             <Button
               size="lg"
               onClick={() => {
-                wishlistItems
-                  .filter(item => item.inStock)
-                  .forEach(item => handleAddToCart(item));
+                wishlistItems.forEach(item => handleAddToCart(item));
               }}
               className="gap-2"
             >
               <ShoppingCart className="h-5 w-5" />
-              Add All Available Items to Cart
+              Add All Items to Cart
             </Button>
           </div>
         )}

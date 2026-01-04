@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Minus, Plus, ShoppingCart, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { useCart, AddToCartPayload } from '@/contexts/CartContext';
+import { useWishlist } from '@/contexts/WishlistContext';
 import { formatPrice } from '@/lib/api/products';
 import type { SelectedVariant } from '@/lib/types';
 
@@ -32,8 +33,10 @@ export function AddToCartSection({
 }: AddToCartSectionProps) {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
   const { addItem, openCart } = useCart();
+  const { isInWishlist, toggleItem } = useWishlist();
+
+  const isFavorited = isInWishlist(productId);
 
   // Ensure price is a number
   const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
@@ -146,7 +149,13 @@ export function AddToCartSection({
             size="lg"
             variant="outline"
             className="w-full gap-2"
-            onClick={() => setIsFavorited(!isFavorited)}
+            onClick={() => toggleItem({
+              productId,
+              productName,
+              productSlug,
+              productImage,
+              price: numericPrice,
+            })}
           >
             <Heart className={`h-5 w-5 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
             {isFavorited ? 'Saved to Favorites' : 'Add to Favorites'}

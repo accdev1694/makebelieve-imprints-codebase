@@ -81,9 +81,12 @@ export function CategoryLandingPage({
   if (loading) {
     return (
       <main className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-16 text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
+        {/* Hero placeholder to prevent homepage bleed-through */}
+        <div className="relative bg-slate-900 py-20 md:py-32">
+          <div className="container mx-auto px-4 text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+            <p className="mt-4 text-white/70">Loading...</p>
+          </div>
         </div>
       </main>
     );

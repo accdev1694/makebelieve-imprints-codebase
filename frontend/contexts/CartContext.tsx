@@ -1,6 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { cartService, CartItemResponse } from '@/lib/api/cart';
 
 // Cart item structure
 export interface CartItem {
@@ -51,6 +53,7 @@ interface CartContextType {
   tax: number;
   total: number;
   isOpen: boolean;
+  isSyncing: boolean;
   addItem: (payload: AddToCartPayload) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
@@ -64,46 +67,147 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 const CART_STORAGE_KEY = 'mkbl_cart';
 const TAX_RATE = 0.20; // 20% UK VAT
 
-// Generate unique ID for cart items
+// Generate unique ID for cart items (guest mode)
 function generateCartItemId(): string {
   return `cart_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
+// Transform server response to local CartItem format
+function transformServerItem(item: CartItemResponse): CartItem {
+  return {
+    id: item.id,
+    productId: item.productId,
+    productName: item.productName,
+    productSlug: item.productSlug,
+    productImage: item.productImage,
+    variantId: item.variantId,
+    variantName: item.variantName,
+    size: item.size,
+    color: item.color,
+    material: item.material,
+    finish: item.finish,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    customization: item.customization,
+    addedAt: item.addedAt,
+  };
+}
+
+// Load items from localStorage
+function loadFromLocalStorage(): CartItem[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(CART_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed.items && Array.isArray(parsed.items)) {
+        return parsed.items;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load cart from localStorage:', error);
+  }
+  return [];
+}
+
+// Save items to localStorage
+function saveToLocalStorage(items: CartItem[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify({
+        items,
+        updatedAt: new Date().toISOString(),
+      })
+    );
+  } catch (error) {
+    console.error('Failed to save cart to localStorage:', error);
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const lastUserIdRef = useRef<string | null>(null);
+  const hasSyncedRef = useRef(false);
 
-  // Load cart from localStorage on mount
+  // Load cart from localStorage on mount (for immediate display)
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(CART_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.items && Array.isArray(parsed.items)) {
-          setItems(parsed.items);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load cart from localStorage:', error);
-    }
+    const localItems = loadFromLocalStorage();
+    setItems(localItems);
     setIsInitialized(true);
   }, []);
 
-  // Save cart to localStorage whenever items change (after initial load)
+  // Sync with server when user logs in
+  useEffect(() => {
+    const userId = user?.id || null;
+
+    // If user changed (login/logout), reset sync flag
+    if (userId !== lastUserIdRef.current) {
+      hasSyncedRef.current = false;
+      lastUserIdRef.current = userId;
+    }
+
+    // If no user, we're in guest mode - localStorage is source of truth
+    if (!userId) {
+      return;
+    }
+
+    // If already synced for this user, skip
+    if (hasSyncedRef.current) {
+      return;
+    }
+
+    // Sync with server
+    const syncWithServer = async () => {
+      setIsSyncing(true);
+      try {
+        // Get current localStorage items
+        const localItems = loadFromLocalStorage();
+
+        let serverItems: CartItemResponse[];
+
+        if (localItems.length > 0) {
+          // Merge localStorage with server
+          serverItems = await cartService.syncCart(
+            localItems.map((item) => ({
+              productId: item.productId,
+              variantId: item.variantId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              customization: item.customization,
+              addedAt: item.addedAt,
+            }))
+          );
+        } else {
+          // Just fetch server cart
+          serverItems = await cartService.getCart();
+        }
+
+        // Transform and set items
+        const mergedItems = serverItems.map(transformServerItem);
+        setItems(mergedItems);
+        saveToLocalStorage(mergedItems);
+        hasSyncedRef.current = true;
+      } catch (error) {
+        console.error('Failed to sync cart with server:', error);
+        // Keep localStorage items on error - don't break the experience
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+
+    syncWithServer();
+  }, [user?.id]);
+
+  // Save to localStorage whenever items change (after initial load)
   useEffect(() => {
     if (isInitialized) {
-      try {
-        localStorage.setItem(
-          CART_STORAGE_KEY,
-          JSON.stringify({
-            items,
-            updatedAt: new Date().toISOString(),
-          })
-        );
-      } catch (error) {
-        console.error('Failed to save cart to localStorage:', error);
-      }
+      saveToLocalStorage(items);
     }
   }, [items, isInitialized]);
 
@@ -114,59 +218,117 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const total = subtotal + tax;
 
   // Add item to cart
-  const addItem = useCallback((payload: AddToCartPayload) => {
-    setItems((currentItems) => {
-      // Check if same product+variant+customization already exists
-      const existingIndex = currentItems.findIndex(
-        (item) =>
-          item.productId === payload.productId &&
-          item.variantId === payload.variantId &&
-          JSON.stringify(item.customization) === JSON.stringify(payload.customization)
-      );
+  const addItem = useCallback(
+    (payload: AddToCartPayload) => {
+      // Optimistic update
+      setItems((currentItems) => {
+        // Check if same product+variant+customization already exists
+        const existingIndex = currentItems.findIndex(
+          (item) =>
+            item.productId === payload.productId &&
+            item.variantId === payload.variantId &&
+            JSON.stringify(item.customization) === JSON.stringify(payload.customization)
+        );
 
-      if (existingIndex >= 0) {
-        // Update quantity of existing item
-        const updatedItems = [...currentItems];
-        updatedItems[existingIndex] = {
-          ...updatedItems[existingIndex],
-          quantity: updatedItems[existingIndex].quantity + payload.quantity,
+        if (existingIndex >= 0) {
+          // Update quantity of existing item
+          const updatedItems = [...currentItems];
+          updatedItems[existingIndex] = {
+            ...updatedItems[existingIndex],
+            quantity: updatedItems[existingIndex].quantity + payload.quantity,
+          };
+          return updatedItems;
+        }
+
+        // Add new item
+        const newItem: CartItem = {
+          id: generateCartItemId(),
+          ...payload,
+          addedAt: new Date().toISOString(),
         };
-        return updatedItems;
+        return [...currentItems, newItem];
+      });
+
+      // If logged in, sync with server
+      if (user) {
+        cartService.addToCart({
+          productId: payload.productId,
+          variantId: payload.variantId,
+          quantity: payload.quantity,
+          unitPrice: payload.unitPrice,
+          customization: payload.customization,
+        }).catch((error) => {
+          console.error('Failed to add item to server cart:', error);
+          // Note: We don't revert optimistic update for cart (unlike wishlist)
+          // Cart items are more critical for checkout flow
+        });
       }
+    },
+    [user]
+  );
 
-      // Add new item
-      const newItem: CartItem = {
-        id: generateCartItemId(),
-        ...payload,
-        addedAt: new Date().toISOString(),
-      };
-      return [...currentItems, newItem];
-    });
-  }, []);
+  // Remove item from cart by itemId
+  const removeItem = useCallback(
+    (itemId: string) => {
+      // Save current state for potential revert
+      const previousItems = items;
 
-  // Remove item from cart
-  const removeItem = useCallback((itemId: string) => {
-    setItems((currentItems) => currentItems.filter((item) => item.id !== itemId));
-  }, []);
+      // Optimistic update
+      setItems((currentItems) => currentItems.filter((item) => item.id !== itemId));
+
+      // If logged in, sync with server
+      if (user) {
+        cartService.removeFromCart(itemId).catch((error) => {
+          console.error('Failed to remove item from server cart:', error);
+          // Revert on error
+          setItems(previousItems);
+        });
+      }
+    },
+    [user, items]
+  );
 
   // Update item quantity
-  const updateQuantity = useCallback((itemId: string, quantity: number) => {
-    if (quantity < 1) {
-      removeItem(itemId);
-      return;
-    }
+  const updateQuantity = useCallback(
+    (itemId: string, quantity: number) => {
+      if (quantity < 1) {
+        removeItem(itemId);
+        return;
+      }
 
-    setItems((currentItems) =>
-      currentItems.map((item) =>
-        item.id === itemId ? { ...item, quantity } : item
-      )
-    );
-  }, [removeItem]);
+      // Save current state for potential revert
+      const previousItems = items;
+
+      // Optimistic update
+      setItems((currentItems) =>
+        currentItems.map((item) =>
+          item.id === itemId ? { ...item, quantity } : item
+        )
+      );
+
+      // If logged in, sync with server
+      if (user) {
+        cartService.updateCartItemQuantity(itemId, quantity).catch((error) => {
+          console.error('Failed to update cart item on server:', error);
+          // Revert on error
+          setItems(previousItems);
+        });
+      }
+    },
+    [user, items, removeItem]
+  );
 
   // Clear all items from cart
   const clearCart = useCallback(() => {
     setItems([]);
-  }, []);
+
+    // If logged in, clear server cart too
+    if (user) {
+      cartService.clearCart().catch((error) => {
+        console.error('Failed to clear server cart:', error);
+      });
+    }
+  }, [user]);
 
   // Open cart drawer
   const openCart = useCallback(() => {
@@ -187,6 +349,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         tax,
         total,
         isOpen,
+        isSyncing,
         addItem,
         removeItem,
         updateQuantity,

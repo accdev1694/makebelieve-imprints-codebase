@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
 import { OrderStatus } from '@prisma/client';
 import { validateAndRecordPromoUsage } from '@/lib/server/promo-service';
+import { checkRecoveryConversion, cancelUserCampaigns } from '@/lib/server/recovery-service';
 
 // Order statuses considered "archived" (concluded) - legacy, used by admin
 const ARCHIVED_STATUSES: OrderStatus[] = ['delivered', 'cancelled', 'refunded'];
@@ -244,6 +245,20 @@ export async function POST(request: NextRequest) {
         return newOrder;
       });
 
+      // Post-transaction: Check for recovery conversion and clear cart
+      // These are non-critical and should not fail the order
+      try {
+        if (body.promoCode) {
+          await checkRecoveryConversion(user.userId, order.id, body.promoCode, body.totalPrice);
+        }
+        // Cancel any pending recovery campaigns for this user
+        await cancelUserCampaigns(user.userId);
+        // Clear server cart
+        await prisma.cartItem.deleteMany({ where: { userId: user.userId } });
+      } catch (postOrderError) {
+        console.error('[Orders] Post-order processing error (non-fatal):', postOrderError);
+      }
+
       return NextResponse.json(
         { success: true, data: { order } },
         { status: 201 }
@@ -313,6 +328,20 @@ export async function POST(request: NextRequest) {
 
         return newOrder;
       });
+
+      // Post-transaction: Check for recovery conversion and clear cart
+      // These are non-critical and should not fail the order
+      try {
+        if (promoCode) {
+          await checkRecoveryConversion(user.userId, order.id, promoCode, orderData.totalPrice);
+        }
+        // Cancel any pending recovery campaigns for this user
+        await cancelUserCampaigns(user.userId);
+        // Clear server cart
+        await prisma.cartItem.deleteMany({ where: { userId: user.userId } });
+      } catch (postOrderError) {
+        console.error('[Orders] Post-order processing error (non-fatal):', postOrderError);
+      }
 
       return NextResponse.json(
         { success: true, data: { order } },

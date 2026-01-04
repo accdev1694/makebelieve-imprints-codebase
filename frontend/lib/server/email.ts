@@ -1820,3 +1820,169 @@ Custom Print Services | United Kingdom
     ],
   });
 }
+
+// ============================================
+// Cart/Wishlist Recovery Email Templates
+// ============================================
+
+interface RecoveryEmailItem {
+  productId: string;
+  productName: string;
+  productImage: string;
+  price: number;
+}
+
+interface RecoveryEmailOptions {
+  to: string;
+  firstName: string;
+  type: 'CART' | 'WISHLIST';
+  items: RecoveryEmailItem[];
+  promoCode: string;
+  discountPercent: number;
+  daysLeft: number;
+}
+
+/**
+ * Send recovery email for abandoned cart or wishlist
+ */
+export async function sendRecoveryEmail({
+  to,
+  firstName,
+  type,
+  items,
+  promoCode,
+  discountPercent,
+  daysLeft,
+}: RecoveryEmailOptions): Promise<boolean> {
+  const isCart = type === 'CART';
+  const actionUrl = isCart ? `${APP_URL}/cart` : `${APP_URL}/account/wishlist`;
+  const itemLabel = isCart ? 'cart' : 'wishlist';
+
+  const subject = isCart
+    ? `Your cart is waiting! Here's ${discountPercent}% off`
+    : `Items you love are still waiting! Get ${discountPercent}% off`;
+
+  // Build product list HTML (max 5 items)
+  const productListHtml = items.slice(0, 5).map((item) => `
+    <tr>
+      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="width: 80px; vertical-align: top;">
+              <img src="${item.productImage}" alt="${item.productName}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;">
+            </td>
+            <td style="vertical-align: top; padding-left: 12px;">
+              <p style="margin: 0; font-weight: 500; color: #1f2937;">${item.productName}</p>
+              <p style="margin: 5px 0 0; color: #6366f1; font-weight: bold;">£${item.price.toFixed(2)}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  `).join('');
+
+  const moreItemsText = items.length > 5 ? `<p style="color: #6b7280; font-size: 14px; text-align: center;">+ ${items.length - 5} more item${items.length - 5 > 1 ? 's' : ''}</p>` : '';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
+      </div>
+
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0;">
+          ${isCart ? 'You left something behind!' : 'Still thinking about these?'}
+        </h2>
+
+        <p>Hi ${firstName},</p>
+
+        <p>
+          ${isCart
+            ? 'We noticed you have items waiting in your cart. Don\'t let them slip away!'
+            : 'Those items in your wishlist are calling your name. Now\'s the perfect time to treat yourself!'}
+        </p>
+
+        <!-- Product List -->
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background: #f9fafb; border-radius: 8px;">
+          ${productListHtml}
+        </table>
+        ${moreItemsText}
+
+        <!-- Promo Code Box -->
+        <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 25px; border-radius: 12px; margin: 25px 0; text-align: center;">
+          <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Exclusive Discount Code</p>
+          <p style="margin: 10px 0; font-size: 32px; font-weight: bold; color: white; letter-spacing: 3px;">${promoCode}</p>
+          <p style="margin: 0; color: white; font-size: 20px; font-weight: bold;">${discountPercent}% OFF</p>
+          <p style="margin: 10px 0 0; color: rgba(255,255,255,0.8); font-size: 14px;">
+            ⏰ Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}
+          </p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${actionUrl}" style="background-color: #6366f1; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1; font-size: 16px;">
+            ${isCart ? 'Complete Your Order' : 'Shop Your Wishlist'}
+          </a>
+        </div>
+
+        <p style="color: #6b7280; font-size: 14px; text-align: center;">
+          Enter code <strong>${promoCode}</strong> at checkout to save ${discountPercent}%
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+        <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0; text-align: center;">
+          You're receiving this because you have items in your ${itemLabel}.
+          <br>
+          <a href="${APP_URL}/account/preferences" style="color: #9ca3af;">Manage email preferences</a>
+        </p>
+      </div>
+
+      <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+        <p>&copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const productListText = items.slice(0, 5).map((item) =>
+    `• ${item.productName} - £${item.price.toFixed(2)}`
+  ).join('\n');
+
+  const text = `
+${isCart ? 'You left something behind!' : 'Still thinking about these?'}
+
+Hi ${firstName},
+
+${isCart
+  ? 'We noticed you have items waiting in your cart. Don\'t let them slip away!'
+  : 'Those items in your wishlist are calling your name. Now\'s the perfect time to treat yourself!'}
+
+Your items:
+${productListText}
+${items.length > 5 ? `+ ${items.length - 5} more items` : ''}
+
+---
+
+🎉 EXCLUSIVE DISCOUNT CODE: ${promoCode}
+💰 ${discountPercent}% OFF your order
+⏰ Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}
+
+---
+
+${isCart ? 'Complete your order' : 'Shop your wishlist'}: ${actionUrl}
+
+Enter code ${promoCode} at checkout to save ${discountPercent}%!
+
+---
+${APP_NAME}
+  `.trim();
+
+  return sendEmail({ to, subject, html, text });
+}

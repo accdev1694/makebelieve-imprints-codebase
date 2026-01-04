@@ -24,6 +24,9 @@ model User {
   reviews             Review[]
   preferences         UserPreference?
   wishlistItems       WishlistItem[]
+  cartItems           CartItem[]
+  recoveryCampaigns   RecoveryCampaign[]
+  lastRecoveryEmailAt DateTime?            @map("last_recovery_email_at")
 
   @@index([email])
   @@index([type])
@@ -146,6 +149,7 @@ model Product {
   category          Category          @relation(fields: [categoryId], references: [id])
   subcategory       Subcategory?      @relation(fields: [subcategoryId], references: [id])
   wishlistItems     WishlistItem[]
+  cartItems         CartItem[]
 
   @@index([slug])
   @@index([categoryId])
@@ -176,6 +180,7 @@ model ProductVariant {
   updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at")
   orderItems OrderItem[]
   images     ProductImage[]
+  cartItems  CartItem[]
   product    Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
@@ -375,6 +380,57 @@ model WishlistItem {
   @@index([productId])
   @@index([createdAt(sort: Desc)])
   @@map("wishlist_items")
+}
+
+model CartItem {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String          @map("user_id") @db.Uuid
+  productId     String          @map("product_id") @db.Uuid
+  variantId     String?         @map("variant_id") @db.Uuid
+  quantity      Int             @default(1)
+  unitPrice     Decimal         @map("unit_price") @db.Decimal(10, 2)
+  customization Json?
+  addedAt       DateTime        @default(now()) @map("added_at")
+  updatedAt     DateTime        @default(now()) @updatedAt @map("updated_at")
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product       Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant       ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, productId, variantId])
+  @@index([userId])
+  @@index([addedAt(sort: Desc)])
+  @@map("cart_items")
+}
+
+model RecoveryCampaign {
+  id                String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String                 @map("user_id") @db.Uuid
+  type              RecoveryType
+  status            RecoveryCampaignStatus @default(PENDING)
+
+  triggerItemCount  Int                    @map("trigger_item_count")
+  triggerTotalValue Decimal?               @map("trigger_total_value") @db.Decimal(10, 2)
+  oldestItemDate    DateTime               @map("oldest_item_date")
+
+  promoId           String?                @unique @map("promo_id") @db.Uuid
+  promoCode         String?                @map("promo_code") @db.VarChar(50)
+
+  emailSentAt       DateTime?              @map("email_sent_at")
+  convertedOrderId  String?                @map("converted_order_id") @db.Uuid
+  convertedAt       DateTime?              @map("converted_at")
+  recoveredRevenue  Decimal?               @map("recovered_revenue") @db.Decimal(10, 2)
+
+  createdAt         DateTime               @default(now()) @map("created_at")
+  expiresAt         DateTime               @map("expires_at")
+
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promo             Promo?                 @relation(fields: [promoId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([emailSentAt(sort: Desc)])
+  @@map("recovery_campaigns")
 }
 
 model Invoice {
@@ -1123,7 +1179,9 @@ model Promo {
   updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at")
 
   // Relations
-  usages          PromoUsage[]
+  usages            PromoUsage[]
+  recoveryCampaign  RecoveryCampaign?
+  isRecoveryPromo   Boolean            @default(false) @map("is_recovery_promo")
 
   @@index([code])
   @@index([isActive])
@@ -1165,6 +1223,19 @@ enum PromoScope {
   CATEGORY          // Applies to specific category
   SUBCATEGORY       // Applies to specific subcategory
   SPECIFIC_PRODUCTS // Applies to specific product IDs
+}
+
+enum RecoveryType {
+  CART
+  WISHLIST
+}
+
+enum RecoveryCampaignStatus {
+  PENDING
+  SENT
+  CONVERTED
+  EXPIRED
+  CANCELLED
 }
 
 // ============================================

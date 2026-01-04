@@ -24,7 +24,7 @@ export function CategoryHero({
   ctaLink,
 }: CategoryHeroProps) {
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative overflow-hidden bg-slate-900">
       {/* Background Image */}
       <div className="absolute inset-0">
         <Image

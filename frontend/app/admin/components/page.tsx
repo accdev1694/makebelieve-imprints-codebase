@@ -815,8 +815,8 @@ function ComponentPreviewContent() {
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Mock ProductCard */}
                     <Card className="group overflow-hidden transition-all hover:shadow-lg cursor-pointer h-full flex flex-col">
-                      <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
-                        <div className="flex items-center justify-center h-full text-gray-400">
+                      <div className="relative aspect-square w-full overflow-hidden bg-muted">
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
                           <ImageIcon className="h-12 w-12" />
                         </div>
                         <div className="absolute top-2 left-2 flex flex-col gap-1">
@@ -843,8 +843,8 @@ function ComponentPreviewContent() {
 
                     {/* Out of Stock variant */}
                     <Card className="group overflow-hidden transition-all hover:shadow-lg cursor-pointer h-full flex flex-col">
-                      <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
-                        <div className="flex items-center justify-center h-full text-gray-400">
+                      <div className="relative aspect-square w-full overflow-hidden bg-muted">
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
                           <ImageIcon className="h-12 w-12" />
                         </div>
                         <div className="absolute top-2 left-2">
@@ -898,14 +898,14 @@ function ComponentPreviewContent() {
                       Compact mode (cart drawer)
                     </p>
                     <div className="flex gap-3 py-3 border-b">
-                      <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-gray-100 flex items-center justify-center">
-                        <ImageIcon className="h-6 w-6 text-gray-400" />
+                      <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-muted flex items-center justify-center">
+                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm line-clamp-1">
                           Premium Business Cards
                         </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           A4 / Gloss / 400gsm
                         </p>
                         <div className="flex items-center justify-between mt-2">
@@ -923,7 +923,7 @@ function ComponentPreviewContent() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 text-gray-400 hover:text-red-500"
+                              className="h-6 w-6 text-muted-foreground hover:text-destructive"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -936,21 +936,21 @@ function ComponentPreviewContent() {
                   <div className="mt-6">
                     <p className="text-sm font-medium mb-3">Full mode (cart page)</p>
                     <div className="flex gap-4 py-4 border-b max-w-xl">
-                      <div className="w-24 h-24 flex-shrink-0 rounded-lg bg-gray-100 flex items-center justify-center">
-                        <ImageIcon className="h-8 w-8 text-gray-400" />
+                      <div className="w-24 h-24 flex-shrink-0 rounded-lg bg-muted flex items-center justify-center">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between">
                           <div>
                             <p className="font-medium">Premium Business Cards</p>
-                            <p className="text-sm text-gray-500 mt-1">
+                            <p className="text-sm text-muted-foreground mt-1">
                               A4 / Gloss / 400gsm
                             </p>
                           </div>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-gray-400 hover:text-red-500"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -967,7 +967,7 @@ function ComponentPreviewContent() {
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-semibold">£59.98</p>
-                            <p className="text-sm text-gray-500">£29.99 each</p>
+                            <p className="text-sm text-muted-foreground">£29.99 each</p>
                           </div>
                         </div>
                       </div>
@@ -1041,8 +1041,8 @@ function ComponentPreviewContent() {
                           CTA Button
                         </Button>
                       </div>
-                      <div className="h-64 md:h-96 bg-gray-200 flex items-center justify-center">
-                        <ImageIcon className="h-16 w-16 text-gray-400" />
+                      <div className="h-64 md:h-96 bg-muted flex items-center justify-center">
+                        <ImageIcon className="h-16 w-16 text-muted-foreground" />
                       </div>
                     </div>
                   </div>
@@ -1114,9 +1114,9 @@ function ComponentPreviewContent() {
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Mock TemplateCard */}
                     <Card className="group overflow-hidden hover:shadow-lg transition-all border-2 border-transparent hover:border-primary/20">
-                      <div className="relative aspect-square bg-gray-100 overflow-hidden">
+                      <div className="relative aspect-square bg-muted overflow-hidden">
                         <div className="flex items-center justify-center h-full">
-                          <ImageIcon className="h-12 w-12 text-gray-400" />
+                          <ImageIcon className="h-12 w-12 text-muted-foreground" />
                         </div>
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                           <Button
@@ -1145,9 +1145,9 @@ function ComponentPreviewContent() {
 
                     {/* Premium TemplateCard */}
                     <Card className="group overflow-hidden hover:shadow-lg transition-all border-2 border-transparent hover:border-primary/20">
-                      <div className="relative aspect-square bg-gray-100 overflow-hidden">
+                      <div className="relative aspect-square bg-muted overflow-hidden">
                         <div className="flex items-center justify-center h-full">
-                          <ImageIcon className="h-12 w-12 text-gray-400" />
+                          <ImageIcon className="h-12 w-12 text-muted-foreground" />
                         </div>
                         <Badge className="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white border-0">
                           <Star className="h-3 w-3 mr-1 fill-current" />

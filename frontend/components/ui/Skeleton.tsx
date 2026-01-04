@@ -11,7 +11,7 @@ export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
       className={cn(
-        'relative overflow-hidden bg-gray-200 dark:bg-gray-700 rounded',
+        'relative overflow-hidden bg-muted rounded',
         'before:absolute before:inset-0',
         'before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent',
         'before:animate-[shimmer_1.5s_infinite]',

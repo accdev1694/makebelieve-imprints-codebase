@@ -29,7 +29,7 @@ export function ProductCard({ product }: ProductCardProps) {
     >
       <Card className="group overflow-hidden transition-all hover:shadow-lg cursor-pointer h-full flex flex-col">
         {/* Product Image */}
-        <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
+        <div className="relative aspect-square w-full overflow-hidden bg-muted">
           {primaryImage ? (
             <Image
               src={primaryImage.imageUrl}
@@ -39,7 +39,7 @@ export function ProductCard({ product }: ProductCardProps) {
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-400">
+            <div className="flex items-center justify-center h-full text-muted-foreground">
               <span className="text-sm">No image</span>
             </div>
           )}
@@ -95,18 +95,18 @@ export function ProductCardSkeleton() {
   return (
     <Card className="overflow-hidden h-full flex flex-col">
       {/* Image skeleton */}
-      <div className="relative aspect-square w-full bg-gray-200 animate-pulse" />
+      <div className="relative aspect-square w-full bg-muted animate-pulse" />
 
       {/* Content skeleton */}
       <CardContent className="flex-1 p-4">
-        <div className="h-5 w-20 bg-gray-200 rounded animate-pulse mb-2" />
-        <div className="h-6 bg-gray-200 rounded animate-pulse mb-2" />
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
+        <div className="h-5 w-20 bg-muted rounded animate-pulse mb-2" />
+        <div className="h-6 bg-muted rounded animate-pulse mb-2" />
+        <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
       </CardContent>
 
       {/* Footer skeleton */}
       <CardFooter className="p-4 pt-0">
-        <div className="h-8 w-24 bg-gray-200 rounded animate-pulse" />
+        <div className="h-8 w-24 bg-muted rounded animate-pulse" />
       </CardFooter>
     </Card>
   );

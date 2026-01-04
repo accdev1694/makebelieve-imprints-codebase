@@ -281,17 +281,17 @@ export default function Home() {
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               Join thousands of customers who trust us for professional printing
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/products">
-                <Button size="lg" className="btn-gradient px-12 py-7 text-xl">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link href="/products" className="w-full sm:w-auto">
+                <Button size="lg" className="btn-gradient px-12 py-7 text-xl w-full">
                   Browse All Products
                 </Button>
               </Link>
-              <Link href="/design/new">
+              <Link href="/design/new" className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="px-12 py-7 text-xl border-primary/50"
+                  className="px-12 py-7 text-xl border-primary/50 w-full"
                 >
                   Start Designing
                 </Button>

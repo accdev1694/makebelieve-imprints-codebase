@@ -35,8 +35,8 @@ export function CategoryHero({
           priority
           sizes="100vw"
         />
-        {/* Overlay gradient - adapts to theme */}
-        <div className="absolute inset-0 bg-gradient-to-r dark:from-black/90 dark:via-black/85 dark:to-black/75 from-black/70 via-black/60 to-black/50" />
+        {/* Uniform dark overlay for text readability */}
+        <div className="absolute inset-0 bg-black/60" />
       </div>
 
       {/* Content */}

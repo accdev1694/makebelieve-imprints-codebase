@@ -228,6 +228,11 @@ function AdminDashboardContent() {
             <Button variant="outline" disabled>
               Settings (Coming Soon)
             </Button>
+            <Link href="/admin/components">
+              <Button variant="outline" className="border-pink-500/50 text-pink-500 hover:text-pink-600">
+                Component Library
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 

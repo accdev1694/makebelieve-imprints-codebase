@@ -74,13 +74,13 @@ export default function LargeFormatPage() {
       {featuredProducts.length > 0 && (
         <section className="py-16">
           <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div>
                 <h2 className="text-2xl font-bold">Featured Large Format</h2>
                 <p className="text-muted-foreground">Our most popular large format products</p>
               </div>
               <Link href="/products?category=LARGE_FORMAT&featured=true">
-                <Button variant="outline">View All Featured</Button>
+                <Button variant="outline" className="w-full sm:w-auto">View All Featured</Button>
               </Link>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

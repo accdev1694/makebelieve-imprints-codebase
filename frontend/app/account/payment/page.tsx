@@ -117,14 +117,14 @@ export default function PaymentMethodsPage() {
         </nav>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">Payment Methods</h1>
             <p className="text-muted-foreground">
               Manage your saved payment methods for faster checkout
             </p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2 w-full sm:w-auto">
             <Plus className="h-4 w-4" />
             Add Payment Method
           </Button>

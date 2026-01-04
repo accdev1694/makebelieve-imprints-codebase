@@ -103,7 +103,7 @@ function AdminDashboardContent() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {/* Page Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <h1 className="text-3xl font-bold">
             <span className="text-neon-gradient">Admin Dashboard</span>
           </h1>

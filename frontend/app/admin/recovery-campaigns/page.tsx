@@ -170,14 +170,14 @@ function AdminRecoveryCampaignsContent() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold">Recovery Campaigns</h1>
             <p className="text-muted-foreground mt-1">
               Automated cart and wishlist recovery with promo codes
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Automation</span>
               <Switch

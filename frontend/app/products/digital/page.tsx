@@ -74,13 +74,13 @@ export default function DigitalPage() {
       {featuredProducts.length > 0 && (
         <section className="py-16">
           <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div>
                 <h2 className="text-2xl font-bold">Popular Downloads</h2>
                 <p className="text-muted-foreground">Our most downloaded digital products</p>
               </div>
               <Link href="/products?category=DIGITAL&featured=true">
-                <Button variant="outline">View All Featured</Button>
+                <Button variant="outline" className="w-full sm:w-auto">View All Featured</Button>
               </Link>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

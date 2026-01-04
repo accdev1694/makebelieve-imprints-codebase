@@ -83,16 +83,16 @@ export default function WishlistPage() {
         </nav>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">My Wishlist</h1>
-            <p className="text-muted-foreground flex items-center gap-2">
+            <h1 className="text-3xl font-bold">My Wishlist</h1>
+            <p className="text-muted-foreground flex items-center gap-2 mt-1">
               {isSyncing && <Loader2 className="h-4 w-4 animate-spin" />}
               {isSyncing ? 'Syncing...' : `${wishlistItems.length} item${wishlistItems.length !== 1 ? 's' : ''} saved`}
             </p>
           </div>
           {wishlistItems.length > 0 && (
-            <Button variant="outline" onClick={handleShare} className="gap-2">
+            <Button variant="outline" onClick={handleShare} className="gap-2 w-full sm:w-auto">
               <Share2 className="h-4 w-4" />
               Share Wishlist
             </Button>
@@ -117,17 +117,23 @@ export default function WishlistPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {wishlistItems.map((item) => (
               <Card key={item.id} className="overflow-hidden group">
-                <div className="relative aspect-square">
-                  <Image
-                    src={item.productImage}
-                    alt={item.productName}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  />
+                <div className="relative aspect-square bg-muted">
+                  {item.productImage ? (
+                    <Image
+                      src={item.productImage}
+                      alt={item.productName}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      <Heart className="h-12 w-12 opacity-20" />
+                    </div>
+                  )}
                   <button
                     onClick={() => handleRemove(item.productId)}
-                    className="absolute top-2 right-2 p-2 bg-white/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                    className="absolute top-2 right-2 p-2 bg-white/90 rounded-full sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-white shadow-sm"
                     title="Remove from wishlist"
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />

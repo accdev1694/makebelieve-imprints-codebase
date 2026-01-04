@@ -4,7 +4,11 @@ import Image from 'next/image';
 import { Product, formatPrice } from '@/lib/api/products';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { PrefetchLink } from '@/components/ui/PrefetchLink';
+import { Heart, ShoppingCart } from 'lucide-react';
+import { useWishlist } from '@/contexts/WishlistContext';
+import { useCart } from '@/contexts/CartContext';
 
 interface ProductCardProps {
   product: Product;
@@ -20,6 +24,40 @@ export function ProductCard({ product }: ProductCardProps) {
 
   // Get category name from the category object or fall back to legacy
   const categoryName = product.category?.name || 'Product';
+
+  // Wishlist and cart hooks
+  const { isInWishlist, toggleItem } = useWishlist();
+  const { addItem, openCart } = useCart();
+
+  const isFavorited = isInWishlist(product.id);
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleItem({
+      productId: product.id,
+      productName: product.name,
+      productSlug: product.slug,
+      productImage: primaryImage?.imageUrl || '',
+      price: displayPrice,
+    });
+  };
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addItem({
+      productId: product.id,
+      productName: product.name,
+      productSlug: product.slug,
+      productImage: primaryImage?.imageUrl || '',
+      variantId: defaultVariant?.id,
+      variantName: defaultVariant?.name,
+      quantity: 1,
+      unitPrice: displayPrice,
+    });
+    openCart();
+  };
 
   return (
     <PrefetchLink
@@ -52,6 +90,31 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.status === 'OUT_OF_STOCK' && (
               <Badge variant="destructive">Out of Stock</Badge>
             )}
+          </div>
+
+          {/* Quick Action Buttons */}
+          <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              size="icon"
+              variant="secondary"
+              className="h-9 w-9 rounded-full shadow-md bg-background/90 backdrop-blur-sm hover:bg-background"
+              onClick={handleFavoriteClick}
+              aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Heart
+                className={`h-4 w-4 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`}
+              />
+            </Button>
+            <Button
+              size="icon"
+              variant="secondary"
+              className="h-9 w-9 rounded-full shadow-md bg-background/90 backdrop-blur-sm hover:bg-background"
+              onClick={handleAddToCart}
+              disabled={product.status === 'OUT_OF_STOCK'}
+              aria-label="Add to cart"
+            >
+              <ShoppingCart className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 

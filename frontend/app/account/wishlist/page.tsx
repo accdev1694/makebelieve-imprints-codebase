@@ -9,13 +9,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist, WishlistItem } from '@/contexts/WishlistContext';
-import { Heart, ShoppingCart, Trash2, Share2 } from 'lucide-react';
+import { Heart, ShoppingCart, Trash2, Share2, Loader2 } from 'lucide-react';
 
 export default function WishlistPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { addItem } = useCart();
-  const { items: wishlistItems, removeItem } = useWishlist();
+  const { items: wishlistItems, removeItem, isSyncing } = useWishlist();
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -86,8 +86,9 @@ export default function WishlistPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">My Wishlist</h1>
-            <p className="text-muted-foreground">
-              {wishlistItems.length} item{wishlistItems.length !== 1 ? 's' : ''} saved
+            <p className="text-muted-foreground flex items-center gap-2">
+              {isSyncing && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isSyncing ? 'Syncing...' : `${wishlistItems.length} item${wishlistItems.length !== 1 ? 's' : ''} saved`}
             </p>
           </div>
           {wishlistItems.length > 0 && (

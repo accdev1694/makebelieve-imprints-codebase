@@ -23,6 +23,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   reviews             Review[]
   preferences         UserPreference?
+  wishlistItems       WishlistItem[]
 
   @@index([email])
   @@index([type])
@@ -144,6 +145,7 @@ model Product {
   variants          ProductVariant[]
   category          Category          @relation(fields: [categoryId], references: [id])
   subcategory       Subcategory?      @relation(fields: [subcategoryId], references: [id])
+  wishlistItems     WishlistItem[]
 
   @@index([slug])
   @@index([categoryId])
@@ -356,6 +358,23 @@ model UserPreference {
 
   @@index([userId])
   @@map("user_preferences")
+}
+
+model WishlistItem {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+  @@index([createdAt(sort: Desc)])
+  @@map("wishlist_items")
 }
 
 model Invoice {

@@ -136,22 +136,24 @@ function DashboardContent() {
             </CardContent>
           </Card>
 
-          <Card className="card-glow">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Coins className="w-5 h-5 text-yellow-500" />
-                Loyalty Points
-              </CardTitle>
-              <CardDescription>Worth {'\u00A3'}{pointsValue.toFixed(2)} off</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="h-10 w-16 bg-yellow-500/20 rounded animate-pulse" />
-              ) : (
-                <p className="text-4xl font-bold text-yellow-600">{loyaltyPoints}</p>
-              )}
-            </CardContent>
-          </Card>
+          <Link href="/account/points" className="block">
+            <Card className="card-glow hover:border-yellow-500/50 transition-colors cursor-pointer">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Coins className="w-5 h-5 text-yellow-500" />
+                  Loyalty Points
+                </CardTitle>
+                <CardDescription>Worth {'\u00A3'}{pointsValue.toFixed(2)} off</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="h-10 w-16 bg-yellow-500/20 rounded animate-pulse" />
+                ) : (
+                  <p className="text-4xl font-bold text-yellow-600">{loyaltyPoints}</p>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Quick Actions */}
@@ -188,6 +190,12 @@ function DashboardContent() {
             </Link>
             <Link href="/account/wishlist">
               <Button variant="outline">Favorites</Button>
+            </Link>
+            <Link href="/account/points">
+              <Button variant="outline" className="border-yellow-500/50 text-yellow-600 hover:text-yellow-700">
+                <Coins className="w-4 h-4 mr-2" />
+                Points History
+              </Button>
             </Link>
             {user?.userType === 'PRINTER_ADMIN' && (
               <Link href="/admin">

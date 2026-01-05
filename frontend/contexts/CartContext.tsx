@@ -54,6 +54,8 @@ interface CartContextType {
   total: number;
   isOpen: boolean;
   isSyncing: boolean;
+  error: string | null;
+  clearError: () => void;
   addItem: (payload: AddToCartPayload) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
@@ -75,7 +77,7 @@ interface CartContextType {
   toggleItemSelection: (itemId: string) => void;
   selectAll: () => void;
   deselectAll: () => void;
-  clearSelectedItems: () => void;
+  clearSelectedItems: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -176,6 +178,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const lastUserIdRef = useRef<string | null>(null);
   const hasSyncedRef = useRef(false);
@@ -252,6 +255,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const mergedItems = serverItems.map(transformServerItem);
         setItems(mergedItems);
         saveToLocalStorage(mergedItems);
+
+        // CRITICAL FIX: Update selection to use new server IDs
+        // Select all items after sync since we can't map old client IDs to new server IDs
+        const newItemIds = new Set(mergedItems.map((item) => item.id));
+        setSelectedItemIds(newItemIds);
+        saveSelectionToLocalStorage(newItemIds);
+
         hasSyncedRef.current = true;
       } catch (error) {
         console.error('Failed to sync cart with server:', error);
@@ -264,19 +274,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     syncWithServer();
   }, [user?.id]);
 
-  // Save to localStorage whenever items change (after initial load)
+  // Save to localStorage whenever items change (after initial load, not during sync)
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitialized && !isSyncing) {
       saveToLocalStorage(items);
     }
-  }, [items, isInitialized]);
+  }, [items, isInitialized, isSyncing]);
 
-  // Save selection to localStorage whenever it changes
+  // Save selection to localStorage whenever it changes (not during sync)
   useEffect(() => {
-    if (selectionInitializedRef.current) {
+    if (selectionInitializedRef.current && !isSyncing) {
       saveSelectionToLocalStorage(selectedItemIds);
     }
-  }, [selectedItemIds]);
+  }, [selectedItemIds, isSyncing]);
 
   // Calculate totals
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -310,46 +320,54 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Add item to cart
   const addItem = useCallback(
     (payload: AddToCartPayload) => {
-      let newItemId: string | null = null;
+      // Check if same product+variant+customization already exists
+      const existingItem = items.find(
+        (item) =>
+          item.productId === payload.productId &&
+          item.variantId === payload.variantId &&
+          JSON.stringify(item.customization) === JSON.stringify(payload.customization)
+      );
 
-      // Optimistic update
-      setItems((currentItems) => {
-        // Check if same product+variant+customization already exists
-        const existingIndex = currentItems.findIndex(
-          (item) =>
-            item.productId === payload.productId &&
-            item.variantId === payload.variantId &&
-            JSON.stringify(item.customization) === JSON.stringify(payload.customization)
+      if (existingItem) {
+        // Update quantity of existing item
+        const updatedQuantity = existingItem.quantity + payload.quantity;
+        setItems((currentItems) =>
+          currentItems.map((item) =>
+            item.id === existingItem.id ? { ...item, quantity: updatedQuantity } : item
+          )
         );
+        // Ensure existing item stays selected (moved outside setState)
+        setSelectedItemIds((prev) => new Set([...prev, existingItem.id]));
 
-        if (existingIndex >= 0) {
-          // Update quantity of existing item - ensure it stays selected
-          const existingId = currentItems[existingIndex].id;
-          setSelectedItemIds((prev) => new Set([...prev, existingId]));
-          const updatedItems = [...currentItems];
-          updatedItems[existingIndex] = {
-            ...updatedItems[existingIndex],
-            quantity: updatedItems[existingIndex].quantity + payload.quantity,
-          };
-          return updatedItems;
+        // If logged in, sync with server
+        if (user) {
+          cartService.addToCart({
+            productId: payload.productId,
+            variantId: payload.variantId,
+            quantity: payload.quantity,
+            unitPrice: payload.unitPrice,
+            customization: payload.customization,
+          }).catch((err) => {
+            console.error('Failed to add item to server cart:', err);
+            setError('Failed to sync cart with server. Your changes are saved locally.');
+          });
         }
-
-        // Add new item
-        newItemId = generateCartItemId();
-        const newItem: CartItem = {
-          id: newItemId,
-          ...payload,
-          addedAt: new Date().toISOString(),
-        };
-        return [...currentItems, newItem];
-      });
-
-      // Auto-select new items
-      if (newItemId) {
-        setSelectedItemIds((prev) => new Set([...prev, newItemId!]));
+        return;
       }
 
-      // If logged in, sync with server
+      // Add new item with temporary client ID
+      const tempId = generateCartItemId();
+      const newItem: CartItem = {
+        id: tempId,
+        ...payload,
+        addedAt: new Date().toISOString(),
+      };
+
+      // Optimistic update
+      setItems((currentItems) => [...currentItems, newItem]);
+      setSelectedItemIds((prev) => new Set([...prev, tempId]));
+
+      // If logged in, sync with server and reconcile ID
       if (user) {
         cartService.addToCart({
           productId: payload.productId,
@@ -357,26 +375,45 @@ export function CartProvider({ children }: { children: ReactNode }) {
           quantity: payload.quantity,
           unitPrice: payload.unitPrice,
           customization: payload.customization,
-        }).catch((error) => {
-          console.error('Failed to add item to server cart:', error);
-          // Note: We don't revert optimistic update for cart (unlike wishlist)
-          // Cart items are more critical for checkout flow
+        }).then((serverItem) => {
+          // CRITICAL FIX: Reconcile local ID with server ID
+          if (serverItem && serverItem.id !== tempId) {
+            setItems((currentItems) =>
+              currentItems.map((item) =>
+                item.id === tempId ? { ...item, id: serverItem.id } : item
+              )
+            );
+            // Update selection with new server ID
+            setSelectedItemIds((prev) => {
+              const next = new Set(prev);
+              next.delete(tempId);
+              next.add(serverItem.id);
+              return next;
+            });
+          }
+        }).catch((err) => {
+          console.error('Failed to add item to server cart:', err);
+          setError('Failed to sync cart with server. Your changes are saved locally.');
         });
       }
     },
-    [user]
+    [user, items]
   );
 
   // Remove item from cart by itemId
   const removeItem = useCallback(
     (itemId: string) => {
-      // Save current state for potential revert
-      const previousItems = items;
-      const previousSelection = selectedItemIds;
+      // Capture previous state inside updater to avoid stale closure
+      let previousItems: CartItem[] = [];
+      let previousSelection: Set<string> = new Set();
 
       // Optimistic update - remove from cart and selection
-      setItems((currentItems) => currentItems.filter((item) => item.id !== itemId));
+      setItems((currentItems) => {
+        previousItems = currentItems; // Capture for potential revert
+        return currentItems.filter((item) => item.id !== itemId);
+      });
       setSelectedItemIds((prev) => {
+        previousSelection = prev; // Capture for potential revert
         const next = new Set(prev);
         next.delete(itemId);
         return next;
@@ -384,18 +421,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       // If logged in, sync with server
       if (user) {
-        cartService.removeFromCart(itemId).catch((error) => {
-          console.error('Failed to remove item from server cart:', error);
-          // Revert on error
+        cartService.removeFromCart(itemId).catch((err) => {
+          console.error('Failed to remove item from server cart:', err);
+          // Revert on error using captured state
           setItems(previousItems);
           setSelectedItemIds(previousSelection);
+          setError('Failed to remove item from server. Please try again.');
         });
       }
     },
-    [user, items, selectedItemIds]
+    [user]
   );
 
   // Update item quantity
+  const MAX_QUANTITY = 99;
   const updateQuantity = useCallback(
     (itemId: string, quantity: number) => {
       if (quantity < 1) {
@@ -403,26 +442,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Save current state for potential revert
-      const previousItems = items;
+      // Enforce max quantity limit
+      const clampedQuantity = Math.min(quantity, MAX_QUANTITY);
+
+      // Capture previous state inside updater to avoid stale closure
+      let previousItems: CartItem[] = [];
 
       // Optimistic update
-      setItems((currentItems) =>
-        currentItems.map((item) =>
-          item.id === itemId ? { ...item, quantity } : item
-        )
-      );
+      setItems((currentItems) => {
+        previousItems = currentItems; // Capture for potential revert
+        return currentItems.map((item) =>
+          item.id === itemId ? { ...item, quantity: clampedQuantity } : item
+        );
+      });
 
       // If logged in, sync with server
       if (user) {
-        cartService.updateCartItemQuantity(itemId, quantity).catch((error) => {
-          console.error('Failed to update cart item on server:', error);
-          // Revert on error
+        cartService.updateCartItemQuantity(itemId, clampedQuantity).catch((err) => {
+          console.error('Failed to update cart item on server:', err);
+          // Revert on error using captured state
           setItems(previousItems);
+          setError('Failed to update quantity on server. Please try again.');
         });
       }
     },
-    [user, items, removeItem]
+    [user, removeItem]
   );
 
   // Clear all items from cart
@@ -446,6 +490,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Close cart drawer
   const closeCart = useCallback(() => {
     setIsOpen(false);
+  }, []);
+
+  // Clear error
+  const clearError = useCallback(() => {
+    setError(null);
   }, []);
 
   // Selection operations
@@ -482,22 +531,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Clear only selected items from cart (for post-checkout)
-  const clearSelectedItems = useCallback(() => {
-    const selectedIds = [...selectedItemIds];
+  const clearSelectedItems = useCallback(async () => {
+    // Capture selected IDs inside updater to avoid stale closure
+    let selectedIds: string[] = [];
 
     // Remove selected items from cart
-    setItems((currentItems) => currentItems.filter((item) => !selectedItemIds.has(item.id)));
+    setItems((currentItems) => {
+      selectedIds = currentItems.filter((item) => selectedItemIds.has(item.id)).map((item) => item.id);
+      return currentItems.filter((item) => !selectedItemIds.has(item.id));
+    });
 
     // Clear selection
     setSelectedItemIds(new Set());
 
-    // If logged in, remove items from server
-    if (user) {
-      Promise.all(
-        selectedIds.map((id) => cartService.removeFromCart(id).catch((error) => {
-          console.error('Failed to remove item from server cart:', error);
-        }))
-      );
+    // If logged in, remove items from server (await to ensure completion)
+    if (user && selectedIds.length > 0) {
+      try {
+        await Promise.all(
+          selectedIds.map((id) => cartService.removeFromCart(id))
+        );
+      } catch (error) {
+        console.error('Failed to remove some items from server cart:', error);
+        // Items already removed from local state, server will eventually sync
+      }
     }
   }, [selectedItemIds, user]);
 
@@ -511,6 +567,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         total,
         isOpen,
         isSyncing,
+        error,
+        clearError,
         addItem,
         removeItem,
         updateQuantity,

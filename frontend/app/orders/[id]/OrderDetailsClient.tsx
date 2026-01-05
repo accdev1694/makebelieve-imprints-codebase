@@ -109,7 +109,7 @@ interface OrderDetailsClientProps {
 function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { addItem, openCart, removeItem } = useCart();
+  const { addItem, openCart, removeItem, items } = useCart();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -200,23 +200,45 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
         if (pendingOrderId === orderId) {
           // Get the specific item IDs that were ordered and remove only those
           const orderedItemIdsJson = sessionStorage.getItem('orderedItemIds');
+          const orderedProductKeysJson = sessionStorage.getItem('orderedProductKeys');
+
           if (orderedItemIdsJson) {
             try {
               const orderedItemIds = JSON.parse(orderedItemIdsJson) as string[];
               // Remove each ordered item from cart
               orderedItemIds.forEach((itemId) => removeItem(itemId));
             } catch {
-              // Fallback: if parsing fails, just continue
-              console.error('Failed to parse orderedItemIds');
+              // Fallback: if parsing fails, try product keys
+              console.error('Failed to parse orderedItemIds, trying product keys fallback');
+              if (orderedProductKeysJson) {
+                try {
+                  const productKeys = JSON.parse(orderedProductKeysJson) as string[];
+                  // Remove items matching product+variant keys
+                  productKeys.forEach((key) => {
+                    const [productId, variantId] = key.split(':');
+                    const matchingItem = items.find(
+                      (item) =>
+                        item.productId === productId &&
+                        (item.variantId || 'no-variant') === variantId
+                    );
+                    if (matchingItem) {
+                      removeItem(matchingItem.id);
+                    }
+                  });
+                } catch {
+                  console.error('Failed to parse orderedProductKeys');
+                }
+              }
             }
           }
           sessionStorage.removeItem('pendingOrderId');
           sessionStorage.removeItem('orderedItemIds');
+          sessionStorage.removeItem('orderedProductKeys');
         }
         setPaymentProcessed(true);
       }
     }
-  }, [paymentStatus, order, orderId, paymentProcessed, removeItem]);
+  }, [paymentStatus, order, orderId, paymentProcessed, removeItem, items]);
 
   // Retry payment for pending orders
   const handleRetryPayment = useCallback(async () => {

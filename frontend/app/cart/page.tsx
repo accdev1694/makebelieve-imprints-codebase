@@ -140,7 +140,7 @@ export default function CartPage() {
                   <CardTitle>Order Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <CartSummary />
+                  <CartSummary showDetails={true} useSelectedItems={true} />
 
                   <Separator />
 

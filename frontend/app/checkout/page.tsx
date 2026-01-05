@@ -413,10 +413,16 @@ function CheckoutContent() {
       }
 
       // Store pending order info for cart clearing after successful payment
-      // Only selected items will be cleared on the order details page after payment confirmation
+      // Store both item IDs and product+variant keys for robust matching after payment
       if (mode === 'cart' && order?.id) {
         sessionStorage.setItem('pendingOrderId', order.id);
+        // Store current item IDs (should be server IDs after sync)
         sessionStorage.setItem('orderedItemIds', JSON.stringify([...selectedItemIds]));
+        // Also store product+variant keys as fallback for ID matching
+        const orderedProductKeys = cartItems.map(item =>
+          `${item.productId}:${item.variantId || 'no-variant'}`
+        );
+        sessionStorage.setItem('orderedProductKeys', JSON.stringify(orderedProductKeys));
       }
 
       // Redirect to Stripe Checkout

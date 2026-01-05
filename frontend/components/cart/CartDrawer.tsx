@@ -119,7 +119,7 @@ export function CartDrawer() {
             {/* Footer with Summary and Actions */}
             {items.length > 0 && (
               <div className="border-t px-4 py-4 space-y-4">
-                <CartSummary showDetails={false} />
+                <CartSummary showDetails={false} useSelectedItems={true} />
 
                 <div className="space-y-2">
                   <Button

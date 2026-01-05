@@ -15,6 +15,7 @@ import {
   AuditEntityType,
   ActorType,
 } from '@/lib/server/audit-service';
+import { awardPurchasePoints } from '@/lib/server/points-service';
 
 // Lazy initialization of Stripe to avoid build-time errors
 let stripe: Stripe | null = null;
@@ -247,6 +248,25 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   } catch (accountingError) {
     // Log but don't fail the webhook - order processing is more critical
     console.error('[Webhook] CRITICAL: Failed to complete accounting process:', accountingError);
+  }
+
+  // Award loyalty points for purchase (10 points per £1 spent)
+  try {
+    const orderAmount = (session.amount_total || 0) / 100;
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { customerId: true },
+    });
+
+    if (order?.customerId) {
+      const pointsAwarded = await awardPurchasePoints(order.customerId, orderId, orderAmount);
+      if (pointsAwarded) {
+        console.log(`[Webhook] Awarded ${pointsAwarded.amount} points for order ${orderId}`);
+      }
+    }
+  } catch (pointsError) {
+    // Non-critical - don't fail webhook for points issues
+    console.error('[Webhook] Failed to award loyalty points:', pointsError);
   }
 }
 

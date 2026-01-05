@@ -4,6 +4,7 @@ import { requireAuth, handleApiError } from '@/lib/server/auth';
 import { OrderStatus } from '@prisma/client';
 import { validateAndRecordPromoUsage } from '@/lib/server/promo-service';
 import { checkRecoveryConversion, cancelUserCampaigns } from '@/lib/server/recovery-service';
+import { redeemPoints } from '@/lib/server/points-service';
 import { nanoid } from 'nanoid';
 
 // Generate a unique share token for order tracking
@@ -247,6 +248,20 @@ export async function POST(request: NextRequest) {
             // Throw to rollback the transaction - the promo is no longer valid
             throw new Error(`Promo code error: ${promoResult.error}`);
           }
+        }
+
+        // Redeem loyalty points if requested
+        if (body.pointsToRedeem && body.pointsToRedeem > 0) {
+          const pointsResult = await redeemPoints(user.userId, body.pointsToRedeem, newOrder.id);
+
+          // Update the order with points info
+          await tx.order.update({
+            where: { id: newOrder.id },
+            data: {
+              pointsUsed: body.pointsToRedeem,
+              pointsDiscount: pointsResult.discountAmount,
+            },
+          });
         }
 
         return newOrder;

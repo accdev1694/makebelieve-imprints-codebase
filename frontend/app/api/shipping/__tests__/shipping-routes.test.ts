@@ -387,12 +387,13 @@ describe('Shipping API Routes', () => {
 
       const request = new NextRequest('http://localhost/api/shipping/tracking/RM123456789GB');
       const response = await GET(request, { params: Promise.resolve({ trackingNumber: 'RM123456789GB' }) });
-      const data = await response.json();
+      const json = await response.json();
 
-      expect(data.trackingNumber).toBe('RM123456789GB');
-      expect(data.carrier).toBe('Royal Mail');
-      expect(data.status).toBe('IN_TRANSIT');
-      expect(data.trackingUrl).toContain('royalmail.com');
+      expect(json.success).toBe(true);
+      expect(json.data.trackingNumber).toBe('RM123456789GB');
+      expect(json.data.carrier).toBe('Royal Mail');
+      expect(json.data.status).toBe('in_transit');
+      expect(json.data.trackingUrl).toContain('royalmail.com');
     });
 
     it('should return 404 when tracking number not found', async () => {
@@ -410,12 +411,12 @@ describe('Shipping API Routes', () => {
 
     it('should map order status to tracking status correctly', async () => {
       const statuses = [
-        { orderStatus: 'pending', expectedTracking: 'PENDING' },
-        { orderStatus: 'confirmed', expectedTracking: 'CONFIRMED' },
-        { orderStatus: 'printing', expectedTracking: 'PROCESSING' },
-        { orderStatus: 'shipped', expectedTracking: 'IN_TRANSIT' },
-        { orderStatus: 'delivered', expectedTracking: 'DELIVERED' },
-        { orderStatus: 'cancelled', expectedTracking: 'CANCELLED' },
+        { orderStatus: 'pending', expectedTracking: 'pending' },
+        { orderStatus: 'confirmed', expectedTracking: 'confirmed' },
+        { orderStatus: 'printing', expectedTracking: 'processing' },
+        { orderStatus: 'shipped', expectedTracking: 'in_transit' },
+        { orderStatus: 'delivered', expectedTracking: 'delivered' },
+        { orderStatus: 'cancelled', expectedTracking: 'cancelled' },
       ];
 
       const { GET } = await import('../tracking/[trackingNumber]/route');
@@ -428,9 +429,9 @@ describe('Shipping API Routes', () => {
 
         const request = new NextRequest('http://localhost/api/shipping/tracking/RM123456789GB');
         const response = await GET(request, { params: Promise.resolve({ trackingNumber: 'RM123456789GB' }) });
-        const data = await response.json();
+        const json = await response.json();
 
-        expect(data.status).toBe(expectedTracking);
+        expect(json.data.status).toBe(expectedTracking);
       }
     });
 
@@ -444,9 +445,9 @@ describe('Shipping API Routes', () => {
 
       const request = new NextRequest('http://localhost/api/shipping/tracking/RM123456789GB');
       const response = await GET(request, { params: Promise.resolve({ trackingNumber: 'RM123456789GB' }) });
-      const data = await response.json();
+      const json = await response.json();
 
-      expect(data.estimatedDelivery).toBeDefined();
+      expect(json.data.estimatedDelivery).toBeDefined();
     });
   });
 

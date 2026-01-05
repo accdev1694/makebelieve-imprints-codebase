@@ -91,3 +91,4 @@ See `base/COST_OPTIMIZATION.md` for free tier service setup (Vercel, Railway, Ne
 ---
 
 **Architecture documentation is complete. Ready to begin implementation.**
+ - whenever you create a new page, always add a link to it at the appropriate place, appropriately styled.

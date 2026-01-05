@@ -27,8 +27,9 @@ import { storageService } from '@/lib/api/storage';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Camera, AlertCircle, MessageSquare, Lock, RefreshCw, CheckCircle, XCircle, CreditCard, Share2, Copy, Check } from 'lucide-react';
+import { X, Camera, AlertCircle, MessageSquare, Lock, RefreshCw, CheckCircle, XCircle, CreditCard, Share2, Copy, Check, Star } from 'lucide-react';
 import { useCart, AddToCartPayload } from '@/contexts/CartContext';
+import { ReviewForm } from '@/components/reviews';
 
 // Enhanced issue reasons with NEVER_ARRIVED
 const ISSUE_REASONS = [
@@ -145,6 +146,11 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   // Share link state
   const [copied, setCopied] = useState(false);
 
+  // Review state
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [hasReview, setHasReview] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+
   useEffect(() => {
     const loadOrder = async () => {
       if (!orderId) {
@@ -156,6 +162,22 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
       try {
         const orderData = await ordersService.get(orderId);
         setOrder(orderData);
+
+        // Check if order has a review (for delivered orders)
+        if (orderData.status === 'delivered') {
+          try {
+            const reviewResponse = await apiClient.get(`/reviews?orderId=${orderId}`);
+            setHasReview(reviewResponse.data?.data?.reviews?.length > 0);
+          } catch {
+            // No review exists
+          }
+        }
+
+        // Check URL param for auto-opening review form
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('review') === 'true' && orderData.status === 'delivered') {
+          setShowReviewForm(true);
+        }
       } catch (err: unknown) {
         const e = err as { error?: string; message?: string };
         setError(e?.error || e?.message || 'Failed to load order');
@@ -663,6 +685,68 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Review Section - Show for delivered orders */}
+        {order.status === 'delivered' && !hasReview && !reviewSubmitted && (
+          <Card className="card-glow mb-6 border-green-500/30 bg-green-500/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-500" />
+                Leave a Review
+              </CardTitle>
+              <CardDescription>
+                Share your experience and earn 50 loyalty points!
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {showReviewForm ? (
+                <ReviewForm
+                  orderId={orderId}
+                  onSuccess={() => {
+                    setReviewSubmitted(true);
+                    setShowReviewForm(false);
+                  }}
+                  onCancel={() => setShowReviewForm(false)}
+                />
+              ) : (
+                <Button
+                  onClick={() => setShowReviewForm(true)}
+                  className="w-full bg-green-600 hover:bg-green-700"
+                >
+                  <Star className="w-4 h-4 mr-2" />
+                  Write a Review & Earn 50 Points
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Review Submitted Success */}
+        {reviewSubmitted && (
+          <Card className="card-glow mb-6 border-green-500/50 bg-green-500/5">
+            <CardContent className="py-6 text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <h3 className="font-semibold text-green-600 mb-1">Thank you for your review!</h3>
+              <p className="text-sm text-muted-foreground">50 points have been added to your account.</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Already Reviewed */}
+        {order.status === 'delivered' && hasReview && !reviewSubmitted && (
+          <Card className="card-glow mb-6">
+            <CardContent className="py-6 text-center">
+              <div className="flex gap-1 justify-center mb-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star key={star} className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">You&apos;ve already reviewed this order. Thank you!</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Order Items with Per-Item Issue Buttons */}
         <Card className="card-glow mb-6">

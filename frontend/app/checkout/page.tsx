@@ -19,7 +19,9 @@ import {
   ShippingAddress,
 } from '@/lib/api/orders';
 import { formatPrice, Product, productsService } from '@/lib/api/products';
-import { ShoppingBag, CreditCard, Lock, Truck, Clock, Zap, CheckCircle, ExternalLink, Tag, X, Loader2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingBag, CreditCard, Lock, Truck, Clock, Zap, CheckCircle, ExternalLink, Tag, X, Loader2, Plus, ChevronLeft, ChevronRight, Coins } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import { redirectToCheckout } from '@/lib/stripe';
 
 type CheckoutMode = 'cart' | 'design';
@@ -149,6 +151,11 @@ function CheckoutContent() {
   } | null>(null);
   const [promoError, setPromoError] = useState('');
 
+  // Loyalty points state
+  const [userPoints, setUserPoints] = useState(0);
+  const [pointsToUse, setPointsToUse] = useState(0);
+  const [usePoints, setUsePoints] = useState(false);
+
   // Suggested products state
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(true);
@@ -179,6 +186,22 @@ function CheckoutContent() {
       setLoadingSuggestions(false);
     }
   }, [cartItems, mode]);
+
+  // Load user's loyalty points
+  useEffect(() => {
+    const loadPoints = async () => {
+      try {
+        const response = await fetch('/api/users/points');
+        const data = await response.json();
+        if (data.success && data.data) {
+          setUserPoints(data.data.points || 0);
+        }
+      } catch {
+        // Silent fail - points feature is not critical
+      }
+    };
+    loadPoints();
+  }, []);
 
   // Load design for legacy mode
   useEffect(() => {
@@ -220,7 +243,12 @@ function CheckoutContent() {
   const finalSubtotal = mode === 'cart' ? subtotal : designPrice;
   const finalTax = mode === 'cart' ? tax : 0;
   const discountAmount = appliedPromo?.discountAmount || 0;
-  const finalTotal = Math.max(0, finalSubtotal + finalTax + actualShippingCost - discountAmount);
+  const pointsDiscount = usePoints ? pointsToUse / 100 : 0; // 100 points = £1
+  const finalTotal = Math.max(0, finalSubtotal + finalTax + actualShippingCost - discountAmount - pointsDiscount);
+
+  // Calculate max redeemable points (can't go below 0 total)
+  const maxRedeemableAmount = Math.max(0, finalSubtotal + finalTax + actualShippingCost - discountAmount);
+  const maxRedeemablePoints = Math.min(userPoints, Math.floor(maxRedeemableAmount * 100));
 
   // Validate promo code
   const handleApplyPromo = async () => {
@@ -349,6 +377,7 @@ function CheckoutContent() {
           subtotal: finalSubtotal + finalTax,
           discountAmount: discountAmount > 0 ? discountAmount : undefined,
           promoCode: appliedPromo?.code,
+          pointsToRedeem: usePoints && pointsToUse >= 500 ? pointsToUse : undefined,
           totalPrice: finalTotal,
         });
       } else if (design) {
@@ -840,6 +869,55 @@ function CheckoutContent() {
                     )}
                   </div>
 
+                  {/* Loyalty Points Redemption */}
+                  {userPoints >= 500 && (
+                    <div className="space-y-3 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium flex items-center gap-2">
+                          <Coins className="h-4 w-4 text-yellow-500" />
+                          Use Loyalty Points
+                        </label>
+                        <Switch
+                          checked={usePoints}
+                          onCheckedChange={(checked: boolean) => {
+                            setUsePoints(checked);
+                            if (checked) {
+                              setPointsToUse(Math.min(maxRedeemablePoints, userPoints));
+                            } else {
+                              setPointsToUse(0);
+                            }
+                          }}
+                        />
+                      </div>
+                      {usePoints && (
+                        <>
+                          <div className="flex justify-between text-sm">
+                            <span>Available: {userPoints} pts</span>
+                            <span className="text-muted-foreground">(£{(userPoints / 100).toFixed(2)})</span>
+                          </div>
+                          <Slider
+                            value={[pointsToUse]}
+                            onValueChange={(values: number[]) => setPointsToUse(values[0])}
+                            max={maxRedeemablePoints}
+                            min={500}
+                            step={100}
+                            className="mt-2"
+                          />
+                          <div className="flex justify-between text-sm">
+                            <span>Using: {pointsToUse} points</span>
+                            <span className="text-green-500 font-medium">-£{(pointsToUse / 100).toFixed(2)}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {userPoints > 0 && userPoints < 500 && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Coins className="h-3 w-3" />
+                      You have {userPoints} points. Earn {500 - userPoints} more to redeem!
+                    </p>
+                  )}
+
                   <Separator />
 
                   {/* Price Breakdown */}
@@ -868,6 +946,12 @@ function CheckoutContent() {
                       <div className="flex justify-between text-sm text-green-500">
                         <span>Discount ({appliedPromo.code}):</span>
                         <span>-{formatPrice(appliedPromo.discountAmount)}</span>
+                      </div>
+                    )}
+                    {usePoints && pointsDiscount > 0 && (
+                      <div className="flex justify-between text-sm text-yellow-500">
+                        <span>Points Discount:</span>
+                        <span>-{formatPrice(pointsDiscount)}</span>
                       </div>
                     )}
                     <Separator />

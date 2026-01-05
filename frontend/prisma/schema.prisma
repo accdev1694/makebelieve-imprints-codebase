@@ -15,6 +15,7 @@ model User {
   passwordHash        String               @map("password_hash") @db.VarChar(255)
   name                String               @db.VarChar(255)
   profile             Json?
+  loyaltyPoints       Int                  @default(0) @map("loyalty_points")
   createdAt           DateTime             @default(now()) @map("created_at")
   updatedAt           DateTime             @default(now()) @updatedAt @map("updated_at")
   designs             Design[]
@@ -26,6 +27,7 @@ model User {
   wishlistItems       WishlistItem[]
   cartItems           CartItem[]
   recoveryCampaigns   RecoveryCampaign[]
+  pointsTransactions  PointsTransaction[]
   lastRecoveryEmailAt DateTime?            @map("last_recovery_email_at")
 
   @@index([email])
@@ -269,6 +271,8 @@ model Order {
   subtotal         Decimal?         @db.Decimal(10, 2)
   discountAmount   Decimal?         @map("discount_amount") @db.Decimal(10, 2)
   promoCode        String?          @map("promo_code") @db.VarChar(50)
+  pointsUsed       Int?             @map("points_used")
+  pointsDiscount   Decimal?         @map("points_discount") @db.Decimal(10, 2)
   totalPrice       Decimal          @map("total_price") @db.Decimal(10, 2)
   shippingAddress  Json             @map("shipping_address")
   royalmailOrderId String?          @map("royalmail_order_id") @db.VarChar(255)
@@ -346,14 +350,33 @@ model Review {
   reviewerId String   @map("reviewer_id") @db.Uuid
   rating     Int
   comment    String?
+  featured   Boolean  @default(false)
+  approved   Boolean  @default(false)
   createdAt  DateTime @default(now()) @map("created_at")
   order      Order    @relation(fields: [orderId], references: [id])
   reviewer   User     @relation(fields: [reviewerId], references: [id])
 
   @@index([orderId])
   @@index([rating])
+  @@index([approved, rating])
+  @@index([featured])
   @@index([createdAt(sort: Desc)])
   @@map("reviews")
+}
+
+model PointsTransaction {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  amount      Int      // positive = earn, negative = spend
+  type        String   @db.VarChar(50) // "REVIEW_REWARD", "CHECKOUT_REDEMPTION"
+  referenceId String?  @map("reference_id") @db.VarChar(100) // reviewId or orderId
+  createdAt   DateTime @default(now()) @map("created_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt(sort: Desc)])
+  @@map("points_transactions")
 }
 
 model UserPreference {

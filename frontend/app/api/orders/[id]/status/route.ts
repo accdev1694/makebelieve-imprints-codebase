@@ -11,6 +11,7 @@ import {
   extractAuditContext,
   ActorType,
 } from '@/lib/server/audit-service';
+import { sendReviewRequestEmail } from '@/lib/server/email';
 import { OrderStatus } from '@prisma/client';
 
 interface RouteParams {
@@ -91,6 +92,23 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         await updateIncomeStatus(id, 'CONFIRMED');
       } catch (accountingError) {
         console.error('Failed to update income status:', accountingError);
+      }
+
+      // Send review request email
+      try {
+        const orderItems = order.items.map(item => ({
+          name: item.product?.name || 'Custom Design',
+          quantity: item.quantity,
+        }));
+        await sendReviewRequestEmail(
+          order.customer.email,
+          order.customer.name,
+          order.id,
+          orderItems
+        );
+        console.log(`[Email] Review request email sent for order ${id}`);
+      } catch (emailError) {
+        console.error('Failed to send review request email:', emailError);
       }
     }
 

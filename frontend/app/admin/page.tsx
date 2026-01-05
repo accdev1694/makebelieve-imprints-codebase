@@ -206,6 +206,11 @@ function AdminDashboardContent() {
             <Link href="/admin/customers">
               <Button variant="outline">View Customers</Button>
             </Link>
+            <Link href="/admin/reviews">
+              <Button variant="outline" className="border-yellow-500/50 text-yellow-500 hover:text-yellow-600">
+                Reviews
+              </Button>
+            </Link>
             <Link href="/admin/subscribers">
               <Button variant="outline">Subscribers</Button>
             </Link>

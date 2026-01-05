@@ -125,6 +125,8 @@ export interface CreateOrderData {
   subtotal?: number;
   discountAmount?: number;
   promoCode?: string;
+  // Points redemption
+  pointsToRedeem?: number;
 }
 
 export interface OrdersListResponse {

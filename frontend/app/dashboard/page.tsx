@@ -6,10 +6,13 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Coins } from 'lucide-react';
 import Link from 'next/link';
 import { ordersService } from '@/lib/api/orders';
 import { designsService } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
+import { PendingReviewsBanner } from '@/components/reviews';
+import { getUserPoints } from '@/lib/api/points';
 
 function DashboardContent() {
   const { user } = useAuth();
@@ -17,6 +20,8 @@ function DashboardContent() {
   const [pendingOrders, setPendingOrders] = useState(0);
   const [activeDesigns, setActiveDesigns] = useState(0);
   const [unreadIssues, setUnreadIssues] = useState(0);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [pointsValue, setPointsValue] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,6 +52,15 @@ function DashboardContent() {
         } catch {
           // Issues endpoint might fail if no issues exist
         }
+
+        // Fetch loyalty points
+        try {
+          const pointsData = await getUserPoints();
+          setLoyaltyPoints(pointsData.points);
+          setPointsValue(pointsData.discountValue);
+        } catch {
+          // Points endpoint might fail
+        }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -75,8 +89,11 @@ function DashboardContent() {
           </div>
         </div>
 
+        {/* Pending Reviews Banner */}
+        <PendingReviewsBanner />
+
         {/* Quick Stats */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card className="card-glow">
             <CardHeader>
               <CardTitle className="text-lg">Total Orders</CardTitle>
@@ -115,6 +132,23 @@ function DashboardContent() {
                 <div className="h-10 w-12 bg-accent/20 rounded animate-pulse" />
               ) : (
                 <p className="text-4xl font-bold text-accent">{pendingOrders}</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="card-glow">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Coins className="w-5 h-5 text-yellow-500" />
+                Loyalty Points
+              </CardTitle>
+              <CardDescription>Worth {'\u00A3'}{pointsValue.toFixed(2)} off</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="h-10 w-16 bg-yellow-500/20 rounded animate-pulse" />
+              ) : (
+                <p className="text-4xl font-bold text-yellow-600">{loyaltyPoints}</p>
               )}
             </CardContent>
           </Card>

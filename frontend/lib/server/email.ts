@@ -1986,3 +1986,138 @@ ${APP_NAME}
 
   return sendEmail({ to, subject, html, text });
 }
+
+/**
+ * Send review request email after order is delivered
+ */
+export async function sendReviewRequestEmail(
+  email: string,
+  customerName: string,
+  orderId: string,
+  orderItems: { name: string; quantity: number }[]
+): Promise<boolean> {
+  const firstName = customerName.split(' ')[0];
+  const reviewUrl = `${APP_URL}/orders/${orderId}?review=true`;
+  const pointsReward = 50;
+
+  const subject = `How was your order? Leave a review & earn ${pointsReward} points!`;
+
+  // Build product list HTML
+  const productListHtml = orderItems.slice(0, 3).map(item => `
+    <tr>
+      <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+        ${item.name} ${item.quantity > 1 ? `(x${item.quantity})` : ''}
+      </td>
+    </tr>
+  `).join('');
+
+  const moreItemsText = orderItems.length > 3
+    ? `<p style="color: #6b7280; font-size: 14px;">+ ${orderItems.length - 3} more item${orderItems.length - 3 > 1 ? 's' : ''}</p>`
+    : '';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f3f4f6;">
+      <div style="background-color: #6366f1; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">${APP_NAME}</h1>
+      </div>
+
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #1f2937; margin-top: 0; text-align: center;">
+          Your order has arrived!
+        </h2>
+
+        <p>Hi ${firstName},</p>
+
+        <p>We hope you're loving your order! We'd really appreciate it if you could take a moment to share your experience.</p>
+
+        <!-- Order Summary -->
+        <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0 0 10px; font-weight: bold; color: #374151;">Your order included:</p>
+          <table style="width: 100%; border-collapse: collapse;">
+            ${productListHtml}
+          </table>
+          ${moreItemsText}
+        </div>
+
+        <!-- Points Reward Box -->
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 25px; border-radius: 12px; margin: 25px 0; text-align: center;">
+          <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Earn Loyalty Points</p>
+          <p style="margin: 10px 0; font-size: 48px; font-weight: bold; color: white;">+${pointsReward}</p>
+          <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 16px;">points when you leave a review</p>
+          <p style="margin: 10px 0 0; color: rgba(255,255,255,0.8); font-size: 14px;">
+            100 points = £1 off your next order
+          </p>
+        </div>
+
+        <!-- Star Rating Preview -->
+        <div style="text-align: center; margin: 30px 0;">
+          <p style="color: #6b7280; margin-bottom: 15px;">How would you rate your experience?</p>
+          <div style="font-size: 36px; letter-spacing: 8px;">
+            ⭐ ⭐ ⭐ ⭐ ⭐
+          </div>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${reviewUrl}" style="background-color: #6366f1; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; border: 2px solid #6366f1; font-size: 16px;">
+            Leave a Review & Earn ${pointsReward} Points
+          </a>
+        </div>
+
+        <p style="color: #6b7280; font-size: 14px; text-align: center;">
+          It only takes a minute and helps other customers!
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+        <p style="color: #9ca3af; font-size: 12px; margin-bottom: 0; text-align: center;">
+          Thank you for shopping with ${APP_NAME}!
+        </p>
+      </div>
+
+      <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
+        <p>&copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const productListText = orderItems.slice(0, 3).map(item =>
+    `• ${item.name}${item.quantity > 1 ? ` (x${item.quantity})` : ''}`
+  ).join('\n');
+
+  const text = `
+Your order has arrived!
+
+Hi ${firstName},
+
+We hope you're loving your order! We'd really appreciate it if you could take a moment to share your experience.
+
+Your order included:
+${productListText}
+${orderItems.length > 3 ? `+ ${orderItems.length - 3} more items` : ''}
+
+---
+
+🎉 EARN ${pointsReward} LOYALTY POINTS
+Leave a review and get ${pointsReward} points!
+100 points = £1 off your next order
+
+---
+
+Leave your review here: ${reviewUrl}
+
+It only takes a minute and helps other customers!
+
+---
+Thank you for shopping with ${APP_NAME}!
+  `.trim();
+
+  return sendEmail({ to: email, subject, html, text });
+}

@@ -11,7 +11,7 @@ export const PASSWORD_REQUIREMENTS = {
   requireUppercase: /[A-Z]/,
   requireLowercase: /[a-z]/,
   requireNumber: /[0-9]/,
-  requireSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
+  requireSpecial: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
 };
 
 export interface ValidationResult {
@@ -59,9 +59,11 @@ export function validateEmail(email: string): ValidationResult {
  * Sanitizes user name input
  */
 export function sanitizeName(name: string): string {
+  // eslint-disable-next-line no-control-regex
+  const controlCharsRegex = /[\x00-\x1F\x7F]/g;
   return name
     .trim()
-    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+    .replace(controlCharsRegex, '') // Remove control characters
     .replace(/[<>]/g, '') // Remove potential HTML injection chars
     .substring(0, 100); // Limit to 100 characters
 }

@@ -1,4 +1,4 @@
-import { mockDeep, mockReset, DeepMockProxy } from 'jest-mock-extended';
+import { mockReset, DeepMockProxy } from 'jest-mock-extended';
 import { PrismaClient, UserType, User, RefreshToken, PasswordResetToken } from '@prisma/client';
 
 // Mock prisma with __esModule flag for proper default export handling

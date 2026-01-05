@@ -33,24 +33,14 @@ export async function POST(request: NextRequest) {
     // Set auth cookies
     return setAuthCookies(response, result.tokens.accessToken, result.tokens.refreshToken);
   } catch (error) {
-    // Handle distinct login errors
-    if (error instanceof UserNotFoundError) {
+    // Return generic error for both UserNotFoundError and InvalidPasswordError
+    // to prevent account enumeration attacks
+    if (error instanceof UserNotFoundError || error instanceof InvalidPasswordError) {
       return NextResponse.json(
         {
-          error: error.message,
-          code: error.code,
-          message: 'No account found with this email. Would you like to create one?',
-        },
-        { status: 401 }
-      );
-    }
-
-    if (error instanceof InvalidPasswordError) {
-      return NextResponse.json(
-        {
-          error: error.message,
-          code: error.code,
-          message: 'Incorrect password. Forgot your password?',
+          error: 'Invalid credentials',
+          code: 'INVALID_CREDENTIALS',
+          message: 'Invalid email or password',
         },
         { status: 401 }
       );

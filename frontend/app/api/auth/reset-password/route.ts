@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resetPassword } from '@/lib/server/auth-service';
 import { handleApiError } from '@/lib/server/auth';
+import { validatePassword } from '@/lib/server/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,10 +23,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate password strength
-    if (password.length < 8) {
+    // Validate password complexity
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
       return NextResponse.json(
-        { error: 'Password must be at least 8 characters long' },
+        { error: passwordValidation.errors.join('. ') },
         { status: 400 }
       );
     }

@@ -42,6 +42,12 @@ jest.mock('../email', () => ({
     mockSendPasswordResetEmail(email, name, token),
 }));
 
+// Mock validation module
+const mockValidatePassword = jest.fn();
+jest.mock('../validation', () => ({
+  validatePassword: (password: string) => mockValidatePassword(password),
+}));
+
 import {
   register,
   login,
@@ -65,6 +71,7 @@ describe('Auth Service', () => {
     mockGenerateRefreshToken.mockReturnValue('mock_refresh_token');
     mockGetRefreshTokenExpiry.mockReturnValue(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
     mockSendPasswordResetEmail.mockResolvedValue(undefined);
+    mockValidatePassword.mockReturnValue({ valid: true, errors: [] });
   });
 
   // Helper to create a mock user
@@ -369,6 +376,18 @@ describe('Auth Service', () => {
       await expect(resetPassword('expired_token', 'newpassword')).rejects.toThrow(
         'Invalid or expired reset token'
       );
+    });
+
+    it('should throw error when password fails validation', async () => {
+      mockValidatePassword.mockReturnValue({
+        valid: false,
+        errors: ['Password must be at least 8 characters', 'Password must contain special character'],
+      });
+
+      await expect(resetPassword('valid_token', 'weak')).rejects.toThrow(
+        'Password must be at least 8 characters. Password must contain special character'
+      );
+      expect(prisma.passwordResetToken.findFirst).not.toHaveBeenCalled();
     });
   });
 

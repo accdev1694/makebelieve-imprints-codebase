@@ -48,6 +48,13 @@ jest.mock('../validation', () => ({
   validatePassword: (password: string) => mockValidatePassword(password),
 }));
 
+// Mock token blacklist module
+const mockRevokeAllUserTokens = jest.fn();
+jest.mock('../token-blacklist', () => ({
+  revokeAllUserTokens: (userId: string, maxLifetime: number, reason?: string) =>
+    mockRevokeAllUserTokens(userId, maxLifetime, reason),
+}));
+
 import {
   register,
   login,

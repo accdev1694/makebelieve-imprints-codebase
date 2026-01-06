@@ -1,9 +1,13 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
+import { isTokenRevoked } from './token-blacklist';
 
 /**
  * JWT token utilities for authentication
  * Access tokens: 15 minutes (short-lived, httpOnly cookies)
  * Refresh tokens: 7 days (long-lived, stored in database)
+ *
+ * Token revocation: Access tokens can be immediately revoked via the
+ * token blacklist. This is checked during verification.
  */
 
 // Token configuration
@@ -51,10 +55,18 @@ export function generateRefreshToken(payload: TokenPayload): string {
 
 /**
  * Verify and decode an access token
+ * Also checks if the token has been revoked via the blacklist
  */
 export function verifyAccessToken(token: string): DecodedToken {
   try {
-    return jwt.verify(token, ACCESS_TOKEN_SECRET) as DecodedToken;
+    const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET) as DecodedToken;
+
+    // Check if token has been revoked
+    if (isTokenRevoked(decoded.userId, decoded.iat)) {
+      throw new Error('Token has been revoked');
+    }
+
+    return decoded;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       throw new Error('Access token expired');

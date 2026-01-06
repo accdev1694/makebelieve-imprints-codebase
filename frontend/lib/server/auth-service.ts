@@ -11,6 +11,7 @@ import {
 } from './jwt';
 import { sendPasswordResetEmail } from './email';
 import { validatePassword } from './validation';
+import { revokeAllUserTokens } from './token-blacklist';
 
 // Custom error classes for distinct login errors
 export class UserNotFoundError extends Error {
@@ -334,6 +335,10 @@ export async function resetPassword(
       where: { userId: resetToken.userId },
     }),
   ]);
+
+  // Immediately revoke all access tokens for this user
+  // This ensures any active sessions are terminated instantly
+  revokeAllUserTokens(resetToken.userId, 15 * 60, 'Password reset');
 
   return {
     success: true,

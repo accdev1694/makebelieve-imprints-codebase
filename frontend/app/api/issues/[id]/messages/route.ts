@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
+import {
+  getIssueMessages,
+  sendCustomerMessage,
+  markMessagesAsRead,
+} from '@/lib/server/issue-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -30,35 +35,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!issue) {
-      return NextResponse.json(
-        { error: 'Issue not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Issue not found' }, { status: 404 });
     }
 
     if (issue.orderItem.order.customerId !== user.userId) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const messages = await prisma.issueMessage.findMany({
-      where: { issueId },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    // Mark admin messages as read
-    await prisma.issueMessage.updateMany({
-      where: {
-        issueId,
-        sender: 'ADMIN',
-        readAt: null,
-      },
-      data: {
-        readAt: new Date(),
-      },
-    });
+    const messages = await getIssueMessages(issueId);
+    await markMessagesAsRead(issueId, 'ADMIN');
 
     return NextResponse.json({ messages });
   } catch (error) {
@@ -79,79 +64,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const { content, imageUrls } = body;
 
-    if (!content || content.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Message content is required' },
-        { status: 400 }
-      );
+    const result = await sendCustomerMessage(issueId, user.userId, content, imageUrls);
+
+    if (!result.success) {
+      const status = result.error === 'Issue not found' ? 404
+        : result.error === 'Access denied' ? 403
+        : 400;
+      return NextResponse.json({ error: result.error }, { status });
     }
-
-    // Verify ownership and get issue
-    const issue = await prisma.issue.findUnique({
-      where: { id: issueId },
-      include: {
-        orderItem: {
-          include: {
-            order: {
-              select: { customerId: true },
-            },
-          },
-        },
-      },
-    });
-
-    if (!issue) {
-      return NextResponse.json(
-        { error: 'Issue not found' },
-        { status: 404 }
-      );
-    }
-
-    if (issue.orderItem.order.customerId !== user.userId) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      );
-    }
-
-    // Check if issue is concluded (no further actions allowed)
-    if (issue.isConcluded) {
-      return NextResponse.json(
-        { error: 'This issue has been concluded and no longer accepts messages' },
-        { status: 400 }
-      );
-    }
-
-    // Validate imageUrls
-    const validatedImageUrls = Array.isArray(imageUrls)
-      ? imageUrls.filter((url: unknown) => typeof url === 'string' && url.length > 0)
-      : [];
-
-    // Create the message
-    const message = await prisma.issueMessage.create({
-      data: {
-        issueId,
-        sender: 'CUSTOMER',
-        senderId: user.userId,
-        content: content.trim(),
-        imageUrls: validatedImageUrls.length > 0 ? validatedImageUrls : undefined,
-      },
-    });
-
-    // If issue was in INFO_REQUESTED, move back to AWAITING_REVIEW
-    if (issue.status === 'INFO_REQUESTED') {
-      await prisma.issue.update({
-        where: { id: issueId },
-        data: { status: 'AWAITING_REVIEW' },
-      });
-    }
-
-    // TODO: Send email notification to admin
 
     return NextResponse.json({
       success: true,
       message: 'Message sent successfully',
-      data: message,
+      data: result.message,
     });
   } catch (error) {
     console.error('Send issue message error:', error);

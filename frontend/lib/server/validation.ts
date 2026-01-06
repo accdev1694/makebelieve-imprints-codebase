@@ -67,3 +67,126 @@ export function sanitizeName(name: string): string {
     .replace(/[<>]/g, '') // Remove potential HTML injection chars
     .substring(0, 100); // Limit to 100 characters
 }
+
+// ============================================
+// Extended Validators
+// ============================================
+
+// UUID validation regex (v1-5)
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * Validates UUID format
+ */
+export function validateUUID(id: string): ValidationResult {
+  if (!id || !UUID_REGEX.test(id)) {
+    return { valid: false, errors: ['Invalid ID format'] };
+  }
+  return { valid: true, errors: [] };
+}
+
+/**
+ * Validates and normalizes pagination parameters
+ * Returns safe defaults if invalid
+ */
+export function validatePagination(
+  page: unknown,
+  limit: unknown,
+  maxLimit: number = 100
+): { page: number; limit: number } {
+  const parsedPage = parseInt(String(page || '1'), 10);
+  const parsedLimit = parseInt(String(limit || '20'), 10);
+
+  return {
+    page: Math.max(1, isNaN(parsedPage) ? 1 : parsedPage),
+    limit: Math.min(maxLimit, Math.max(1, isNaN(parsedLimit) ? 20 : parsedLimit)),
+  };
+}
+
+/**
+ * Validates a numeric amount (non-negative)
+ */
+export function validateAmount(amount: unknown): ValidationResult {
+  const num = Number(amount);
+  if (isNaN(num) || num < 0) {
+    return { valid: false, errors: ['Invalid amount'] };
+  }
+  return { valid: true, errors: [] };
+}
+
+/**
+ * Validates a positive integer
+ */
+export function validatePositiveInt(value: unknown, fieldName: string = 'Value'): ValidationResult {
+  const num = Number(value);
+  if (isNaN(num) || !Number.isInteger(num) || num <= 0) {
+    return { valid: false, errors: [`${fieldName} must be a positive integer`] };
+  }
+  return { valid: true, errors: [] };
+}
+
+/**
+ * Creates a string length validator
+ */
+export function createStringValidator(
+  fieldName: string,
+  minLength: number,
+  maxLength: number
+): (value: string) => ValidationResult {
+  return (value: string): ValidationResult => {
+    const errors: string[] = [];
+    if (!value || typeof value !== 'string') {
+      errors.push(`${fieldName} is required`);
+      return { valid: false, errors };
+    }
+    if (value.length < minLength) {
+      errors.push(`${fieldName} must be at least ${minLength} characters`);
+    }
+    if (value.length > maxLength) {
+      errors.push(`${fieldName} must be at most ${maxLength} characters`);
+    }
+    return { valid: errors.length === 0, errors };
+  };
+}
+
+/**
+ * Creates an enum validator
+ */
+export function createEnumValidator<T extends string>(
+  fieldName: string,
+  validValues: readonly T[]
+): (value: string) => ValidationResult {
+  return (value: string): ValidationResult => {
+    if (!validValues.includes(value as T)) {
+      return {
+        valid: false,
+        errors: [`Invalid ${fieldName}. Must be one of: ${validValues.join(', ')}`],
+      };
+    }
+    return { valid: true, errors: [] };
+  };
+}
+
+/**
+ * Validates that required fields are present and non-empty
+ */
+export function validateRequired(fields: Record<string, unknown>): ValidationResult {
+  const errors: string[] = [];
+  for (const [key, value] of Object.entries(fields)) {
+    if (value === undefined || value === null || value === '') {
+      errors.push(`${key} is required`);
+    }
+  }
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Combines multiple validation results into one
+ */
+export function combineValidationResults(...results: ValidationResult[]): ValidationResult {
+  const allErrors = results.flatMap((r) => r.errors);
+  return {
+    valid: allErrors.length === 0,
+    errors: allErrors,
+  };
+}

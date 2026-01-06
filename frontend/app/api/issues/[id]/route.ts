@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
+import { getCustomerIssue, withdrawIssue } from '@/lib/server/issue-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -15,98 +15,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const user = await requireAuth(request);
     const { id: issueId } = await params;
 
-    const issue = await prisma.issue.findUnique({
-      where: { id: issueId },
-      include: {
-        orderItem: {
-          include: {
-            order: {
-              select: {
-                id: true,
-                status: true,
-                createdAt: true,
-                trackingNumber: true,
-                shippingAddress: true,
-              },
-            },
-            product: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-            variant: {
-              select: {
-                id: true,
-                name: true,
-                size: true,
-                color: true,
-              },
-            },
-            design: {
-              select: {
-                id: true,
-                title: true,
-                previewUrl: true,
-                fileUrl: true,
-              },
-            },
-          },
-        },
-        messages: {
-          orderBy: { createdAt: 'asc' },
-        },
-        originalIssue: {
-          select: {
-            id: true,
-            reason: true,
-            status: true,
-            createdAt: true,
-          },
-        },
-        childIssues: {
-          select: {
-            id: true,
-            reason: true,
-            status: true,
-            createdAt: true,
-          },
-        },
-      },
-    });
+    const { issue, error } = await getCustomerIssue(issueId, user.userId);
 
-    if (!issue) {
-      return NextResponse.json(
-        { error: 'Issue not found' },
-        { status: 404 }
-      );
+    if (error === 'Issue not found') {
+      return NextResponse.json({ error }, { status: 404 });
     }
-
-    // Verify ownership
-    const order = await prisma.order.findUnique({
-      where: { id: issue.orderItem.order.id },
-      select: { customerId: true },
-    });
-
-    if (order?.customerId !== user.userId) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      );
+    if (error === 'Access denied') {
+      return NextResponse.json({ error }, { status: 403 });
     }
-
-    // Mark admin messages as read
-    await prisma.issueMessage.updateMany({
-      where: {
-        issueId: issueId,
-        sender: 'ADMIN',
-        readAt: null,
-      },
-      data: {
-        readAt: new Date(),
-      },
-    });
 
     return NextResponse.json({ issue });
   } catch (error) {
@@ -124,47 +40,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const user = await requireAuth(request);
     const { id: issueId } = await params;
 
-    const issue = await prisma.issue.findUnique({
-      where: { id: issueId },
-      include: {
-        orderItem: {
-          include: {
-            order: {
-              select: { customerId: true },
-            },
-          },
-        },
-      },
-    });
+    const result = await withdrawIssue(issueId, user.userId);
 
-    if (!issue) {
-      return NextResponse.json(
-        { error: 'Issue not found' },
-        { status: 404 }
-      );
+    if (!result.success) {
+      const status = result.error === 'Issue not found' ? 404
+        : result.error === 'Access denied' ? 403
+        : 400;
+      return NextResponse.json({ error: result.error }, { status });
     }
-
-    // Verify ownership
-    if (issue.orderItem.order.customerId !== user.userId) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      );
-    }
-
-    // Can only withdraw if in early stages
-    const withdrawableStatuses = ['SUBMITTED', 'AWAITING_REVIEW'];
-    if (!withdrawableStatuses.includes(issue.status)) {
-      return NextResponse.json(
-        { error: 'This issue can no longer be withdrawn as it is already being processed' },
-        { status: 400 }
-      );
-    }
-
-    // Delete the issue (cascade will delete messages)
-    await prisma.issue.delete({
-      where: { id: issueId },
-    });
 
     return NextResponse.json({
       success: true,

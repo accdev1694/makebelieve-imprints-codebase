@@ -1,0 +1,1 @@
+export { sendIssueReceivedEmail } from './received';

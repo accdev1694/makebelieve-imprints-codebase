@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
+import { getImportBatch, deleteImportBatch } from '@/lib/server/expense-service';
 
 interface RouteParams {
   params: Promise<{ batchId: string }>;
@@ -15,43 +15,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     await requireAdmin(request);
     const { batchId } = await params;
 
-    const batch = await prisma.expenseImportBatch.findUnique({
-      where: { id: batchId },
-    });
+    const result = await getImportBatch(batchId);
 
-    if (!batch) {
-      return NextResponse.json(
-        { success: false, error: 'Import batch not found' },
-        { status: 404 }
-      );
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 404 });
     }
 
-    // Get expenses imported in this batch
-    const expenses = await prisma.expense.findMany({
-      where: { importBatchId: batchId },
-      include: {
-        supplier: {
-          select: { id: true, name: true },
-        },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        batch: {
-          ...batch,
-          errors: batch.errors || [],
-        },
-        expenses: expenses.map(e => ({
-          ...e,
-          amount: Number(e.amount),
-          vatAmount: e.vatAmount ? Number(e.vatAmount) : null,
-          vatRate: e.vatRate ? Number(e.vatRate) : null,
-        })),
-      },
-    });
+    return NextResponse.json({ success: true, data: result.data });
   } catch (error) {
     console.error('Get import batch error:', error);
     return handleApiError(error);
@@ -70,41 +40,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { searchParams } = new URL(request.url);
     const deleteExpenses = searchParams.get('deleteExpenses') === 'true';
 
-    const batch = await prisma.expenseImportBatch.findUnique({
-      where: { id: batchId },
-    });
+    const result = await deleteImportBatch(batchId, deleteExpenses);
 
-    if (!batch) {
-      return NextResponse.json(
-        { success: false, error: 'Import batch not found' },
-        { status: 404 }
-      );
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 404 });
     }
 
-    // Delete associated expenses if requested
-    if (deleteExpenses) {
-      await prisma.expense.deleteMany({
-        where: { importBatchId: batchId },
-      });
-    } else {
-      // Just unlink expenses from batch
-      await prisma.expense.updateMany({
-        where: { importBatchId: batchId },
-        data: { importBatchId: null },
-      });
-    }
-
-    // Delete the batch
-    await prisma.expenseImportBatch.delete({
-      where: { id: batchId },
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: deleteExpenses
-        ? 'Import batch and expenses deleted successfully'
-        : 'Import batch deleted, expenses preserved',
-    });
+    return NextResponse.json({ success: true, message: result.data?.message });
   } catch (error) {
     console.error('Delete import batch error:', error);
     return handleApiError(error);

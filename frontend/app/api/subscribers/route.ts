@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendSubscriptionConfirmEmail } from '@/lib/server/email';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
+import { validateEmail } from '@/lib/server/validation';
 import crypto from 'crypto';
 
 // POST /api/subscribers - Subscribe to newsletter
@@ -17,12 +18,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate email format with stricter regex
-    // Requires: local part, @ symbol, domain with at least one dot, TLD of 2+ chars
-    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email)) {
+    // Validate email format using centralized validation
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
       return NextResponse.json(
-        { error: 'Invalid email format' },
+        { error: emailValidation.errors[0] || 'Invalid email format' },
         { status: 400 }
       );
     }

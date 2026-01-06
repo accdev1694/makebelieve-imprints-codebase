@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
-import { getTaxYearForDate, EXPENSE_CATEGORY_LABELS } from '@/lib/server/tax-utils';
+import { getExpense, updateExpense, deleteExpense } from '@/lib/server/expense-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -16,35 +15,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     await requireAdmin(request);
     const { id } = await params;
 
-    const expense = await prisma.expense.findUnique({
-      where: { id },
-      include: {
-        supplier: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+    const result = await getExpense(id);
 
-    if (!expense) {
-      return NextResponse.json(
-        { success: false, error: 'Expense not found' },
-        { status: 404 }
-      );
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 404 });
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...expense,
-        amount: Number(expense.amount),
-        vatAmount: expense.vatAmount ? Number(expense.vatAmount) : null,
-        vatRate: expense.vatRate ? Number(expense.vatRate) : null,
-        categoryLabel: EXPENSE_CATEGORY_LABELS[expense.category] || expense.category,
-      },
-    });
+    return NextResponse.json({ success: true, data: result.data });
   } catch (error) {
     console.error('Get expense error:', error);
     return handleApiError(error);
@@ -60,94 +37,27 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     await requireAdmin(request);
     const { id } = await params;
 
-    const existing = await prisma.expense.findUnique({
-      where: { id },
-    });
-
-    if (!existing) {
-      return NextResponse.json(
-        { success: false, error: 'Expense not found' },
-        { status: 404 }
-      );
-    }
-
     const body = await request.json();
-    const {
-      description,
-      amount,
-      category,
-      purchaseDate,
-      supplierId,
-      receiptUrl,
-      notes,
-      vatAmount,
-      vatRate,
-      isVatReclaimable,
-      externalReference,
-    } = body;
-
-    // Validation
-    if (!description || !amount || !category || !purchaseDate) {
-      return NextResponse.json(
-        { success: false, error: 'Description, amount, category, and purchase date are required' },
-        { status: 400 }
-      );
-    }
-
-    if (amount <= 0) {
-      return NextResponse.json(
-        { success: false, error: 'Amount must be greater than 0' },
-        { status: 400 }
-      );
-    }
-
-    // Validate category
-    if (!EXPENSE_CATEGORY_LABELS[category]) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid expense category' },
-        { status: 400 }
-      );
-    }
-
-    // Recalculate tax year if purchase date changed
-    const taxYear = getTaxYearForDate(new Date(purchaseDate));
-
-    const expense = await prisma.expense.update({
-      where: { id },
-      data: {
-        description,
-        amount,
-        category,
-        purchaseDate: new Date(purchaseDate),
-        supplierId: supplierId || null,
-        receiptUrl: receiptUrl || null,
-        notes: notes || null,
-        vatAmount: vatAmount ?? null,
-        vatRate: vatRate ?? null,
-        isVatReclaimable: isVatReclaimable ?? false,
-        externalReference: externalReference || null,
-        taxYear,
-      },
-      include: {
-        supplier: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+    const result = await updateExpense(id, {
+      description: body.description,
+      amount: body.amount,
+      category: body.category,
+      purchaseDate: new Date(body.purchaseDate),
+      supplierId: body.supplierId,
+      receiptUrl: body.receiptUrl,
+      notes: body.notes,
+      vatAmount: body.vatAmount,
+      vatRate: body.vatRate,
+      isVatReclaimable: body.isVatReclaimable,
+      externalReference: body.externalReference,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...expense,
-        amount: Number(expense.amount),
-        vatAmount: expense.vatAmount ? Number(expense.vatAmount) : null,
-        vatRate: expense.vatRate ? Number(expense.vatRate) : null,
-        categoryLabel: EXPENSE_CATEGORY_LABELS[expense.category] || expense.category,
-      },
-    });
+    if (!result.success) {
+      const status = result.error === 'Expense not found' ? 404 : 400;
+      return NextResponse.json({ success: false, error: result.error }, { status });
+    }
+
+    return NextResponse.json({ success: true, data: result.data });
   } catch (error) {
     console.error('Update expense error:', error);
     return handleApiError(error);
@@ -163,25 +73,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     await requireAdmin(request);
     const { id } = await params;
 
-    const existing = await prisma.expense.findUnique({
-      where: { id },
-    });
+    const result = await deleteExpense(id);
 
-    if (!existing) {
-      return NextResponse.json(
-        { success: false, error: 'Expense not found' },
-        { status: 404 }
-      );
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 404 });
     }
 
-    await prisma.expense.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Expense deleted successfully',
-    });
+    return NextResponse.json({ success: true, message: 'Expense deleted successfully' });
   } catch (error) {
     console.error('Delete expense error:', error);
     return handleApiError(error);

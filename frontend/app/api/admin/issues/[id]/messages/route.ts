@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
+import {
+  getIssueMessages,
+  sendAdminMessage,
+  markMessagesAsRead,
+  markMessageEmailSent,
+} from '@/lib/server/issue-service';
 import { sendIssueMessageEmail } from '@/lib/server/email';
 
 interface RouteParams {
@@ -21,28 +27,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!issue) {
-      return NextResponse.json(
-        { error: 'Issue not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Issue not found' }, { status: 404 });
     }
 
-    const messages = await prisma.issueMessage.findMany({
-      where: { issueId },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    // Mark customer messages as read
-    await prisma.issueMessage.updateMany({
-      where: {
-        issueId,
-        sender: 'CUSTOMER',
-        readAt: null,
-      },
-      data: {
-        readAt: new Date(),
-      },
-    });
+    const messages = await getIssueMessages(issueId);
+    await markMessagesAsRead(issueId, 'CUSTOMER');
 
     return NextResponse.json({ messages });
   } catch (error) {
@@ -63,14 +52,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const { content, imageUrls } = body;
 
-    if (!content || content.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Message content is required' },
-        { status: 400 }
-      );
+    const result = await sendAdminMessage(issueId, admin.userId, content, imageUrls);
+
+    if (!result.success) {
+      const status = result.error === 'Issue not found' ? 404 : 400;
+      return NextResponse.json({ error: result.error }, { status });
     }
 
-    // Get issue
+    // Get customer info for email
     const issue = await prisma.issue.findUnique({
       where: { id: issueId },
       include: {
@@ -78,13 +67,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           include: {
             order: {
               include: {
-                customer: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                  },
-                },
+                customer: { select: { name: true, email: true } },
               },
             },
           },
@@ -92,68 +75,30 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    if (!issue) {
-      return NextResponse.json(
-        { error: 'Issue not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check if issue is still open for messages
-    const closedStatuses = ['COMPLETED', 'CLOSED'];
-    if (closedStatuses.includes(issue.status)) {
-      return NextResponse.json(
-        { error: 'This issue has been closed and no longer accepts messages' },
-        { status: 400 }
-      );
-    }
-
-    // Validate imageUrls
-    const validatedImageUrls = Array.isArray(imageUrls)
-      ? imageUrls.filter((url: unknown) => typeof url === 'string' && url.length > 0)
-      : [];
-
-    // Create the message
-    const message = await prisma.issueMessage.create({
-      data: {
-        issueId,
-        sender: 'ADMIN',
-        senderId: admin.userId,
-        content: content.trim(),
-        imageUrls: validatedImageUrls.length > 0 ? validatedImageUrls : undefined,
-      },
-    });
-
     // Send email notification to customer
-    const customer = issue.orderItem.order.customer;
-    try {
-      const emailSent = await sendIssueMessageEmail(
-        customer.email,
-        customer.name,
-        issueId,
-        'admin',
-        content.trim()
-      );
+    if (issue) {
+      const customer = issue.orderItem.order.customer;
+      try {
+        const emailSent = await sendIssueMessageEmail(
+          customer.email,
+          customer.name,
+          issueId,
+          'admin',
+          content.trim()
+        );
 
-      if (emailSent) {
-        // Update message to track email was sent
-        await prisma.issueMessage.update({
-          where: { id: message.id },
-          data: {
-            emailSent: true,
-            emailSentAt: new Date(),
-          },
-        });
+        if (emailSent && result.message && typeof result.message === 'object' && 'id' in result.message) {
+          await markMessageEmailSent(result.message.id as string);
+        }
+      } catch (emailErr) {
+        console.error('Failed to send issue message email:', emailErr);
       }
-    } catch (emailErr) {
-      // Log but don't fail the request if email fails
-      console.error('Failed to send issue message email:', emailErr);
     }
 
     return NextResponse.json({
       success: true,
       message: 'Message sent successfully',
-      data: message,
+      data: result.message,
     });
   } catch (error) {
     console.error('Send admin issue message error:', error);

@@ -34,6 +34,8 @@ import { DateInputUK } from '@/components/ui/date-input-uk';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 import { Camera, ArrowUp, ArrowDown, ClipboardPaste, PenLine } from 'lucide-react';
+import { formatCurrency, formatDate } from '@/lib/formatters';
+import { getAvailableTaxYears, TAX_YEAR_MONTHS, getMonthDateRange } from '@/lib/server/tax-utils';
 
 interface Category {
   value: string;
@@ -86,72 +88,6 @@ const defaultFormData: IncomeFormData = {
   externalReference: '',
   notes: '',
 };
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-// Simple month list for filtering within a tax year (ordered by UK tax year: Apr-Mar)
-const MONTHS = [
-  { value: '4', label: 'April' },
-  { value: '5', label: 'May' },
-  { value: '6', label: 'June' },
-  { value: '7', label: 'July' },
-  { value: '8', label: 'August' },
-  { value: '9', label: 'September' },
-  { value: '10', label: 'October' },
-  { value: '11', label: 'November' },
-  { value: '12', label: 'December' },
-  { value: '1', label: 'January' },
-  { value: '2', label: 'February' },
-  { value: '3', label: 'March' },
-];
-
-// Calculate date range for a month within a UK tax year
-function getMonthDateRange(taxYear: string, month: string): { startDate: string; endDate: string } {
-  const [startYear] = taxYear.split('-').map(Number);
-  const monthNum = parseInt(month);
-
-  // UK tax year: April-December are in startYear, January-March are in startYear+1
-  const year = monthNum >= 4 ? startYear : startYear + 1;
-
-  const startDate = new Date(year, monthNum - 1, 1);
-  const endDate = new Date(year, monthNum, 0); // Last day of month
-
-  return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
-  };
-}
-
-function getAvailableTaxYears(): string[] {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const day = now.getDate();
-
-  let currentStartYear = year;
-  if (month < 3 || (month === 3 && day < 6)) {
-    currentStartYear = year - 1;
-  }
-
-  const years: string[] = [];
-  for (let y = 2020; y <= currentStartYear; y++) {
-    years.push(`${y}-${y + 1}`);
-  }
-  return years.reverse();
-}
 
 function IncomeManagementContent() {
   const router = useRouter();
@@ -520,7 +456,7 @@ function IncomeManagementContent() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Months</SelectItem>
-                    {MONTHS.map((month) => (
+                    {TAX_YEAR_MONTHS.map((month) => (
                       <SelectItem key={month.value} value={month.value}>
                         {month.label}
                       </SelectItem>

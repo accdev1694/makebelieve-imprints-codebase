@@ -3,48 +3,20 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cartService, CartItemResponse } from '@/lib/api/cart';
+import { TAX, CART } from '@/lib/config/constants';
+import {
+  CartItem,
+  AddToCartPayload,
+  generateCartItemId,
+  transformServerItem,
+  loadCartFromStorage,
+  saveCartToStorage,
+  loadSelectionFromStorage,
+  saveSelectionToStorage,
+} from '@/lib/cart';
 
-// Cart item structure
-export interface CartItem {
-  id: string;
-  productId: string;
-  productName: string;
-  productSlug: string;
-  productImage: string;
-  variantId?: string;
-  variantName?: string;
-  size?: string;
-  color?: string;
-  material?: string;
-  finish?: string;
-  quantity: number;
-  unitPrice: number;
-  customization?: {
-    type: 'TEMPLATE_BASED' | 'UPLOAD_OWN' | 'FULLY_CUSTOM';
-    templateId?: string;
-    templateName?: string;
-    designId?: string;
-    designUrl?: string;
-  };
-  addedAt: string;
-}
-
-// Payload for adding items to cart
-export interface AddToCartPayload {
-  productId: string;
-  productName: string;
-  productSlug: string;
-  productImage: string;
-  variantId?: string;
-  variantName?: string;
-  size?: string;
-  color?: string;
-  material?: string;
-  finish?: string;
-  quantity: number;
-  unitPrice: number;
-  customization?: CartItem['customization'];
-}
+// Re-export types for backward compatibility
+export type { CartItem, AddToCartPayload } from '@/lib/cart';
 
 interface CartContextType {
   items: CartItem[];
@@ -82,96 +54,6 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'mkbl_cart';
-const CART_SELECTION_KEY = 'mkbl_cart_selection';
-const TAX_RATE = 0.20; // 20% UK VAT
-
-// Generate unique ID for cart items (guest mode)
-function generateCartItemId(): string {
-  return `cart_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-}
-
-// Transform server response to local CartItem format
-function transformServerItem(item: CartItemResponse): CartItem {
-  return {
-    id: item.id,
-    productId: item.productId,
-    productName: item.productName,
-    productSlug: item.productSlug,
-    productImage: item.productImage,
-    variantId: item.variantId,
-    variantName: item.variantName,
-    size: item.size,
-    color: item.color,
-    material: item.material,
-    finish: item.finish,
-    quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    customization: item.customization,
-    addedAt: item.addedAt,
-  };
-}
-
-// Load items from localStorage
-function loadFromLocalStorage(): CartItem[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem(CART_STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (parsed.items && Array.isArray(parsed.items)) {
-        return parsed.items;
-      }
-    }
-  } catch (error) {
-    console.error('Failed to load cart from localStorage:', error);
-  }
-  return [];
-}
-
-// Save items to localStorage
-function saveToLocalStorage(items: CartItem[]) {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(
-      CART_STORAGE_KEY,
-      JSON.stringify({
-        items,
-        updatedAt: new Date().toISOString(),
-      })
-    );
-  } catch (error) {
-    console.error('Failed to save cart to localStorage:', error);
-  }
-}
-
-// Load selection from localStorage
-function loadSelectionFromLocalStorage(): Set<string> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const stored = localStorage.getItem(CART_SELECTION_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        return new Set(parsed);
-      }
-    }
-  } catch (error) {
-    console.error('Failed to load cart selection from localStorage:', error);
-  }
-  return new Set();
-}
-
-// Save selection to localStorage
-function saveSelectionToLocalStorage(selectedIds: Set<string>) {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(CART_SELECTION_KEY, JSON.stringify([...selectedIds]));
-  } catch (error) {
-    console.error('Failed to save cart selection to localStorage:', error);
-  }
-}
-
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
@@ -186,12 +68,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Load cart from localStorage on mount (for immediate display)
   useEffect(() => {
-    const localItems = loadFromLocalStorage();
+    const localItems = loadCartFromStorage();
     setItems(localItems);
     setIsInitialized(true);
 
     // Load selection from localStorage
-    const savedSelection = loadSelectionFromLocalStorage();
+    const savedSelection = loadSelectionFromStorage();
     // Only keep selection for items that exist in cart
     const validSelection = new Set(
       [...savedSelection].filter((id) => localItems.some((item) => item.id === id))
@@ -230,7 +112,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setIsSyncing(true);
       try {
         // Get current localStorage items
-        const localItems = loadFromLocalStorage();
+        const localItems = loadCartFromStorage();
 
         let serverItems: CartItemResponse[];
 
@@ -254,13 +136,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // Transform and set items
         const mergedItems = serverItems.map(transformServerItem);
         setItems(mergedItems);
-        saveToLocalStorage(mergedItems);
+        saveCartToStorage(mergedItems);
 
         // CRITICAL FIX: Update selection to use new server IDs
         // Select all items after sync since we can't map old client IDs to new server IDs
         const newItemIds = new Set(mergedItems.map((item) => item.id));
         setSelectedItemIds(newItemIds);
-        saveSelectionToLocalStorage(newItemIds);
+        saveSelectionToStorage(newItemIds);
 
         hasSyncedRef.current = true;
       } catch (error) {
@@ -277,21 +159,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Save to localStorage whenever items change (after initial load, not during sync)
   useEffect(() => {
     if (isInitialized && !isSyncing) {
-      saveToLocalStorage(items);
+      saveCartToStorage(items);
     }
   }, [items, isInitialized, isSyncing]);
 
   // Save selection to localStorage whenever it changes (not during sync)
   useEffect(() => {
     if (selectionInitializedRef.current && !isSyncing) {
-      saveSelectionToLocalStorage(selectedItemIds);
+      saveSelectionToStorage(selectedItemIds);
     }
   }, [selectedItemIds, isSyncing]);
 
   // Calculate totals
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const tax = subtotal * TAX_RATE;
+  const tax = subtotal * TAX.VAT_RATE;
   const total = subtotal + tax;
 
   // Calculate selected items and their totals
@@ -310,7 +192,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [selectedItemsArray]
   );
 
-  const selectedTax = selectedSubtotal * TAX_RATE;
+  const selectedTax = selectedSubtotal * TAX.VAT_RATE;
   const selectedTotal = selectedSubtotal + selectedTax;
 
   // Selection state helpers
@@ -434,7 +316,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   // Update item quantity
-  const MAX_QUANTITY = 99;
   const updateQuantity = useCallback(
     (itemId: string, quantity: number) => {
       if (quantity < 1) {
@@ -443,7 +324,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
 
       // Enforce max quantity limit
-      const clampedQuantity = Math.min(quantity, MAX_QUANTITY);
+      const clampedQuantity = Math.min(quantity, CART.MAX_QUANTITY);
 
       // Capture previous state inside updater to avoid stale closure
       let previousItems: CartItem[] = [];

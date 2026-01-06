@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 
 interface CategoryExpense {
   category: string;
@@ -70,20 +71,9 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   TAX_YEAR_END: 'Tax Year End Report',
 };
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
+// Format dates with long month names for report details
+const formatDateLong = (dateString: string) =>
+  formatDate(dateString, { day: 'numeric', month: 'long', year: 'numeric' });
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -185,11 +175,11 @@ function ReportDetailContent({ params }: PageProps) {
                 <span className="text-neon-gradient">{REPORT_TYPE_LABELS[report.reportType]}</span>
               </h1>
               <p className="text-sm text-muted-foreground">
-                Tax Year {report.taxYear} | {formatDate(report.periodStart)} - {formatDate(report.periodEnd)}
+                Tax Year {report.taxYear} | {formatDateLong(report.periodStart)} - {formatDateLong(report.periodEnd)}
               </p>
             </div>
           </div>
-          <Badge variant="outline">Generated {formatDate(report.createdAt)}</Badge>
+          <Badge variant="outline">Generated {formatDateLong(report.createdAt)}</Badge>
         </div>
       </header>
 

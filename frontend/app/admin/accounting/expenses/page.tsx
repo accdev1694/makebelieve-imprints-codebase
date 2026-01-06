@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,10 +36,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ReceiptScanner, ExtractedReceiptData } from '@/components/admin/accounting/ReceiptScanner';
+import { AdminDataTable, createColumns } from '@/components/admin/AdminDataTable';
 import { DateInputUK } from '@/components/ui/date-input-uk';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import { Camera, ArrowUp, ArrowDown, Trash2, ClipboardPaste, PenLine } from 'lucide-react';
+import { Camera, Trash2, ClipboardPaste, PenLine } from 'lucide-react';
+import { formatCurrency } from '@/lib/formatters';
+import { getAvailableTaxYears, TAX_YEAR_MONTHS, getMonthDateRange } from '@/lib/server/tax-utils';
 
 interface Expense {
   id: string;
@@ -99,63 +102,68 @@ const initialFormData: ExpenseFormData = {
   externalReference: '',
 };
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-  }).format(amount);
-}
-
-function getAvailableTaxYears(): string[] {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const day = now.getDate();
-
-  let currentStartYear = year;
-  if (month < 3 || (month === 3 && day < 6)) {
-    currentStartYear = year - 1;
-  }
-
-  const years: string[] = [];
-  for (let y = 2020; y <= currentStartYear; y++) {
-    years.push(`${y}-${y + 1}`);
-  }
-  return years.reverse();
-}
-
-// Simple month list for filtering within a tax year
-const MONTHS = [
-  { value: '4', label: 'April' },
-  { value: '5', label: 'May' },
-  { value: '6', label: 'June' },
-  { value: '7', label: 'July' },
-  { value: '8', label: 'August' },
-  { value: '9', label: 'September' },
-  { value: '10', label: 'October' },
-  { value: '11', label: 'November' },
-  { value: '12', label: 'December' },
-  { value: '1', label: 'January' },
-  { value: '2', label: 'February' },
-  { value: '3', label: 'March' },
-];
-
-// Calculate date range for a month within a UK tax year
-function getMonthDateRange(taxYear: string, month: string): { startDate: string; endDate: string } {
-  const [startYear] = taxYear.split('-').map(Number);
-  const monthNum = parseInt(month);
-
-  // UK tax year: April-December are in startYear, January-March are in startYear+1
-  const year = monthNum >= 4 ? startYear : startYear + 1;
-
-  const startDate = new Date(year, monthNum - 1, 1);
-  const endDate = new Date(year, monthNum, 0); // Last day of month
-
-  return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
-  };
-}
+// Define table columns for expenses
+const expenseColumns = createColumns<Expense>([
+  {
+    key: 'purchaseDate',
+    header: 'Date',
+    width: 'w-[90px]',
+    render: (expense) => (
+      <div className="text-center">
+        <p className="text-lg font-bold">{new Date(expense.purchaseDate).getDate()}</p>
+        <p className="text-xs text-muted-foreground uppercase">
+          {new Date(expense.purchaseDate).toLocaleDateString('en-GB', { month: 'short' })}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {new Date(expense.purchaseDate).getFullYear()}
+        </p>
+      </div>
+    ),
+  },
+  {
+    key: 'description',
+    header: 'Description',
+    render: (expense) => (
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <h4 className="font-semibold truncate">{expense.description}</h4>
+          {expense.isVatReclaimable && (
+            <Badge variant="outline" className="text-xs text-green-500 border-green-500/50 shrink-0">
+              VAT Reclaimable
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <Badge variant="secondary" className="text-xs">
+            {expense.categoryLabel}
+          </Badge>
+          {expense.supplier && (
+            <span>{expense.supplier.name}</span>
+          )}
+          {expense.taxYear && (
+            <span className="text-xs">Tax Year: {expense.taxYear}</span>
+          )}
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: 'amount',
+    header: 'Amount',
+    width: 'w-[120px]',
+    align: 'right',
+    render: (expense) => (
+      <div className="text-right">
+        <p className="font-bold text-red-400">{formatCurrency(expense.amount)}</p>
+        {expense.vatAmount && (
+          <p className="text-xs text-muted-foreground">
+            VAT: {formatCurrency(expense.vatAmount)}
+          </p>
+        )}
+      </div>
+    ),
+  },
+]);
 
 function ExpensesContent() {
   const router = useRouter();
@@ -414,9 +422,109 @@ function ExpensesContent() {
     }
   };
 
+  const handleSortChange = (_key: string, direction: 'asc' | 'desc') => {
+    setSortOrder(direction);
+  };
+
+  const handleSearchChange = (query: string) => {
+    setFilterSearch(query);
+    handleFilterChange();
+  };
+
   if (user && user.userType !== 'PRINTER_ADMIN') {
     return null;
   }
+
+  // Filters toolbar content
+  const filtersToolbar = (
+    <>
+      <div className="w-[180px]">
+        <Label className="text-sm text-muted-foreground mb-2 block">Category</Label>
+        <Select
+          value={filterCategory || 'all'}
+          onValueChange={(value: string) => {
+            setFilterCategory(value === 'all' ? '' : value);
+            handleFilterChange();
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat.value} value={cat.value}>
+                {cat.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="w-[160px]">
+        <Label className="text-sm text-muted-foreground mb-2 block">Tax Year</Label>
+        <Select
+          value={filterTaxYear || 'all'}
+          onValueChange={(value: string) => {
+            setFilterTaxYear(value === 'all' ? '' : value);
+            setFilterMonth(''); // Clear month when tax year changes
+            handleFilterChange();
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="All Years" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Years</SelectItem>
+            {availableTaxYears.map((year) => (
+              <SelectItem key={year} value={year}>
+                {year}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="w-[140px]">
+        <Label className="text-sm text-muted-foreground mb-2 block">Month</Label>
+        <Select
+          value={filterMonth || 'all'}
+          onValueChange={(value: string) => {
+            setFilterMonth(value === 'all' ? '' : value);
+            handleFilterChange();
+          }}
+          disabled={!filterTaxYear}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={filterTaxYear ? "All Months" : "Select year first"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Months</SelectItem>
+            {TAX_YEAR_MONTHS.map((month) => (
+              <SelectItem key={month.value} value={month.value}>
+                {month.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {(filterCategory || filterTaxYear || filterSearch || filterMonth) && (
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setFilterCategory('');
+            setFilterTaxYear('');
+            setFilterSearch('');
+            setFilterMonth('');
+            handleFilterChange();
+          }}
+        >
+          Clear Filters
+        </Button>
+      )}
+    </>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -426,7 +534,7 @@ function ExpensesContent() {
           <div className="flex items-center gap-4">
             <Link href="/admin/accounting">
               <Button variant="ghost" size="sm">
-                ← Back to Accounting
+                &larr; Back to Accounting
               </Button>
             </Link>
             <h1 className="text-2xl font-bold">
@@ -505,7 +613,7 @@ function ExpensesContent() {
           </Card>
         </div>
 
-        {/* Filters */}
+        {/* Filters Card */}
         <Card className="mb-8">
           <CardContent className="pt-6">
             <div className="flex flex-wrap gap-4 items-end">
@@ -514,237 +622,57 @@ function ExpensesContent() {
                 <Input
                   placeholder="Search description..."
                   value={filterSearch}
-                  onChange={(e) => {
-                    setFilterSearch(e.target.value);
-                    handleFilterChange();
-                  }}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                 />
               </div>
-
-              <div className="w-[180px]">
-                <Label className="text-sm text-muted-foreground mb-2 block">Category</Label>
-                <Select
-                  value={filterCategory || 'all'}
-                  onValueChange={(value: string) => {
-                    setFilterCategory(value === 'all' ? '' : value);
-                    handleFilterChange();
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="w-[160px]">
-                <Label className="text-sm text-muted-foreground mb-2 block">Tax Year</Label>
-                <Select
-                  value={filterTaxYear || 'all'}
-                  onValueChange={(value: string) => {
-                    setFilterTaxYear(value === 'all' ? '' : value);
-                    setFilterMonth(''); // Clear month when tax year changes
-                    handleFilterChange();
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Years" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Years</SelectItem>
-                    {availableTaxYears.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="w-[140px]">
-                <Label className="text-sm text-muted-foreground mb-2 block">Month</Label>
-                <Select
-                  value={filterMonth || 'all'}
-                  onValueChange={(value: string) => {
-                    setFilterMonth(value === 'all' ? '' : value);
-                    handleFilterChange();
-                  }}
-                  disabled={!filterTaxYear}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={filterTaxYear ? "All Months" : "Select year first"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Months</SelectItem>
-                    {MONTHS.map((month) => (
-                      <SelectItem key={month.value} value={month.value}>
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                  className="h-10"
-                >
-                  {sortOrder === 'desc' ? (
-                    <><ArrowDown className="h-4 w-4 mr-1" /> Newest</>
-                  ) : (
-                    <><ArrowUp className="h-4 w-4 mr-1" /> Oldest</>
-                  )}
-                </Button>
-              </div>
-
-              {(filterCategory || filterTaxYear || filterSearch || filterMonth) && (
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setFilterCategory('');
-                    setFilterTaxYear('');
-                    setFilterSearch('');
-                    setFilterMonth('');
-                    handleFilterChange();
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              )}
+              {filtersToolbar}
             </div>
           </CardContent>
         </Card>
 
-        {/* Expenses List */}
-        <Card className="card-glow">
-          <CardHeader>
-            <CardTitle>Expenses</CardTitle>
-            <CardDescription>
-              {total} expense{total !== 1 ? 's' : ''} found
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="p-4 bg-card/30 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <div className="h-5 w-48 bg-muted/30 rounded animate-pulse" />
-                        <div className="h-4 w-32 bg-muted/30 rounded animate-pulse" />
-                      </div>
-                      <div className="h-6 w-20 bg-muted/30 rounded animate-pulse" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : expenses.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">No expenses found</p>
-                <Button onClick={openAddModal}>Add your first expense</Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {expenses.map((expense) => (
-                  <div
-                    key={expense.id}
-                    className="p-4 bg-card/30 rounded-lg hover:bg-card/50 transition-colors cursor-pointer"
-                    onClick={() => openEditModal(expense)}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="text-center min-w-[70px]">
-                        <p className="text-lg font-bold">{new Date(expense.purchaseDate).getDate()}</p>
-                        <p className="text-xs text-muted-foreground uppercase">
-                          {new Date(expense.purchaseDate).toLocaleDateString('en-GB', { month: 'short' })}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(expense.purchaseDate).getFullYear()}
-                        </p>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold truncate">{expense.description}</h4>
-                          {expense.isVatReclaimable && (
-                            <Badge variant="outline" className="text-xs text-green-500 border-green-500/50">
-                              VAT Reclaimable
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <Badge variant="secondary" className="text-xs">
-                            {expense.categoryLabel}
-                          </Badge>
-                          {expense.supplier && (
-                            <span>{expense.supplier.name}</span>
-                          )}
-                          {expense.taxYear && (
-                            <span className="text-xs">Tax Year: {expense.taxYear}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-red-400">{formatCurrency(expense.amount)}</p>
-                        {expense.vatAmount && (
-                          <p className="text-xs text-muted-foreground">
-                            VAT: {formatCurrency(expense.vatAmount)}
-                          </p>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteExpense(expense);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between pt-4">
-                    <p className="text-sm text-muted-foreground">
-                      Page {page} of {totalPages}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Expenses Table */}
+        <AdminDataTable<Expense>
+          data={expenses}
+          columns={expenseColumns}
+          loading={loading}
+          keyExtractor={(expense) => expense.id}
+          title="Expenses"
+          description={`${total} expense${total !== 1 ? 's' : ''} found`}
+          pagination={{
+            page,
+            total,
+            limit: 7,
+            totalPages,
+          }}
+          onPageChange={setPage}
+          sort={{ key: 'purchaseDate', direction: sortOrder }}
+          onSort={handleSortChange}
+          showSearch={false}
+          showSortToggle={true}
+          sortAscLabel="Oldest"
+          sortDescLabel="Newest"
+          onRowClick={openEditModal}
+          rowActions={(expense) => (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteExpense(expense);
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+          emptyContent={
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">No expenses found</p>
+              <Button onClick={openAddModal}>Add your first expense</Button>
+            </div>
+          }
+          skeletonRows={7}
+        />
       </main>
 
       {/* Add/Edit Modal */}

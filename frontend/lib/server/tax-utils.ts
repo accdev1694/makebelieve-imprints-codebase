@@ -198,12 +198,55 @@ export function calculateVATFromNet(
 
 /**
  * Format currency in GBP
+ * @deprecated Use formatCurrency from '@/lib/formatters' instead
  */
 export function formatGBP(amount: number): string {
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'GBP',
   }).format(amount);
+}
+
+/**
+ * UK Tax Year months ordered from April to March
+ * Used for filtering transactions within a tax year
+ */
+export const TAX_YEAR_MONTHS = [
+  { value: '4', label: 'April' },
+  { value: '5', label: 'May' },
+  { value: '6', label: 'June' },
+  { value: '7', label: 'July' },
+  { value: '8', label: 'August' },
+  { value: '9', label: 'September' },
+  { value: '10', label: 'October' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'December' },
+  { value: '1', label: 'January' },
+  { value: '2', label: 'February' },
+  { value: '3', label: 'March' },
+] as const;
+
+/**
+ * Calculate date range for a month within a UK tax year
+ * UK tax year: April-December are in startYear, January-March are in startYear+1
+ */
+export function getMonthDateRange(
+  taxYear: string,
+  month: string
+): { startDate: string; endDate: string } {
+  const [startYear] = taxYear.split('-').map(Number);
+  const monthNum = parseInt(month);
+
+  // UK tax year: April-December are in startYear, January-March are in startYear+1
+  const year = monthNum >= 4 ? startYear : startYear + 1;
+
+  const startDate = new Date(year, monthNum - 1, 1);
+  const endDate = new Date(year, monthNum, 0); // Last day of month
+
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0],
+  };
 }
 
 /**

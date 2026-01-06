@@ -120,7 +120,11 @@ export interface CreateOrderData {
   items?: OrderItemData[];
   // Common fields
   shippingAddress: ShippingAddress;
-  totalPrice: number;
+  totalPrice?: number;
+  // Contact info (used by legacy design checkout)
+  email?: string;
+  phone?: string;
+  shippingMethod?: string;
   // Promo/Discount fields
   subtotal?: number;
   discountAmount?: number;

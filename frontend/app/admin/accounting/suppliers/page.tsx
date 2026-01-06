@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 
 interface Supplier {
   id: string;
@@ -65,21 +66,6 @@ const initialFormData: SupplierFormData = {
   notes: '',
   taxId: '',
 };
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
 
 function SuppliersContent() {
   const router = useRouter();

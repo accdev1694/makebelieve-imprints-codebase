@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/select';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { formatCurrency, formatDate } from '@/lib/formatters';
+import { getAvailableTaxYears } from '@/lib/server/tax-utils';
 
 interface DashboardData {
   taxYear: string;
@@ -60,40 +62,6 @@ interface DashboardData {
     category?: string;
     date: string;
   }>;
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function getAvailableTaxYears(): string[] {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const day = now.getDate();
-
-  // Determine current tax year start
-  let currentStartYear = year;
-  if (month < 3 || (month === 3 && day < 6)) {
-    currentStartYear = year - 1;
-  }
-
-  const years: string[] = [];
-  for (let y = 2020; y <= currentStartYear; y++) {
-    years.push(`${y}-${y + 1}`);
-  }
-  return years.reverse();
 }
 
 function AccountingDashboardContent() {

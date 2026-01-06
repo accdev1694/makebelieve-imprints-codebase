@@ -6,24 +6,18 @@ import { validateAndRecordPromoUsage } from '@/lib/server/promo-service';
 import { checkRecoveryConversion, cancelUserCampaigns } from '@/lib/server/recovery-service';
 import { redeemPoints } from '@/lib/server/points-service';
 import { nanoid } from 'nanoid';
+import {
+  PAGINATION,
+  TOKEN_LENGTH,
+  TAB_STATUS_MAP,
+  ARCHIVED_STATUSES,
+  ACTIVE_STATUSES,
+} from '@/lib/config/constants';
 
 // Generate a unique share token for order tracking
 function generateShareToken(): string {
-  return nanoid(16); // 16 character URL-safe token
+  return nanoid(TOKEN_LENGTH.SHARE_TOKEN); // 16 character URL-safe token
 }
-
-// Order statuses considered "archived" (concluded) - legacy, used by admin
-const ARCHIVED_STATUSES: OrderStatus[] = ['delivered', 'cancelled', 'refunded'];
-// Order statuses considered "active" (needs attention) - legacy, used by admin
-const ACTIVE_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'printing', 'shipped'];
-
-// Tab-based status groupings for customer orders page
-const TAB_STATUS_MAP: Record<string, OrderStatus[]> = {
-  in_progress: ['pending', 'payment_confirmed', 'confirmed', 'printing', 'cancellation_requested'],
-  shipped: ['shipped'],
-  completed: ['delivered'],
-  cancelled: ['cancelled', 'refunded'],
-};
 
 // Valid sort fields and their Prisma orderBy mappings
 type SortField = 'date' | 'price' | 'customer' | 'city' | 'status';
@@ -47,7 +41,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
+    const limit = Math.min(PAGINATION.MAX_LIMIT, Math.max(1, parseInt(searchParams.get('limit') || String(PAGINATION.DEFAULT_LIMIT), 10)));
     const skip = (page - 1) * limit;
     const status = searchParams.get('status') as OrderStatus | null;
     const tab = searchParams.get('tab');
@@ -60,15 +54,15 @@ export async function GET(request: NextRequest) {
     if (status) {
       // Direct status filter takes priority
       statusFilter = { status };
-    } else if (tab && tab !== 'all' && TAB_STATUS_MAP[tab]) {
+    } else if (tab && tab !== 'all' && tab in TAB_STATUS_MAP) {
       // Tab-based filtering (new approach)
-      statusFilter = { status: { in: TAB_STATUS_MAP[tab] } };
+      statusFilter = { status: { in: [...TAB_STATUS_MAP[tab as keyof typeof TAB_STATUS_MAP]] } };
     } else if (archivedParam === 'true') {
       // Legacy archived filter
-      statusFilter = { status: { in: ARCHIVED_STATUSES } };
+      statusFilter = { status: { in: [...ARCHIVED_STATUSES] } };
     } else if (archivedParam === 'false') {
       // Legacy active filter
-      statusFilter = { status: { in: ACTIVE_STATUSES } };
+      statusFilter = { status: { in: [...ACTIVE_STATUSES] } };
     }
 
     // Build orderBy based on sort field

@@ -1,3 +1,5 @@
+import { PAGINATION, PASSWORD } from '@/lib/config/constants';
+
 /**
  * Shared validation utilities for auth endpoints
  */
@@ -7,7 +9,7 @@ export const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-z
 
 // Password complexity requirements
 export const PASSWORD_REQUIREMENTS = {
-  minLength: 8,
+  minLength: PASSWORD.MIN_LENGTH,
   requireUppercase: /[A-Z]/,
   requireLowercase: /[a-z]/,
   requireNumber: /[0-9]/,
@@ -65,7 +67,7 @@ export function sanitizeName(name: string): string {
     .trim()
     .replace(controlCharsRegex, '') // Remove control characters
     .replace(/[<>]/g, '') // Remove potential HTML injection chars
-    .substring(0, 100); // Limit to 100 characters
+    .substring(0, PASSWORD.MAX_NAME_LENGTH); // Limit to 100 characters
 }
 
 // ============================================
@@ -92,14 +94,14 @@ export function validateUUID(id: string): ValidationResult {
 export function validatePagination(
   page: unknown,
   limit: unknown,
-  maxLimit: number = 100
+  maxLimit: number = PAGINATION.MAX_LIMIT
 ): { page: number; limit: number } {
   const parsedPage = parseInt(String(page || '1'), 10);
-  const parsedLimit = parseInt(String(limit || '20'), 10);
+  const parsedLimit = parseInt(String(limit || String(PAGINATION.DEFAULT_LIMIT)), 10);
 
   return {
     page: Math.max(1, isNaN(parsedPage) ? 1 : parsedPage),
-    limit: Math.min(maxLimit, Math.max(1, isNaN(parsedLimit) ? 20 : parsedLimit)),
+    limit: Math.min(maxLimit, Math.max(1, isNaN(parsedLimit) ? PAGINATION.DEFAULT_LIMIT : parsedLimit)),
   };
 }
 

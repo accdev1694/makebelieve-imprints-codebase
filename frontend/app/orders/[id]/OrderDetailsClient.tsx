@@ -4,107 +4,30 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import {
-  ordersService,
-  Order,
-  OrderItem,
-  ORDER_STATUS_LABELS,
-  OrderStatus,
-  CancellationReason,
-  CUSTOMER_CANCELLATION_REASONS,
-  CANCELLATION_REASON_LABELS,
-  cancellationService,
-} from '@/lib/api/orders';
-import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
-import { storageService } from '@/lib/api/storage';
+import { ordersService, Order, ORDER_STATUS_LABELS } from '@/lib/api/orders';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import Image from 'next/image';
-import { X, Camera, AlertCircle, MessageSquare, Lock, RefreshCw, CheckCircle, XCircle, CreditCard, Share2, Check, Star } from 'lucide-react';
-import { useCart, AddToCartPayload } from '@/contexts/CartContext';
-import { ReviewForm } from '@/components/reviews';
+import { useCart } from '@/contexts/CartContext';
 import { createLogger } from '@/lib/logger';
 
+// Import extracted components
+import {
+  ItemIssue,
+  OrderItemWithIssue,
+  getStatusColor,
+  getStatusIcon,
+} from './components';
+import { OrderStatusSection } from './components/OrderStatusSection';
+import { OrderItemsSection } from './components/OrderItemsSection';
+import { IssueReportModal } from './components/IssueReportModal';
+import { ReviewSection } from './components/ReviewSection';
+import { CancellationStatusCard } from './components/CancellationSection';
+import { PaymentStatusBanners } from './components/PaymentStatusBanners';
+import { OrderActions } from './components/OrderActions';
+
 const logger = createLogger('OrderDetailsClient');
-
-// Enhanced issue reasons with NEVER_ARRIVED
-const ISSUE_REASONS = [
-  { value: 'DAMAGED_IN_TRANSIT', label: 'Damaged in Transit', description: 'Item arrived damaged or broken' },
-  { value: 'QUALITY_ISSUE', label: 'Quality Issue', description: 'Print quality not as expected' },
-  { value: 'WRONG_ITEM', label: 'Wrong Item', description: 'Received a different item than ordered' },
-  { value: 'PRINTING_ERROR', label: 'Printing Error', description: 'Colors, alignment, or image printed incorrectly' },
-  { value: 'NEVER_ARRIVED', label: 'Never Arrived', description: 'Item was not received' },
-  { value: 'OTHER', label: 'Other', description: 'Another issue not listed above' },
-];
-
-// Kept for reference - maps issue reason codes to display labels
-const _REASON_LABELS: Record<string, string> = {
-  DAMAGED_IN_TRANSIT: 'Damaged in Transit',
-  QUALITY_ISSUE: 'Quality Issue',
-  WRONG_ITEM: 'Wrong Item',
-  PRINTING_ERROR: 'Printing Error',
-  NEVER_ARRIVED: 'Never Arrived',
-  OTHER: 'Other',
-};
-
-// Enhanced status labels for new issue system
-const ISSUE_STATUS_LABELS: Record<string, string> = {
-  SUBMITTED: 'Submitted',
-  AWAITING_REVIEW: 'Under Review',
-  INFO_REQUESTED: 'Info Requested',
-  APPROVED_REPRINT: 'Approved - Reprint',
-  APPROVED_REFUND: 'Approved - Refund',
-  PROCESSING: 'Processing',
-  COMPLETED: 'Resolved',
-  REJECTED: 'Rejected',
-  CLOSED: 'Closed',
-};
-
-const getIssueStatusColor = (status: string): string => {
-  const colors: Record<string, string> = {
-    SUBMITTED: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
-    AWAITING_REVIEW: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50',
-    INFO_REQUESTED: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
-    APPROVED_REPRINT: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
-    APPROVED_REFUND: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
-    PROCESSING: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
-    COMPLETED: 'bg-green-500/10 text-green-500 border-green-500/50',
-    REJECTED: 'bg-red-500/10 text-red-500 border-red-500/50',
-    CLOSED: 'bg-muted text-muted-foreground border-border',
-  };
-  return colors[status] || 'bg-muted text-muted-foreground border-border';
-};
-
-// New per-item issue interface
-interface ItemIssue {
-  id: string;
-  orderItemId: string;
-  reason: string;
-  status: string;
-  carrierFault: string;
-  initialNotes: string | null;
-  imageUrls: string[] | null;
-  resolvedType: string | null;
-  reprintOrderId: string | null;
-  refundAmount: number | null;
-  rejectionReason: string | null;
-  isConcluded: boolean;
-  createdAt: string;
-  processedAt: string | null;
-  unreadCount?: number;
-}
-
-// Extended OrderItem with issue
-interface OrderItemWithIssue extends OrderItem {
-  issue?: ItemIssue | null;
-}
 
 interface OrderDetailsClientProps {
   orderId: string;
@@ -113,7 +36,7 @@ interface OrderDetailsClientProps {
 function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { addItem, openCart, removeItem, items } = useCart();
+  const { removeItem, items } = useCart();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -127,34 +50,15 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   // Per-item issue state
   const [itemIssues, setItemIssues] = useState<Record<string, ItemIssue>>({});
   const [selectedItem, setSelectedItem] = useState<OrderItemWithIssue | null>(null);
-
-  // Issue modal state
   const [issueModalOpen, setIssueModalOpen] = useState(false);
-  const [issueReason, setIssueReason] = useState('');
-  const [issuePreference, setIssuePreference] = useState<'REPRINT' | 'REFUND' | ''>('');
-  const [issueNotes, setIssueNotes] = useState('');
-  const [issueImages, setIssueImages] = useState<string[]>([]);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [submittingIssue, setSubmittingIssue] = useState(false);
-  const [issueSuccess, setIssueSuccess] = useState(false);
-  const [issueError, setIssueError] = useState('');
-
-  // Cancellation request state
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [cancelReason, setCancelReason] = useState<CancellationReason | ''>('');
-  const [cancelNotes, setCancelNotes] = useState('');
-  const [submittingCancel, setSubmittingCancel] = useState(false);
-  const [cancelSuccess, setCancelSuccess] = useState(false);
-  const [cancelError, setCancelError] = useState('');
-
-  // Share link state
-  const [copied, setCopied] = useState(false);
+  const [issueSubmittedFlag, setIssueSubmittedFlag] = useState(false);
 
   // Review state
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [hasReview, setHasReview] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
+  // Load order data
   useEffect(() => {
     const loadOrder = async () => {
       if (!orderId) {
@@ -196,28 +100,22 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
   // Handle payment success: Clear only ordered items from cart when payment is confirmed
   useEffect(() => {
     if (paymentStatus === 'success' && order && !paymentProcessed) {
-      // Check if payment was successful (order moved past pending)
       const paidStatuses = ['payment_confirmed', 'confirmed', 'printing', 'shipped', 'delivered'];
       if (paidStatuses.includes(order.status)) {
-        // Check if this order matches the pending order
         const pendingOrderId = sessionStorage.getItem('pendingOrderId');
         if (pendingOrderId === orderId) {
-          // Get the specific item IDs that were ordered and remove only those
           const orderedItemIdsJson = sessionStorage.getItem('orderedItemIds');
           const orderedProductKeysJson = sessionStorage.getItem('orderedProductKeys');
 
           if (orderedItemIdsJson) {
             try {
               const orderedItemIds = JSON.parse(orderedItemIdsJson) as string[];
-              // Remove each ordered item from cart
               orderedItemIds.forEach((itemId) => removeItem(itemId));
             } catch {
-              // Fallback: if parsing fails, try product keys
               logger.error('Failed to parse orderedItemIds, trying product keys fallback');
               if (orderedProductKeysJson) {
                 try {
                   const productKeys = JSON.parse(orderedProductKeysJson) as string[];
-                  // Remove items matching product+variant keys
                   productKeys.forEach((key) => {
                     const [productId, variantId] = key.split(':');
                     const matchingItem = items.find(
@@ -280,7 +178,6 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
 
       const issueMap: Record<string, ItemIssue> = {};
 
-      // Fetch issues for each item
       for (const item of order.items) {
         try {
           const response = await apiClient.get<{ issue: ItemIssue }>(
@@ -298,210 +195,30 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
     };
 
     loadIssues();
-  }, [order, orderId, issueSuccess]);
-
-  const getStatusColor = (status: OrderStatus): string => {
-    const colors: Record<OrderStatus, string> = {
-      pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50',
-      confirmed: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
-      payment_confirmed: 'bg-blue-500/10 text-blue-500 border-blue-500/50',
-      printing: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
-      shipped: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/50',
-      delivered: 'bg-green-500/10 text-green-500 border-green-500/50',
-      cancellation_requested: 'bg-amber-500/10 text-amber-500 border-amber-500/50',
-      cancelled: 'bg-red-500/10 text-red-500 border-red-500/50',
-      refunded: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
-    };
-    return colors[status] || 'bg-muted text-muted-foreground border-border';
-  };
-
-  const getStatusIcon = (status: OrderStatus): string => {
-    const icons: Record<OrderStatus, string> = {
-      pending: '⏳',
-      confirmed: '✓',
-      payment_confirmed: '✓',
-      printing: '🖨️',
-      shipped: '📦',
-      delivered: '✅',
-      cancellation_requested: '⏸️',
-      cancelled: '❌',
-      refunded: '↩️',
-    };
-    return icons[status] || '○';
-  };
-
-  // Check if order can be cancelled by customer
-  const canRequestCancellation =
-    order &&
-    ['pending', 'payment_confirmed', 'confirmed'].includes(order.status) &&
-    !order.cancellationRequest;
-
-  const handleRequestCancellation = async () => {
-    if (!cancelReason) {
-      setCancelError('Please select a reason for cancellation');
-      return;
-    }
-
-    setSubmittingCancel(true);
-    setCancelError('');
-
-    try {
-      await cancellationService.requestCancellation(orderId, cancelReason, cancelNotes || undefined);
-      setCancelSuccess(true);
-
-      // Reload order to get updated status
-      const orderData = await ordersService.get(orderId);
-      setOrder(orderData);
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } }; message?: string };
-      setCancelError(error?.response?.data?.error || error?.message || 'Failed to submit cancellation request');
-    } finally {
-      setSubmittingCancel(false);
-    }
-  };
+  }, [order, orderId, issueSubmittedFlag]);
 
   const canReportIssue = order && ['shipped', 'delivered'].includes(order.status);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    if (issueImages.length >= 5) {
-      setIssueError('Maximum 5 images allowed');
-      return;
-    }
-
-    const file = files[0];
-
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      setIssueError('Please upload a valid image file (JPG, PNG, WebP, or GIF)');
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      setIssueError('Image must be less than 10MB. Large images will be automatically compressed.');
-      return;
-    }
-
-    setUploadingImage(true);
-    setIssueError('');
-
-    try {
-      const imageUrl = await storageService.uploadFile(file);
-      setIssueImages((prev) => [...prev, imageUrl]);
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      setIssueError(error?.message || 'Failed to upload image');
-    } finally {
-      setUploadingImage(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setIssueImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleReportIssue = async () => {
-    if (!selectedItem) return;
-    if (!issueReason) {
-      setIssueError('Please select an issue type');
-      return;
-    }
-    if (!issuePreference) {
-      setIssueError('Please select what you would like us to do (replacement or refund)');
-      return;
-    }
-    if (!issueNotes.trim()) {
-      setIssueError('Please provide additional details about the issue');
-      return;
-    }
-    if (issueImages.length === 0) {
-      setIssueError('Please upload at least one photo showing the issue');
-      return;
-    }
-
-    setSubmittingIssue(true);
-    setIssueError('');
-
-    try {
-      await apiClient.post(`/orders/${orderId}/items/${selectedItem.id}/issue`, {
-        reason: issueReason,
-        preferredResolution: issuePreference,
-        notes: issueNotes,
-        imageUrls: issueImages,
-      });
-      setIssueSuccess(true);
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } }; message?: string };
-      setIssueError(error?.response?.data?.error || error?.message || 'Failed to submit issue report');
-    } finally {
-      setSubmittingIssue(false);
-    }
-  };
-
   const openIssueModal = (item: OrderItemWithIssue) => {
     setSelectedItem(item);
-    setIssueReason('');
-    setIssuePreference('');
-    setIssueNotes('');
-    setIssueImages([]);
-    setIssueError('');
-    setIssueSuccess(false);
     setIssueModalOpen(true);
   };
 
-  const getItemIssue = (itemId: string): ItemIssue | null => {
-    return itemIssues[itemId] || null;
+  const handleIssueSubmitted = () => {
+    // Trigger re-fetch of issues
+    setIssueSubmittedFlag((prev) => !prev);
   };
 
-  const handleReorder = () => {
-    if (!order?.items?.length) return;
-
-    for (const item of order.items) {
-      if (!item.product) continue;
-
-      const payload: AddToCartPayload = {
-        productId: item.product.id,
-        productName: item.product.name,
-        productSlug: item.product.slug || item.product.id,
-        productImage: item.product.images?.[0]?.imageUrl || '',
-        variantId: item.variant?.id,
-        variantName: item.variant?.name,
-        quantity: item.quantity,
-        unitPrice: Number(item.unitPrice),
-        customization: item.customization as AddToCartPayload['customization'],
-      };
-
-      addItem(payload);
-    }
-
-    openCart();
+  const handleOrderUpdated = (updatedOrder: Order) => {
+    setOrder(updatedOrder);
   };
 
-  const handleCopyShareLink = useCallback(async () => {
-    if (!order?.shareToken) return;
+  const handleReviewSubmitted = () => {
+    setReviewSubmitted(true);
+    setShowReviewForm(false);
+  };
 
-    const shareUrl = `${window.location.origin}/track/order/${order.shareToken}`;
-
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback for browsers that don't support clipboard API
-      const textArea = document.createElement('textarea');
-      textArea.value = shareUrl;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  }, [order?.shareToken]);
-
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -513,6 +230,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
     );
   }
 
+  // Error state
   if (error || !order) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -531,12 +249,13 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/orders">
               <Button variant="ghost" size="sm">
-                ← Back to Orders
+                &larr; Back to Orders
               </Button>
             </Link>
             <h1 className="text-2xl font-bold">
@@ -547,6 +266,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Order Header */}
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold">Order #{order.id.slice(0, 8).toUpperCase()}</h2>
@@ -566,806 +286,57 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
           </Badge>
         </div>
 
-        {/* Payment Success Banner */}
-        {paymentStatus === 'success' && paymentProcessed && (
-          <Card className="mb-6 border-green-500/50 bg-green-500/5">
-            <CardContent className="py-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-green-500/10">
-                  <CheckCircle className="h-6 w-6 text-green-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-green-600">Payment Successful!</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Thank you for your order. We&apos;ll start processing it right away.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Payment Cancelled/Failed Banner */}
-        {paymentStatus === 'cancelled' && order.status === 'pending' && (
-          <Card className="mb-6 border-amber-500/50 bg-amber-500/5">
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-amber-500/10">
-                    <XCircle className="h-6 w-6 text-amber-500" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-amber-600">Payment Not Completed</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Your order is saved but payment was not completed. You can retry payment or continue shopping.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2 flex-shrink-0">
-                  <Button
-                    onClick={handleRetryPayment}
-                    disabled={retryingPayment}
-                    className="bg-amber-500 hover:bg-amber-600"
-                  >
-                    {retryingPayment ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Retry Payment
-                      </>
-                    )}
-                  </Button>
-                  <Link href="/cart">
-                    <Button variant="outline">Back to Cart</Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Pending Payment Banner (for orders without payment param) */}
-        {!paymentStatus && order.status === 'pending' && (
-          <Card className="mb-6 border-blue-500/50 bg-blue-500/5">
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-blue-500/10">
-                    <CreditCard className="h-6 w-6 text-blue-500" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-blue-600">Payment Required</h3>
-                    <p className="text-sm text-muted-foreground">
-                      This order is awaiting payment. Complete the payment to confirm your order.
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  onClick={handleRetryPayment}
-                  disabled={retryingPayment}
-                  className="flex-shrink-0"
-                >
-                  {retryingPayment ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Complete Payment
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Payment Status Banners */}
+        <PaymentStatusBanners
+          order={order}
+          paymentStatus={paymentStatus}
+          paymentProcessed={paymentProcessed}
+          retryingPayment={retryingPayment}
+          onRetryPayment={handleRetryPayment}
+        />
 
         {/* Order Status Timeline */}
-        <Card className="card-glow mb-6">
-          <CardHeader>
-            <CardTitle>Order Status</CardTitle>
-            <CardDescription>Track your order progress</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="relative">
-                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border"></div>
-                <div className="space-y-6">
-                  {[
-                    { key: 'placed', label: 'Order Placed', desc: 'Your order has been received', check: true },
-                    { key: 'payment', label: 'Payment Received', desc: 'Payment successfully processed', check: ['payment_confirmed', 'confirmed', 'printing', 'shipped', 'delivered'].includes(order.status) },
-                    { key: 'confirmed', label: 'Order Confirmed', desc: 'Your order has been confirmed by our team', check: ['confirmed', 'printing', 'shipped', 'delivered'].includes(order.status) },
-                    { key: 'printing', label: 'Printing', desc: 'Your design is being printed', check: ['printing', 'shipped', 'delivered'].includes(order.status) },
-                    { key: 'shipped', label: 'Shipped', desc: 'Your order is on its way', check: ['shipped', 'delivered'].includes(order.status), tracking: order.trackingNumber },
-                    { key: 'delivered', label: 'Delivered', desc: 'Order successfully delivered', check: order.status === 'delivered', isLast: true },
-                  ].map((step) => (
-                    <div key={step.key} className="flex gap-4 relative">
-                      <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${
-                        step.check
-                          ? step.isLast ? 'bg-green-500 text-white' : 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      }`}>{step.check ? '✓' : '○'}</div>
-                      <div className="flex-1">
-                        <p className="font-medium">{step.label}</p>
-                        <p className="text-sm text-muted-foreground">{step.desc}</p>
-                        {step.tracking && (
-                          <div className="mt-2">
-                            <p className="text-xs text-muted-foreground">Tracking Number:</p>
-                            <p className="font-mono text-sm mb-2">{step.tracking}</p>
-                            <Link href={`/track?number=${step.tracking}`}>
-                              <Button size="sm" variant="outline" className="text-xs">Track Shipment →</Button>
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <OrderStatusSection order={order} />
 
         {/* Review Section - Show for delivered orders */}
-        {order.status === 'delivered' && !hasReview && !reviewSubmitted && (
-          <Card className="card-glow mb-6 border-green-500/30 bg-green-500/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-500" />
-                Leave a Review
-              </CardTitle>
-              <CardDescription>
-                Share your experience and earn 50 loyalty points!
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {showReviewForm ? (
-                <ReviewForm
-                  orderId={orderId}
-                  onSuccess={() => {
-                    setReviewSubmitted(true);
-                    setShowReviewForm(false);
-                  }}
-                  onCancel={() => setShowReviewForm(false)}
-                />
-              ) : (
-                <Button
-                  onClick={() => setShowReviewForm(true)}
-                  className="w-full bg-green-600 hover:bg-green-700"
-                >
-                  <Star className="w-4 h-4 mr-2" />
-                  Write a Review & Earn 50 Points
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+        {order.status === 'delivered' && (
+          <ReviewSection
+            orderId={orderId}
+            hasReview={hasReview}
+            reviewSubmitted={reviewSubmitted}
+            showReviewForm={showReviewForm}
+            onShowReviewForm={setShowReviewForm}
+            onReviewSubmitted={handleReviewSubmitted}
+          />
         )}
 
-        {/* Review Submitted Success */}
-        {reviewSubmitted && (
-          <Card className="card-glow mb-6 border-green-500/50 bg-green-500/5">
-            <CardContent className="py-6 text-center">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="font-semibold text-green-600 mb-1">Thank you for your review!</h3>
-              <p className="text-sm text-muted-foreground">50 points have been added to your account.</p>
-            </CardContent>
-          </Card>
-        )}
+        {/* Order Items */}
+        <OrderItemsSection
+          order={order}
+          itemIssues={itemIssues}
+          canReportIssue={!!canReportIssue}
+          onOpenIssueModal={openIssueModal}
+        />
 
-        {/* Already Reviewed */}
-        {order.status === 'delivered' && hasReview && !reviewSubmitted && (
-          <Card className="card-glow mb-6">
-            <CardContent className="py-6 text-center">
-              <div className="flex gap-1 justify-center mb-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">You&apos;ve already reviewed this order. Thank you!</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Order Items with Per-Item Issue Buttons */}
-        <Card className="card-glow mb-6">
-          <CardHeader>
-            <CardTitle>Order Items</CardTitle>
-            {canReportIssue && (
-              <CardDescription>
-                Having an issue? Click &quot;Report Issue&quot; on any item below.
-              </CardDescription>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Legacy design-based order */}
-            {order.design && !order.items?.length && (
-              <div className="flex gap-4 items-start p-4 bg-card/30 rounded-lg">
-                <div className="w-24 h-24 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
-                  <Image
-                    src={order.previewUrl || order.design.previewUrl || order.design.imageUrl}
-                    alt={order.design.name}
-                    fill
-                    sizes="96px"
-                    className="object-contain"
-                    unoptimized
-                  />
-                </div>
-                <div className="flex-1 space-y-2">
-                  <h3 className="font-semibold">{order.design.name}</h3>
-                  <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                    {order.material && <span>{MATERIAL_LABELS[order.material] || order.material}</span>}
-                    {order.printSize && <span>• {PRINT_SIZE_LABELS[order.printSize] || order.printSize}</span>}
-                  </div>
-                  <p className="font-medium">£{Number(order.totalPrice).toFixed(2)}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Cart-based order items */}
-            {order.items && order.items.length > 0 && (
-              <div className="space-y-4">
-                {order.items.map((item: OrderItem) => {
-                  const itemIssue = getItemIssue(item.id);
-                  const hasIssue = !!itemIssue;
-
-                  return (
-                    <div key={item.id} className="p-4 bg-card/30 rounded-lg">
-                      <div className="flex gap-4 items-start">
-                        <div className="w-20 h-20 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
-                          {item.product?.images?.[0]?.imageUrl ? (
-                            <Image
-                              src={item.product.images[0].imageUrl}
-                              alt={item.product?.name || 'Product'}
-                              fill
-                              sizes="80px"
-                              className="object-cover"
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="text-muted-foreground text-xs">No image</div>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <h4 className="font-medium">{item.product?.name || 'Product'}</h4>
-                              {item.variant?.name && (
-                                <p className="text-sm text-muted-foreground">{item.variant.name}</p>
-                              )}
-                            </div>
-                            {/* Issue Status Badge */}
-                            {hasIssue && (
-                              <div className="flex items-center gap-1">
-                                <Badge className={`${getIssueStatusColor(itemIssue.status)} border text-xs`}>
-                                  <AlertCircle className="w-3 h-3 mr-1" />
-                                  {ISSUE_STATUS_LABELS[itemIssue.status] || itemIssue.status}
-                                </Badge>
-                                {itemIssue.isConcluded && (
-                                  <Badge className="bg-muted text-muted-foreground border-border border text-xs">
-                                    <Lock className="w-3 h-3" />
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex justify-between mt-2">
-                            <span className="text-sm text-muted-foreground">Qty: {item.quantity}</span>
-                            <span className="font-medium">£{Number(item.totalPrice).toFixed(2)}</span>
-                          </div>
-
-                          {/* Per-Item Issue Actions */}
-                          {canReportIssue && (
-                            <div className="mt-3 pt-3 border-t border-border/50">
-                              {hasIssue ? (
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-muted-foreground">
-                                    Issue reported {new Date(itemIssue.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                  </span>
-                                  <Link href={`/account/issues/${itemIssue.id}`}>
-                                    <Button size="sm" variant="outline" className="text-xs">
-                                      <MessageSquare className="w-3 h-3 mr-1" />
-                                      View Issue
-                                      {itemIssue.unreadCount && itemIssue.unreadCount > 0 && (
-                                        <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-1.5">
-                                          {itemIssue.unreadCount}
-                                        </span>
-                                      )}
-                                    </Button>
-                                  </Link>
-                                </div>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-xs border-orange-500/50 text-orange-500 hover:text-orange-600"
-                                  onClick={() => openIssueModal(item)}
-                                >
-                                  <AlertCircle className="w-3 h-3 mr-1" />
-                                  Report Issue
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <Separator />
-
-            {/* Shipping Address */}
-            {order.shippingAddress && (
-              <div>
-                <h4 className="font-semibold mb-3">Shipping Address</h4>
-                <div className="text-sm text-muted-foreground space-y-1 bg-muted/30 p-4 rounded-lg">
-                  <p className="font-medium text-foreground">{order.shippingAddress.name}</p>
-                  <p>{order.shippingAddress.addressLine1}</p>
-                  {order.shippingAddress.addressLine2 && <p>{order.shippingAddress.addressLine2}</p>}
-                  <p>{order.shippingAddress.city}, {order.shippingAddress.postcode}</p>
-                  <p>{order.shippingAddress.country}</p>
-                </div>
-              </div>
-            )}
-
-            <Separator />
-
-            {/* Order Total */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal:</span>
-                <span>£{Number(order.totalPrice).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Shipping:</span>
-                <span className="text-green-500">FREE</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total:</span>
-                <span className="text-primary">£{Number(order.totalPrice).toFixed(2)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Cancellation Request Status */}
-        {order.status === 'cancellation_requested' && order.cancellationRequest && (
-          <Card className="mb-6 border-amber-500/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-amber-500 text-lg flex items-center gap-2">
-                ⏸️ Cancellation Requested
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Your cancellation request is being reviewed by our team.
-              </p>
-              <div className="bg-amber-500/10 rounded-lg p-3 text-sm">
-                <p>
-                  <span className="text-muted-foreground">Reason:</span>{' '}
-                  <span className="font-medium">
-                    {CANCELLATION_REASON_LABELS[order.cancellationRequest.reason]}
-                  </span>
-                </p>
-                {order.cancellationRequest.notes && (
-                  <p className="mt-1">
-                    <span className="text-muted-foreground">Your notes:</span>{' '}
-                    {order.cancellationRequest.notes}
-                  </p>
-                )}
-                <p className="mt-1">
-                  <span className="text-muted-foreground">Submitted:</span>{' '}
-                  {new Date(order.cancellationRequest.createdAt).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                We&apos;ll notify you via email once your request has been reviewed (usually within 24 hours).
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Cancelled Order Info */}
-        {order.status === 'cancelled' && (
-          <Card className="mb-6 border-red-500/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-red-500 text-lg flex items-center gap-2">
-                ❌ Order Cancelled
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {order.cancellationReason && (
-                <p className="text-sm">
-                  <span className="text-muted-foreground">Reason:</span>{' '}
-                  <span className="font-medium">
-                    {CANCELLATION_REASON_LABELS[order.cancellationReason]}
-                  </span>
-                </p>
-              )}
-              {order.cancellationNotes && (
-                <p className="text-sm">
-                  <span className="text-muted-foreground">Notes:</span>{' '}
-                  {order.cancellationNotes}
-                </p>
-              )}
-              {order.refundAmount && (
-                <div className="bg-green-500/10 rounded-lg p-3 text-sm">
-                  <p className="text-green-500 font-medium">
-                    Refund of £{Number(order.refundAmount).toFixed(2)} has been processed
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    This will be credited to your original payment method within 5-10 business days.
-                  </p>
-                </div>
-              )}
-              {order.cancelledAt && (
-                <p className="text-xs text-muted-foreground">
-                  Cancelled on{' '}
-                  {new Date(order.cancelledAt).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        {/* Cancellation Status Cards */}
+        <CancellationStatusCard order={order} />
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
-          <Link href="/orders">
-            <Button variant="outline" className="w-full sm:w-auto">Back to Orders</Button>
-          </Link>
-          {order.items && order.items.length > 0 && (
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto border-primary/50 text-primary hover:text-primary"
-              onClick={handleReorder}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Reorder
-            </Button>
-          )}
-          {order.trackingNumber && (
-            <Link href={`/track?number=${order.trackingNumber}`}>
-              <Button variant="outline" className="w-full sm:w-auto">Track Shipment</Button>
-            </Link>
-          )}
-          {order.shareToken && (
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto border-cyan-500/50 text-cyan-500 hover:text-cyan-600"
-              onClick={handleCopyShareLink}
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Link Copied!
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share Order
-                </>
-              )}
-            </Button>
-          )}
-          {Object.keys(itemIssues).length > 0 && (
-            <Link href="/account/issues">
-              <Button variant="outline" className="w-full sm:w-auto border-orange-500/50 text-orange-500 hover:text-orange-600">
-                View All Issues
-              </Button>
-            </Link>
-          )}
-          {canRequestCancellation && (
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto border-red-500/50 text-red-500 hover:text-red-600"
-              onClick={() => {
-                setCancelReason('');
-                setCancelNotes('');
-                setCancelError('');
-                setCancelSuccess(false);
-                setCancelModalOpen(true);
-              }}
-            >
-              Cancel Order
-            </Button>
-          )}
-          <Link href="/products">
-            <Button variant="outline" className="w-full sm:w-auto">Continue Shopping</Button>
-          </Link>
-          <Link href="/design/new">
-            <Button className="btn-gradient w-full sm:w-auto">Create Another Design</Button>
-          </Link>
-        </div>
+        <OrderActions
+          order={order}
+          itemIssues={itemIssues}
+          onOrderUpdated={handleOrderUpdated}
+        />
 
-        {/* Report Issue Modal */}
-        <Dialog open={issueModalOpen} onOpenChange={setIssueModalOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Report an Issue</DialogTitle>
-              <DialogDescription>
-                {selectedItem && (
-                  <span>
-                    Reporting issue for: <strong>{selectedItem.product?.name || 'Item'}</strong>
-                  </span>
-                )}
-              </DialogDescription>
-            </DialogHeader>
-
-            {issueSuccess ? (
-              <div className="py-6 text-center">
-                <div className="text-4xl mb-4">✓</div>
-                <h3 className="text-lg font-semibold text-green-500 mb-2">Issue Reported Successfully</h3>
-                <p className="text-muted-foreground mb-4">
-                  Our team will review your issue and respond within 1-2 business days.
-                </p>
-                <div className="flex gap-2 justify-center">
-                  <Button variant="outline" onClick={() => setIssueModalOpen(false)}>Close</Button>
-                  {selectedItem && itemIssues[selectedItem.id] && (
-                    <Link href={`/account/issues/${itemIssues[selectedItem.id].id}`}>
-                      <Button>View Issue</Button>
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="issue-reason">What&apos;s the issue? <span className="text-destructive">*</span></Label>
-                    <Select value={issueReason} onValueChange={setIssueReason}>
-                      <SelectTrigger id="issue-reason">
-                        <SelectValue placeholder="Select issue..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ISSUE_REASONS.map((reason) => (
-                          <SelectItem key={reason.value} value={reason.value}>
-                            <div>
-                              <div className="font-medium">{reason.label}</div>
-                              <div className="text-xs text-muted-foreground">{reason.description}</div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Resolution Preference */}
-                  <div className="space-y-2">
-                    <Label>What would you like us to do? <span className="text-destructive">*</span></Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setIssuePreference('REPRINT')}
-                        className={`p-4 rounded-lg border-2 text-center transition-all ${
-                          issuePreference === 'REPRINT'
-                            ? 'border-purple-500 bg-purple-500/10 text-purple-500'
-                            : 'border-border hover:border-purple-500/50 hover:bg-purple-500/5'
-                        }`}
-                      >
-                        <div className="text-2xl mb-1">🔄</div>
-                        <div className="font-medium">Send Replacement</div>
-                        <div className="text-xs text-muted-foreground mt-1">Free reprint shipped to you</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIssuePreference('REFUND')}
-                        className={`p-4 rounded-lg border-2 text-center transition-all ${
-                          issuePreference === 'REFUND'
-                            ? 'border-green-500 bg-green-500/10 text-green-500'
-                            : 'border-border hover:border-green-500/50 hover:bg-green-500/5'
-                        }`}
-                      >
-                        <div className="text-2xl mb-1">💰</div>
-                        <div className="font-medium">Issue Refund</div>
-                        <div className="text-xs text-muted-foreground mt-1">Get your money back</div>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="issue-notes">Additional Details <span className="text-destructive">*</span></Label>
-                    <Textarea
-                      id="issue-notes"
-                      placeholder="Please describe the issue in detail..."
-                      value={issueNotes}
-                      onChange={(e) => setIssueNotes(e.target.value)}
-                      rows={3}
-                      required
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Please provide a detailed description of the issue to help us resolve it quickly.
-                    </p>
-                  </div>
-
-                  {/* Image Upload */}
-                  <div className="space-y-2">
-                    <Label>Photos of the Issue <span className="text-destructive">*</span></Label>
-                    <p className="text-xs text-muted-foreground">
-                      Please upload at least 1 photo (up to 5) showing the damage or issue to help us investigate.
-                    </p>
-
-                    {issueImages.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {issueImages.map((url, index) => (
-                          <div key={index} className="relative group">
-                            <div className="w-20 h-20 rounded-lg overflow-hidden border border-border relative">
-                              <Image
-                                src={url}
-                                alt={`Issue photo ${index + 1}`}
-                                fill
-                                sizes="80px"
-                                className="object-cover"
-                                unoptimized
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveImage(index)}
-                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {issueImages.length < 5 && (
-                      <div className="flex gap-2">
-                        <label htmlFor="issue-image-upload" className="cursor-pointer">
-                          <div className="flex items-center gap-2 px-4 py-2 border border-dashed border-border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors">
-                            {uploadingImage ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent" />
-                                <span className="text-sm">Uploading...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Camera className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">
-                                  {issueImages.length === 0 ? 'Add Photos' : 'Add More'}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </label>
-                        <input
-                          id="issue-image-upload"
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp,image/gif"
-                          onChange={handleImageUpload}
-                          disabled={uploadingImage}
-                          className="hidden"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {issueError && (
-                    <div className="bg-destructive/10 border border-destructive/50 text-destructive px-3 py-2 rounded-md text-sm">
-                      {issueError}
-                    </div>
-                  )}
-                </div>
-
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIssueModalOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleReportIssue}
-                    disabled={!issueReason || !issuePreference || !issueNotes.trim() || issueImages.length === 0}
-                    loading={submittingIssue}
-                    className="bg-orange-500 hover:bg-orange-600"
-                  >
-                    Submit Report
-                  </Button>
-                </DialogFooter>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Cancel Order Request Modal */}
-        <Dialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
-          <DialogContent className="sm:max-w-[450px]">
-            <DialogHeader>
-              <DialogTitle>Request Order Cancellation</DialogTitle>
-              <DialogDescription>
-                Request to cancel order #{order?.id.slice(0, 8).toUpperCase()}
-              </DialogDescription>
-            </DialogHeader>
-
-            {cancelSuccess ? (
-              <div className="py-6 text-center">
-                <div className="text-4xl mb-4">✓</div>
-                <h3 className="text-lg font-semibold text-green-500 mb-2">Request Submitted</h3>
-                <p className="text-muted-foreground mb-4">
-                  Your cancellation request has been submitted. We&apos;ll review it and notify you via email within 24 hours.
-                </p>
-                <Button onClick={() => setCancelModalOpen(false)}>Close</Button>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4 py-4">
-                  <div className="bg-amber-500/10 border border-amber-500/50 text-amber-600 px-4 py-3 rounded-lg text-sm">
-                    <strong>Note:</strong> Cancellation requests are reviewed by our team. Orders that have already started production may not be cancellable.
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cancel-reason">Why do you want to cancel? <span className="text-destructive">*</span></Label>
-                    <Select value={cancelReason} onValueChange={(value: string) => setCancelReason(value as CancellationReason)}>
-                      <SelectTrigger id="cancel-reason">
-                        <SelectValue placeholder="Select reason..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CUSTOMER_CANCELLATION_REASONS.map((reason) => (
-                          <SelectItem key={reason} value={reason}>
-                            {CANCELLATION_REASON_LABELS[reason]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cancel-notes">Additional Notes (Optional)</Label>
-                    <Textarea
-                      id="cancel-notes"
-                      placeholder="Let us know if there's anything else we should know..."
-                      value={cancelNotes}
-                      onChange={(e) => setCancelNotes(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-
-                  {cancelError && (
-                    <div className="bg-destructive/10 border border-destructive/50 text-destructive px-3 py-2 rounded-md text-sm">
-                      {cancelError}
-                    </div>
-                  )}
-                </div>
-
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setCancelModalOpen(false)}>
-                    Keep Order
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={handleRequestCancellation}
-                    disabled={!cancelReason}
-                    loading={submittingCancel}
-                  >
-                    Request Cancellation
-                  </Button>
-                </DialogFooter>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* Issue Report Modal */}
+        <IssueReportModal
+          open={issueModalOpen}
+          onOpenChange={setIssueModalOpen}
+          orderId={orderId}
+          selectedItem={selectedItem}
+          itemIssues={itemIssues}
+          onIssueSubmitted={handleIssueSubmitted}
+        />
       </main>
     </div>
   );

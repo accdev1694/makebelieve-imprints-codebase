@@ -1,116 +1,105 @@
-# Technical Debt Refactoring Progress Summary
+# Technical Debt Cleanup Progress Summary
 
-## What Was Accomplished
+**Last Updated**: 2026-01-06
 
-### Phase 1: Quick Wins (COMPLETE)
+## Session: Code Duplication & Large File Cleanup
 
-1. **Email Infrastructure Created**
-   - `frontend/lib/server/email/config.ts` - Centralized constants (colors, styles, utilities)
-   - `frontend/lib/server/email/send.ts` - Core sendEmail function
-   - `frontend/lib/server/email/partials/` - Reusable components (header, footer, button, info-box, layout)
-   - `frontend/lib/server/email/templates/` - Organized by domain
+### What Was Accomplished This Session
 
+#### 1. Created Shared Formatters (`lib/formatters.ts`) - NEW
+- Centralized `formatCurrency()`, `formatDate()`, `formatDateUK()`, `formatDateTime()`, `formatDateShort()`
+- Previously duplicated across 11+ files in the accounting pages
+
+#### 2. Enhanced Tax Utilities (`lib/server/tax-utils.ts`)
+- Added `TAX_YEAR_MONTHS` constant (UK tax year month list Apr-Mar)
+- Added `getMonthDateRange()` function for filtering within tax years
+- Deprecated inline `formatGBP()` in favor of shared formatters
+
+#### 3. Expanded Constants (`lib/config/constants.ts`)
+- Added `TAB_STATUS_MAP` for order status groupings
+- Added `ARCHIVED_STATUSES` and `ACTIVE_STATUSES` for order filtering
+- Updated `app/api/orders/route.ts` to use shared constants
+
+#### 4. Refactored Accounting Pages
+All pages now use shared utilities instead of inline duplicates:
+- `app/admin/accounting/page.tsx` - Main dashboard
+- `app/admin/accounting/expenses/page.tsx` - Expenses management
+- `app/admin/accounting/income/page.tsx` - Income management
+- `app/admin/accounting/reports/page.tsx` - Reports list
+- `app/admin/accounting/reports/[id]/page.tsx` - Report details
+- `app/admin/accounting/suppliers/page.tsx` - Supplier management
+
+#### 5. Split CartContext (`contexts/CartContext.tsx`)
+Extracted cart utilities to `lib/cart/`:
+- `lib/cart/types.ts` - CartItem, AddToCartPayload, CartItemCustomization
+- `lib/cart/helpers.ts` - generateCartItemId(), transformServerItem()
+- `lib/cart/storage.ts` - loadCartFromStorage(), saveCartToStorage(), loadSelectionFromStorage(), saveSelectionToStorage()
+- `lib/cart/index.ts` - Re-exports all utilities
+
+CartContext reduced from ~603 lines to ~488 lines (19% reduction)
+
+### New Files Created
+- `lib/formatters.ts` (68 lines)
+- `lib/cart/types.ts` (49 lines)
+- `lib/cart/helpers.ts` (38 lines)
+- `lib/cart/storage.ts` (100 lines)
+- `lib/cart/index.ts` (9 lines)
+
+---
+
+## Previous Work (Completed)
+
+### Phase 1: Quick Wins
+1. **Email Infrastructure** - `lib/server/email/` with partials and templates
 2. **All 21 Email Templates Migrated**
-   - `templates/auth/` - password-reset, subscription-confirm, welcome
-   - `templates/resolutions/` - refund-confirmation, reprint-confirmation
-   - `templates/issues/` - received, info-requested, approved, rejected, message, resolved, concluded
-   - `templates/admin-alerts/` - new-issue, cancellation-request
-   - `templates/orders/` - cancelled, cancellation-received, cancellation-approved, cancellation-rejected, invoice
-   - `templates/marketing/` - recovery, review-request
+3. **Validation Expanded** (`lib/server/validation.ts`)
 
-3. **Validation Expanded** (`frontend/lib/server/validation.ts`)
-   - Added: `validateUUID`, `validatePagination`, `validateAmount`, `validatePositiveInt`
-   - Added: `createStringValidator`, `createEnumValidator`, `validateRequired`, `combineValidationResults`
+### Phase 2: Core Services
+1. **Issue Service** (`lib/server/issue-service.ts`) - 750+ lines
+2. **12 Issue Routes Migrated**
+3. **Expense Service** (`lib/server/expense-service.ts`) - 1,280+ lines
+4. **6 Accounting Routes Migrated**
 
-4. **Fixed Duplicate Validation**
-   - `frontend/app/api/subscribers/route.ts` now uses centralized `validateEmail`
+### Phase 3: Secondary Services
+- cart-service.ts, wishlist-service.ts, subscriber-service.ts
 
-### Phase 2: Core Services (COMPLETE)
-
-1. **Issue Service Created** (`frontend/lib/server/issue-service.ts`) - 750+ lines
-   - Customer operations: getCustomerIssues, getCustomerIssue, withdrawIssue, sendCustomerMessage, appealIssue
-   - Admin operations: listIssuesAdmin, getIssueAdmin, reviewIssue, processIssue, concludeIssue, reopenIssue, sendAdminMessage
-   - Utilities: markMessagesAsRead, getIssueMessages, markMessageEmailSent
-
-2. **12 Issue Routes Migrated to Use Service**
-   - `/api/issues/route.ts` (GET)
-   - `/api/issues/[id]/route.ts` (GET, DELETE)
-   - `/api/issues/[id]/messages/route.ts` (GET, POST)
-   - `/api/issues/[id]/appeal/route.ts` (POST)
-   - `/api/issues/[id]/mark-read/route.ts` (POST)
-   - `/api/admin/issues/route.ts` (GET)
-   - `/api/admin/issues/[id]/route.ts` (GET)
-   - `/api/admin/issues/[id]/review/route.ts` (POST)
-   - `/api/admin/issues/[id]/process/route.ts` (POST)
-   - `/api/admin/issues/[id]/conclude/route.ts` (POST, DELETE)
-   - `/api/admin/issues/[id]/messages/route.ts` (GET, POST)
-
-3. **Expense Service Created** (`frontend/lib/server/expense-service.ts`) - 1,280+ lines
-   - Expense operations: listExpenses, getExpense, createExpense, updateExpense, deleteExpense
-   - Income operations: listIncome, getIncome, createIncome, updateIncome, deleteIncome
-   - CSV Import: parseCSV, mapHeaders, validateExpenseRows, importExpensesBatch, getImportHistory, getImportBatch, deleteImportBatch, getCSVTemplate
-   - Utilities: generateExpenseNumber, generateIncomeNumber, parseCategory, parseDate, parseAmount, parseBoolean
-
-4. **6 Accounting Routes Migrated to Use Service**
-   - `/api/admin/accounting/expenses/route.ts` (GET, POST)
-   - `/api/admin/accounting/expenses/[id]/route.ts` (GET, PUT, DELETE)
-   - `/api/admin/accounting/expenses/import/route.ts` (GET, POST)
-   - `/api/admin/accounting/expenses/import/[batchId]/route.ts` (GET, DELETE)
-   - `/api/admin/accounting/income/route.ts` (GET, POST)
-   - `/api/admin/accounting/income/[id]/route.ts` (GET, PUT, DELETE)
-
-### Deployment Fix
-
-- Removed Windows-specific `@next/swc-win32-x64-msvc` dependency
-- Added `@typescript-eslint/eslint-plugin` and `@typescript-eslint/parser` for ESLint
-- Regenerated `package-lock.json` for cross-platform builds
-
-## Current State
-
-- Build passes with all changes
-- Issue service is functional and routes delegate business logic to it
-- Expense/Income service is functional and routes delegate business logic to it
-- Email infrastructure complete with all 21 templates migrated
-- Backward compatible via re-exports in `frontend/lib/server/email/index.ts`
-
-## Next Steps (Continue From Here)
-
-### Phase 3 (Secondary Services)
-
-- cart-service.ts (4 routes)
-- wishlist-service.ts (3 routes)
-- subscriber-service.ts (5 routes)
-- Apply validation across more routes
-
-### Phase 4 (Cleanup)
-
+### Phase 4: Additional Services
 - product-service.ts, category-service.ts, design-service.ts
-- Remove old email.ts content (keep as re-export only)
 
-## Key Files to Reference
+---
 
-- Plan: `.claude/plans/enumerated-bubbling-crane.md`
-- Email module: `frontend/lib/server/email/`
-- Issue service: `frontend/lib/server/issue-service.ts`
-- Expense service: `frontend/lib/server/expense-service.ts`
-- Validation: `frontend/lib/server/validation.ts`
-- Service pattern example: `frontend/lib/server/promo-service.ts`
+## Remaining Tech Debt (Prioritized)
+
+### High Priority
+1. **Checkout page** (`app/checkout/page.tsx`) - 1057 lines
+   - Split into CartReviewSection, ShippingSection, PaymentSection, DiscountSection
+
+2. **AdminDataTable** (`components/admin/AdminDataTable.tsx`) - 584 lines
+   - Split into folder structure with Table, Search, Pagination, Skeleton
+
+3. **Admin Components Page** (`app/admin/components/page.tsx`) - 1542 lines
+   - Use dynamic routing to split previews
+
+### Medium Priority
+4. **Order Details pages** - 350+ line components
+5. **Product Service** (`lib/server/product-service.ts`) - 729 lines
+6. **Wise Service** (`lib/server/wise-service.ts`) - 790 lines
+7. **Product Search Service** (`lib/server/product-search-service.ts`) - 813 lines
+
+### Remaining Duplications
+- `formatCurrency` in Wise pages, recovery campaigns (different signatures)
+- Modal patterns across admin pages
+- Form validation logic repeated
+
+---
 
 ## Build Status
+All TypeScript compilation passes (excluding pre-existing test file issues with Jest/Vitest syntax).
 
-All tests passing, build succeeds. Ready for deployment.
-
-## Routes Summary
-
-### Migrated to Services (18 routes)
-- 12 issue routes -> issue-service.ts
-- 6 accounting routes -> expense-service.ts
-
-### Remaining to Migrate
-- 5 accounting routes (dashboard, reports, suppliers)
-- 4 cart routes
-- 3 wishlist routes
-- 5 subscriber routes
-- 7 product routes
-- 4 category routes
-- 2 design routes
+## Key Files
+- Formatters: `lib/formatters.ts`
+- Cart utilities: `lib/cart/`
+- Tax utilities: `lib/server/tax-utils.ts`
+- Constants: `lib/config/constants.ts`
+- Email module: `lib/server/email/`
+- Services: `lib/server/*-service.ts`

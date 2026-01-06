@@ -34,6 +34,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { formatCurrency, formatDate } from '@/lib/formatters';
+import { getAvailableTaxYears } from '@/lib/server/tax-utils';
 
 interface Report {
   id: string;
@@ -62,39 +64,6 @@ const REPORT_TYPE_COLORS: Record<string, string> = {
   VAT_RETURN: 'bg-purple-500/10 text-purple-500 border-purple-500/50',
   TAX_YEAR_END: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
 };
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-  }).format(amount);
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function getAvailableTaxYears(): string[] {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const day = now.getDate();
-
-  let currentStartYear = year;
-  if (month < 3 || (month === 3 && day < 6)) {
-    currentStartYear = year - 1;
-  }
-
-  const years: string[] = [];
-  for (let y = 2020; y <= currentStartYear; y++) {
-    years.push(`${y}-${y + 1}`);
-  }
-  return years.reverse();
-}
 
 function ReportsContent() {
   const router = useRouter();

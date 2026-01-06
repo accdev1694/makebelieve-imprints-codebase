@@ -8,14 +8,15 @@
    - `frontend/lib/server/email/config.ts` - Centralized constants (colors, styles, utilities)
    - `frontend/lib/server/email/send.ts` - Core sendEmail function
    - `frontend/lib/server/email/partials/` - Reusable components (header, footer, button, info-box, layout)
-   - `frontend/lib/server/email/templates/` - Started organizing by domain (auth, resolutions, issues)
+   - `frontend/lib/server/email/templates/` - Organized by domain
 
-2. **5 Email Templates Migrated**
-   - `templates/auth/password-reset.ts`
-   - `templates/auth/subscription-confirm.ts`
-   - `templates/auth/welcome.ts`
-   - `templates/resolutions/refund-confirmation.ts`
-   - `templates/issues/received.ts`
+2. **All 21 Email Templates Migrated**
+   - `templates/auth/` - password-reset, subscription-confirm, welcome
+   - `templates/resolutions/` - refund-confirmation, reprint-confirmation
+   - `templates/issues/` - received, info-requested, approved, rejected, message, resolved, concluded
+   - `templates/admin-alerts/` - new-issue, cancellation-request
+   - `templates/orders/` - cancelled, cancellation-received, cancellation-approved, cancellation-rejected, invoice
+   - `templates/marketing/` - recovery, review-request
 
 3. **Validation Expanded** (`frontend/lib/server/validation.ts`)
    - Added: `validateUUID`, `validatePagination`, `validateAmount`, `validatePositiveInt`
@@ -24,7 +25,7 @@
 4. **Fixed Duplicate Validation**
    - `frontend/app/api/subscribers/route.ts` now uses centralized `validateEmail`
 
-### Phase 2: Core Services (IN PROGRESS)
+### Phase 2: Core Services (COMPLETE)
 
 1. **Issue Service Created** (`frontend/lib/server/issue-service.ts`) - 750+ lines
    - Customer operations: getCustomerIssues, getCustomerIssue, withdrawIssue, sendCustomerMessage, appealIssue
@@ -58,25 +59,23 @@
    - `/api/admin/accounting/income/route.ts` (GET, POST)
    - `/api/admin/accounting/income/[id]/route.ts` (GET, PUT, DELETE)
 
+### Deployment Fix
+
+- Removed Windows-specific `@next/swc-win32-x64-msvc` dependency
+- Added `@typescript-eslint/eslint-plugin` and `@typescript-eslint/parser` for ESLint
+- Regenerated `package-lock.json` for cross-platform builds
+
 ## Current State
 
 - Build passes with all changes
 - Issue service is functional and routes delegate business logic to it
 - Expense/Income service is functional and routes delegate business logic to it
-- Email infrastructure is in place, backward compatible via re-exports in `frontend/lib/server/email/index.ts`
+- Email infrastructure complete with all 21 templates migrated
+- Backward compatible via re-exports in `frontend/lib/server/email/index.ts`
 
 ## Next Steps (Continue From Here)
 
-### Remaining Phase 2 Tasks
-
-1. **Migrate remaining 15 email templates** - From original `email.ts` to new structure
-   - Orders: cancelled, cancellation-*, invoice
-   - Issues: info-requested, approved, rejected, message, resolved, concluded
-   - Admin alerts: new-issue, cancellation-request
-   - Resolutions: reprint-confirmation
-   - Marketing: recovery, review-request
-
-### Phase 3 (After Phase 2)
+### Phase 3 (Secondary Services)
 
 - cart-service.ts (4 routes)
 - wishlist-service.ts (3 routes)
@@ -99,7 +98,7 @@
 
 ## Build Status
 
-All tests passing, build succeeds with 0 warnings after ESLint fixes from earlier session.
+All tests passing, build succeeds. Ready for deployment.
 
 ## Routes Summary
 

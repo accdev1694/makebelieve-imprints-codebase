@@ -1,185 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { sendSubscriptionConfirmEmail } from '@/lib/server/email';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
-import { validateEmail } from '@/lib/server/validation';
-import crypto from 'crypto';
+import { subscribe, listSubscribers, SubscriberStatus, SubscriberSource } from '@/lib/server/subscriber-service';
 
-// POST /api/subscribers - Subscribe to newsletter
+/**
+ * POST /api/subscribers
+ * Subscribe to newsletter (public)
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, name, source = 'FOOTER' } = body;
+    const { email, name, source = 'FOOTER' } = body as { email: string; name?: string; source?: SubscriberSource };
 
-    if (!email) {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      );
-    }
+    const result = await subscribe(email, name, source);
 
-    // Validate email format using centralized validation
-    const emailValidation = validateEmail(email);
-    if (!emailValidation.valid) {
-      return NextResponse.json(
-        { error: emailValidation.errors[0] || 'Invalid email format' },
-        { status: 400 }
-      );
-    }
-
-    // Check if subscriber already exists
-    const existingSubscriber = await prisma.subscriber.findUnique({
-      where: { email: email.toLowerCase() },
-    });
-
-    if (existingSubscriber) {
-      if (existingSubscriber.status === 'ACTIVE') {
-        return NextResponse.json(
-          { message: 'You are already subscribed!' },
-          { status: 200 }
-        );
-      }
-
-      if (existingSubscriber.status === 'PENDING') {
-        // Resend confirmation email
-        const confirmToken = crypto.randomBytes(32).toString('hex');
-        await prisma.subscriber.update({
-          where: { id: existingSubscriber.id },
-          data: {
-            confirmToken,
-            updatedAt: new Date(),
-          },
-        });
-
-        await sendSubscriptionConfirmEmail(email, confirmToken);
-
-        return NextResponse.json(
-          { message: 'Confirmation email resent. Please check your inbox.' },
-          { status: 200 }
-        );
-      }
-
-      if (existingSubscriber.status === 'UNSUBSCRIBED') {
-        // Re-subscribe - generate new confirm token
-        const confirmToken = crypto.randomBytes(32).toString('hex');
-        await prisma.subscriber.update({
-          where: { id: existingSubscriber.id },
-          data: {
-            status: 'PENDING',
-            confirmToken,
-            unsubscribedAt: null,
-            updatedAt: new Date(),
-          },
-        });
-
-        await sendSubscriptionConfirmEmail(email, confirmToken);
-
-        return NextResponse.json(
-          { message: 'Please check your email to confirm your subscription.' },
-          { status: 200 }
-        );
-      }
-    }
-
-    // Create new subscriber with pending status
-    const confirmToken = crypto.randomBytes(32).toString('hex');
-    await prisma.subscriber.create({
-      data: {
-        email: email.toLowerCase(),
-        name: name || null,
-        status: 'PENDING',
-        source: source,
-        confirmToken,
-      },
-    });
-
-    // Send confirmation email
-    const emailSent = await sendSubscriptionConfirmEmail(email, confirmToken);
-
-    if (!emailSent) {
-      console.error('Failed to send confirmation email to:', email);
-      // Still return success - we don't want to expose email sending issues
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
     return NextResponse.json(
-      { message: 'Please check your email to confirm your subscription.' },
-      { status: 201 }
+      { message: result.message },
+      { status: result.message?.includes('already subscribed') ? 200 : 201 }
     );
   } catch (error) {
     console.error('Error subscribing:', error);
-    return NextResponse.json(
-      { error: 'Failed to subscribe. Please try again.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to subscribe. Please try again.' }, { status: 500 });
   }
 }
 
-// GET /api/subscribers - List subscribers (admin only)
+/**
+ * GET /api/subscribers
+ * List subscribers (admin only)
+ */
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin(request);
 
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)));
-    const status = searchParams.get('status');
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const status = searchParams.get('status') as SubscriberStatus | null;
     const search = searchParams.get('search');
 
-    const where: Record<string, unknown> = {};
-
-    if (status && ['PENDING', 'ACTIVE', 'UNSUBSCRIBED'].includes(status)) {
-      where.status = status;
-    }
-
-    if (search) {
-      where.OR = [
-        { email: { contains: search, mode: 'insensitive' } },
-        { name: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    const [subscribers, total] = await Promise.all([
-      prisma.subscriber.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          status: true,
-          source: true,
-          subscribedAt: true,
-          unsubscribedAt: true,
-          createdAt: true,
-        },
-      }),
-      prisma.subscriber.count({ where }),
-    ]);
-
-    // Get counts by status
-    const [activeCount, pendingCount, unsubscribedCount] = await Promise.all([
-      prisma.subscriber.count({ where: { status: 'ACTIVE' } }),
-      prisma.subscriber.count({ where: { status: 'PENDING' } }),
-      prisma.subscriber.count({ where: { status: 'UNSUBSCRIBED' } }),
-    ]);
-
-    return NextResponse.json({
-      subscribers,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-      stats: {
-        active: activeCount,
-        pending: pendingCount,
-        unsubscribed: unsubscribedCount,
-        total: activeCount + pendingCount + unsubscribedCount,
-      },
+    const result = await listSubscribers({
+      page,
+      limit,
+      status: status || undefined,
+      search: search || undefined,
     });
+
+    if (!result.success || !result.data) {
+      return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+
+    return NextResponse.json(result.data);
   } catch (error) {
     return handleApiError(error);
   }

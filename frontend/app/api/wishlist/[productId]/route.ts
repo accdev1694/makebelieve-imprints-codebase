@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
+import { removeWishlistItem } from '@/lib/server/wishlist-service';
 
 /**
  * DELETE /api/wishlist/[productId]
@@ -14,19 +14,10 @@ export async function DELETE(
     const user = await requireAuth(request);
     const { productId } = await params;
 
-    // Try to delete the wishlist item
-    const deleted = await prisma.wishlistItem.deleteMany({
-      where: {
-        userId: user.userId,
-        productId,
-      },
-    });
+    const result = await removeWishlistItem(user.userId, productId);
 
-    if (deleted.count === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Item not in wishlist' },
-        { status: 404 }
-      );
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 404 });
     }
 
     return NextResponse.json({

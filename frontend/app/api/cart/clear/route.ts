@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
+import { clearCart } from '@/lib/server/cart-service';
 
 /**
  * DELETE /api/cart/clear
@@ -11,13 +11,11 @@ export async function DELETE(request: NextRequest) {
   try {
     const user = await requireAuth(request);
 
-    await prisma.cartItem.deleteMany({
-      where: { userId: user.userId },
-    });
+    const result = await clearCart(user.userId);
 
     return NextResponse.json({
       success: true,
-      data: { cleared: true },
+      data: result.data,
     });
   } catch (error) {
     return handleApiError(error);

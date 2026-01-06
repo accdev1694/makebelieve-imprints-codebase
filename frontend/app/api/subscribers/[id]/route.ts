@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
+import { updateSubscriberStatus, deleteSubscriber, SubscriberStatus } from '@/lib/server/subscriber-service';
 
-// PATCH /api/subscribers/[id] - Update subscriber status (admin only)
+/**
+ * PATCH /api/subscribers/[id]
+ * Update subscriber status (admin only)
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -12,59 +15,28 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const { status } = body;
+    const { status } = body as { status: SubscriberStatus };
 
-    if (!status || !['ACTIVE', 'PENDING', 'UNSUBSCRIBED'].includes(status)) {
-      return NextResponse.json(
-        { error: 'Invalid status. Must be ACTIVE, PENDING, or UNSUBSCRIBED' },
-        { status: 400 }
-      );
+    const result = await updateSubscriberStatus(id, status);
+
+    if (!result.success) {
+      const statusCode = result.error === 'Subscriber not found' ? 404 : 400;
+      return NextResponse.json({ error: result.error }, { status: statusCode });
     }
-
-    const subscriber = await prisma.subscriber.findUnique({
-      where: { id },
-    });
-
-    if (!subscriber) {
-      return NextResponse.json(
-        { error: 'Subscriber not found' },
-        { status: 404 }
-      );
-    }
-
-    const updateData: Record<string, unknown> = {
-      status,
-      updatedAt: new Date(),
-    };
-
-    // Set appropriate timestamps based on status change
-    if (status === 'ACTIVE' && subscriber.status !== 'ACTIVE') {
-      updateData.subscribedAt = new Date();
-      updateData.confirmToken = null;
-    } else if (status === 'UNSUBSCRIBED') {
-      updateData.unsubscribedAt = new Date();
-      updateData.confirmToken = null;
-    }
-
-    const updated = await prisma.subscriber.update({
-      where: { id },
-      data: updateData,
-    });
 
     return NextResponse.json({
-      message: `Subscriber status updated to ${status}`,
-      subscriber: {
-        id: updated.id,
-        email: updated.email,
-        status: updated.status,
-      },
+      message: result.message,
+      subscriber: result.data,
     });
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-// DELETE /api/subscribers/[id] - Delete subscriber (admin only)
+/**
+ * DELETE /api/subscribers/[id]
+ * Delete subscriber (admin only)
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -74,24 +46,13 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const subscriber = await prisma.subscriber.findUnique({
-      where: { id },
-    });
+    const result = await deleteSubscriber(id);
 
-    if (!subscriber) {
-      return NextResponse.json(
-        { error: 'Subscriber not found' },
-        { status: 404 }
-      );
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 404 });
     }
 
-    await prisma.subscriber.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({
-      message: 'Subscriber deleted',
-    });
+    return NextResponse.json({ message: result.message });
   } catch (error) {
     return handleApiError(error);
   }

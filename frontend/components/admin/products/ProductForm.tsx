@@ -13,7 +13,7 @@ import {
   CreateProductData,
   UpdateProductData,
 } from '@/lib/api/products';
-import { FileText, Package, Image, Settings, Save, ArrowLeft } from 'lucide-react';
+import { FileText, Package, Image as ImageIcon, Settings, Save, ArrowLeft } from 'lucide-react';
 
 type TabId = 'basic' | 'variants' | 'images' | 'settings';
 
@@ -31,7 +31,7 @@ interface ProductFormProps {
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'basic', label: 'Basic Info', icon: <FileText className="h-4 w-4" /> },
   { id: 'variants', label: 'Variants', icon: <Package className="h-4 w-4" /> },
-  { id: 'images', label: 'Images', icon: <Image alt="" className="h-4 w-4" /> },
+  { id: 'images', label: 'Images', icon: <ImageIcon className="h-4 w-4" /> },
   { id: 'settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> },
 ];
 

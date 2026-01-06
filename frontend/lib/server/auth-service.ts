@@ -10,6 +10,7 @@ import {
   TokenPayload,
 } from './jwt';
 import { sendPasswordResetEmail } from './email';
+import { validatePassword } from './validation';
 
 // Custom error classes for distinct login errors
 export class UserNotFoundError extends Error {
@@ -288,6 +289,12 @@ export async function resetPassword(
   token: string,
   newPassword: string
 ): Promise<{ success: boolean; message: string }> {
+  // Validate password meets complexity requirements
+  const passwordValidation = validatePassword(newPassword);
+  if (!passwordValidation.valid) {
+    throw new Error(passwordValidation.errors.join('. '));
+  }
+
   // Hash the provided token
   const tokenHash = hashToken(token);
 

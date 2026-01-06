@@ -66,3 +66,34 @@ export function formatDateShort(date: Date | string): string {
     month: 'short',
   });
 }
+
+// ============================================
+// Pagination Helpers
+// ============================================
+
+/** Default pagination limit */
+const DEFAULT_LIMIT = 20;
+/** Maximum pagination limit to prevent DoS */
+const MAX_LIMIT = 100;
+
+/**
+ * Parse and cap pagination parameters from URL search params
+ * Prevents unbounded queries that could cause memory exhaustion
+ *
+ * @param searchParams - URLSearchParams from request
+ * @param options - Optional overrides for default/max limits
+ * @returns Safe pagination parameters
+ */
+export function parsePagination(
+  searchParams: URLSearchParams,
+  options: { defaultLimit?: number; maxLimit?: number } = {}
+): { page: number; limit: number; skip: number } {
+  const { defaultLimit = DEFAULT_LIMIT, maxLimit = MAX_LIMIT } = options;
+
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+  const rawLimit = parseInt(searchParams.get('limit') || String(defaultLimit), 10);
+  const limit = Math.min(maxLimit, Math.max(1, rawLimit));
+  const skip = (page - 1) * limit;
+
+  return { page, limit, skip };
+}

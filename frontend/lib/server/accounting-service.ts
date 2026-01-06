@@ -27,8 +27,10 @@ async function generateIncomeNumber(): Promise<string> {
   const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
 
   // Count today's incomes to generate sequence
-  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-  const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+  const startOfDay = new Date(today);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
 
   const count = await prisma.income.count({
     where: {

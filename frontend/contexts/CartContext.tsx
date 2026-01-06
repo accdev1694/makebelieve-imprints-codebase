@@ -13,6 +13,7 @@ import {
   saveCartToStorage,
   loadSelectionFromStorage,
   saveSelectionToStorage,
+  deepEqual,
 } from '@/lib/cart';
 
 // Re-export types for backward compatibility
@@ -207,7 +208,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         (item) =>
           item.productId === payload.productId &&
           item.variantId === payload.variantId &&
-          JSON.stringify(item.customization) === JSON.stringify(payload.customization)
+          deepEqual(item.customization, payload.customization)
       );
 
       if (existingItem) {

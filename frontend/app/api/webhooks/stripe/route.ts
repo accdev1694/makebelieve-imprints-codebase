@@ -66,6 +66,36 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Idempotency check: Track processed webhook event IDs
+    // Store in database to prevent duplicate processing across serverless instances
+    const existingEvent = await prisma.auditLog.findFirst({
+      where: {
+        action: 'WEBHOOK_PROCESSED',
+        details: {
+          path: ['stripeEventId'],
+          equals: event.id,
+        },
+      },
+    });
+
+    if (existingEvent) {
+      console.log(`[Webhook] Event ${event.id} already processed, skipping`);
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+
+    // Record event as being processed (before handling to prevent race conditions)
+    await prisma.auditLog.create({
+      data: {
+        action: 'WEBHOOK_PROCESSED',
+        actorType: 'WEBHOOK',
+        details: {
+          stripeEventId: event.id,
+          eventType: event.type,
+          processedAt: new Date().toISOString(),
+        },
+      },
+    });
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;

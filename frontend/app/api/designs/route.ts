@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
 import { listDesigns, createDesign } from '@/lib/server/design-service';
+import { parsePagination } from '@/lib/formatters';
 
 /**
  * GET /api/designs
@@ -11,8 +12,7 @@ export async function GET(request: NextRequest) {
     const user = await requireAuth(request);
     const { searchParams } = new URL(request.url);
 
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const { page, limit } = parsePagination(searchParams);
 
     const result = await listDesigns(user.userId, user.type === 'admin', { page, limit });
 

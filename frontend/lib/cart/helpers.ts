@@ -36,3 +36,37 @@ export function transformServerItem(item: CartItemResponse): CartItem {
     addedAt: item.addedAt,
   };
 }
+
+/**
+ * Deep equality comparison for objects
+ * Safe alternative to JSON.stringify comparison (handles key ordering)
+ */
+export function deepEqual(a: unknown, b: unknown): boolean {
+  // Handle primitive types and null/undefined
+  if (a === b) return true;
+  if (a == null || b == null) return a === b;
+  if (typeof a !== typeof b) return false;
+
+  // Handle arrays
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    return a.every((item, index) => deepEqual(item, b[index]));
+  }
+
+  // Handle objects
+  if (typeof a === 'object' && typeof b === 'object') {
+    const keysA = Object.keys(a as object);
+    const keysB = Object.keys(b as object);
+
+    if (keysA.length !== keysB.length) return false;
+
+    return keysA.every((key) =>
+      deepEqual(
+        (a as Record<string, unknown>)[key],
+        (b as Record<string, unknown>)[key]
+      )
+    );
+  }
+
+  return false;
+}

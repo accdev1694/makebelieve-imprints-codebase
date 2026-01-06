@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import { listIncome, createIncome } from '@/lib/server/expense-service';
+import { parsePagination } from '@/lib/formatters';
 
 /**
  * GET /api/admin/accounting/income
@@ -11,9 +12,10 @@ export async function GET(request: NextRequest) {
     await requireAdmin(request);
 
     const { searchParams } = new URL(request.url);
+    const { page, limit } = parsePagination(searchParams);
     const result = await listIncome({
-      page: parseInt(searchParams.get('page') || '1', 10),
-      limit: parseInt(searchParams.get('limit') || '20', 10),
+      page,
+      limit,
       category: searchParams.get('category') || undefined,
       taxYear: searchParams.get('taxYear') || undefined,
       source: searchParams.get('source') || undefined,

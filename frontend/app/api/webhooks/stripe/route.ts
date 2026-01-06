@@ -10,9 +10,7 @@ import {
 import { generateAndSendInvoice } from '@/lib/server/invoice-service';
 import {
   auditPaymentCompleted,
-  auditWebhookProcessed,
   auditRefund,
-  AuditEntityType,
   ActorType,
 } from '@/lib/server/audit-service';
 import { awardPurchasePoints } from '@/lib/server/points-service';

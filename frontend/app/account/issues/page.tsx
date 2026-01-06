@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -285,12 +286,14 @@ function IssuesContent() {
                       >
                         <div className="flex items-start gap-4">
                           {/* Item Image */}
-                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative">
                             {getItemImage(issue) ? (
-                              <img
+                              <Image
                                 src={getItemImage(issue)!}
                                 alt="Item"
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
+                                unoptimized
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">

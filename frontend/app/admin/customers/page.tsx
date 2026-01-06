@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -50,11 +50,7 @@ function AdminCustomersContent() {
     }
   }, [user, router]);
 
-  useEffect(() => {
-    fetchCustomers();
-  }, [currentPage]);
-
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiClient.get<{ success: boolean; data: CustomersResponse }>(
@@ -63,12 +59,17 @@ function AdminCustomersContent() {
       setCustomers(response.data.data.users);
       setTotalPages(response.data.data.pagination.totalPages);
       setTotalCustomers(response.data.data.pagination.total);
-    } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to load customers');
+    } catch (err: unknown) {
+      const error = err as { error?: string; message?: string };
+      setError(error?.error || error?.message || 'Failed to load customers');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage]);
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
 
   if (user && user.userType !== 'PRINTER_ADMIN') {
     return null;

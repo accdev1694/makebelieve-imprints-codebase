@@ -4,6 +4,9 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, ShoppingCart, RefreshCw, MessageCircle } from 'lucide-react';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('checkout-error');
 
 export default function CheckoutError({
   error,
@@ -13,7 +16,7 @@ export default function CheckoutError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('Checkout error:', error);
+    logger.error('Checkout error:', { message: error.message, digest: error.digest });
   }, [error]);
 
   return (

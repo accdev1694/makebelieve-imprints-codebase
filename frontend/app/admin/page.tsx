@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ordersService, Order, OrderStatus, ORDER_STATUS_LABELS } from '@/lib/api/orders';
-import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import Image from 'next/image';
 
 function AdminDashboardContent() {
   const router = useRouter();
@@ -72,8 +72,9 @@ function AdminDashboardContent() {
       } catch {
         // Silently fail - issues count is not critical
       }
-    } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to load dashboard data');
+    } catch (err: unknown) {
+      const error = err as { error?: string; message?: string };
+      setError(error?.error || error?.message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -283,11 +284,12 @@ function AdminDashboardContent() {
                   >
                     {/* Order Image */}
                     {order.design && (
-                      <div className="w-16 h-16 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
-                        <img
+                      <div className="w-16 h-16 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
+                        <Image
                           src={order.previewUrl || order.design.previewUrl || order.design.imageUrl}
                           alt={order.design.name}
-                          className="max-w-full max-h-full object-contain"
+                          fill
+                          className="object-contain"
                         />
                       </div>
                     )}

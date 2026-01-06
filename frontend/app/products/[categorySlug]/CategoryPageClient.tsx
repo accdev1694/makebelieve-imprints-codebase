@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, use, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -64,7 +64,7 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
         const categoryData = await categoriesService.get(categorySlug);
         setCategory(categoryData);
         setSubcategories(categoryData.subcategories || []);
-      } catch (error) {
+      } catch {
         setCategoryError('Category not found');
       } finally {
         setCategoryLoading(false);
@@ -112,7 +112,7 @@ function CategoryPageContent({ categorySlug }: { categorySlug: string }) {
       setProducts(response.products);
       setTotalPages(response.pagination.totalPages);
       setTotal(response.pagination.total);
-    } catch (error) {
+    } catch {
       // Handle error silently
     } finally {
       setLoading(false);

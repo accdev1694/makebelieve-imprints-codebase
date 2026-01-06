@@ -10,6 +10,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PushNotifications, Token, PushNotificationSchema, ActionPerformed } from '@capacitor/push-notifications';
 import { isNativePlatform, isPluginAvailable, getCurrentPlatform } from './platform';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('push-notifications');
 
 export interface PushNotificationData {
   title?: string;
@@ -61,14 +64,14 @@ export function usePushNotifications(): UsePushNotificationsResult {
 
     // Listen for registration success
     const registrationListener = PushNotifications.addListener('registration', (tokenData: Token) => {
-      console.log('Push registration success, token:', tokenData.value);
+      logger.info('Push registration success', { token: tokenData.value });
       setToken(tokenData.value);
       setIsRegistered(true);
     });
 
     // Listen for registration errors
     const errorListener = PushNotifications.addListener('registrationError', (err) => {
-      console.error('Push registration error:', err.error);
+      logger.error('Push registration error', { error: err.error });
       setError(err.error);
     });
 
@@ -76,7 +79,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
     const notificationListener = PushNotifications.addListener(
       'pushNotificationReceived',
       (notification: PushNotificationSchema) => {
-        console.log('Push notification received:', notification);
+        logger.info('Push notification received', { title: notification.title, body: notification.body });
         setLastNotification({
           title: notification.title,
           body: notification.body,
@@ -89,7 +92,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
     const actionListener = PushNotifications.addListener(
       'pushNotificationActionPerformed',
       (action: ActionPerformed) => {
-        console.log('Push notification action performed:', action);
+        logger.info('Push notification action performed', { actionId: action.actionId });
         setLastNotification({
           title: action.notification.title,
           body: action.notification.body,
@@ -116,7 +119,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
 
   const register = useCallback(async (): Promise<boolean> => {
     if (!isAvailable) {
-      console.log('Push notifications not available on this platform');
+      logger.info('Push notifications not available on this platform');
       return false;
     }
 

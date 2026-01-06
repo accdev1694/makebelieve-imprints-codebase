@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { Promo, DiscountType, PromoScope } from '@prisma/client';
+import { Promo } from '@prisma/client';
 
 export interface PromoValidationResult {
   valid: boolean;

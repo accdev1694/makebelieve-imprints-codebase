@@ -1,7 +1,6 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAccessToken, DecodedToken } from './jwt';
-import prisma from '@/lib/prisma';
+import { verifyAccessToken } from './jwt';
 
 export interface AuthUser {
   userId: string;

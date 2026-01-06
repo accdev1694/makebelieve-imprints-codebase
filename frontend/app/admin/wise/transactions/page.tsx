@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import apiClient from '@/lib/api/client';
+import { createLogger } from '@/lib/logger';
 import Link from 'next/link';
 import {
   CreditCard,
@@ -16,12 +17,13 @@ import {
   ArrowUpRight,
   RefreshCw,
   Loader2,
-  ExternalLink,
   Receipt,
   Filter,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+
+const logger = createLogger('wise-transactions');
 
 interface WiseTransaction {
   id: string;
@@ -114,7 +116,7 @@ function WiseTransactionsContent() {
           setAccounts(response.data.data.accounts);
         }
       } catch (err) {
-        console.error('Fetch accounts error:', err);
+        logger.error('Fetch accounts error', { error: err instanceof Error ? err.message : String(err) });
       }
     };
 
@@ -153,7 +155,7 @@ function WiseTransactionsContent() {
       }
     } catch (err) {
       setError('Failed to load transactions');
-      console.error('Fetch transactions error:', err);
+      logger.error('Fetch transactions error', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }

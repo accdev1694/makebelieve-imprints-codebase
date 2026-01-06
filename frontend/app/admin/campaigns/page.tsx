@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -143,12 +143,7 @@ function AdminCampaignsContent() {
     }
   }, [user, router]);
 
-  useEffect(() => {
-    fetchCampaigns();
-    fetchPromos();
-  }, [currentPage]);
-
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/campaigns?page=${currentPage}&limit=20`);
@@ -167,7 +162,12 @@ function AdminCampaignsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage]);
+
+  useEffect(() => {
+    fetchCampaigns();
+    fetchPromos();
+  }, [fetchCampaigns]);
 
   const fetchPromos = async () => {
     try {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -14,8 +14,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import apiClient from '@/lib/api/client';
 import { storageService } from '@/lib/api/storage';
 import Link from 'next/link';
+import Image from 'next/image';
 import { format, formatDistanceToNow } from 'date-fns';
-import { AlertCircle, Check, X, MessageSquare, Truck, RefreshCw, DollarSign, Info, FileText, Download, Camera, Lock, Unlock } from 'lucide-react';
+import { Check, X, MessageSquare, Truck, RefreshCw, DollarSign, Info, FileText, Download, Camera, Lock, Unlock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 type IssueStatus =
@@ -202,9 +203,26 @@ function AdminIssueDetailContent() {
     }
   }, [user, router]);
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const fetchIssue = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get<{ issue: Issue }>(`/admin/issues/${issueId}`);
+      setIssue(response.data?.issue || null);
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      setError(error?.response?.data?.error || error?.message || 'Failed to load issue');
+    } finally {
+      setLoading(false);
+    }
+  }, [issueId]);
+
   useEffect(() => {
     fetchIssue();
-  }, [issueId]);
+  }, [fetchIssue]);
 
   useEffect(() => {
     scrollToBottom();
@@ -219,23 +237,6 @@ function AdminIssueDetailContent() {
       setClaimNotes(issue.claimNotes || '');
     }
   }, [issue]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const fetchIssue = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient.get<{ issue: Issue }>(`/admin/issues/${issueId}`);
-      setIssue(response.data?.issue || null);
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } }; message?: string };
-      setError(error?.response?.data?.error || error?.message || 'Failed to load issue');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const sendMessage = async () => {
     if ((!messageContent.trim() && messageImages.length === 0) || sendingMessage) return;
@@ -578,12 +579,14 @@ function AdminIssueDetailContent() {
                           href={url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block w-20 h-20 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+                          className="block w-20 h-20 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors relative"
                         >
-                          <img
+                          <Image
                             src={url}
                             alt={`Evidence ${idx + 1}`}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
+                            sizes="80px"
                           />
                         </a>
                       ))}
@@ -664,11 +667,13 @@ function AdminIssueDetailContent() {
                       <div className="flex flex-wrap gap-2 mb-3">
                         {messageImages.map((url, index) => (
                           <div key={index} className="relative group">
-                            <div className="w-16 h-16 rounded-lg overflow-hidden border border-border">
-                              <img
+                            <div className="w-16 h-16 rounded-lg overflow-hidden border border-border relative">
+                              <Image
                                 src={url}
                                 alt={`Attachment ${index + 1}`}
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
+                                sizes="64px"
                               />
                             </div>
                             <button
@@ -1234,12 +1239,14 @@ function MessageBubble({ message }: { message: IssueMessage }) {
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-12 h-12 rounded overflow-hidden border border-border/50 hover:border-border transition-colors"
+                className="block w-12 h-12 rounded overflow-hidden border border-border/50 hover:border-border transition-colors relative"
               >
-                <img
+                <Image
                   src={url}
                   alt={`Attachment ${index + 1}`}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="48px"
                 />
               </a>
             ))}

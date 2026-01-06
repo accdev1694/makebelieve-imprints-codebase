@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, Percent, Clock, Users, CheckCircle, ArrowRight } from 'lucide-react';
+import { Package, Percent, Clock, Users, ArrowRight } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Bulk & Trade Orders | MakeBelieve Imprints',

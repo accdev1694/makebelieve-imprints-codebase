@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Home, RefreshCw, Search } from 'lucide-react';
+import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 export default function ProductsError({
   error,
@@ -13,7 +14,7 @@ export default function ProductsError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('Products page error:', error);
+    logger.error('Products page error', { message: error.message, digest: error.digest });
   }, [error]);
 
   return (

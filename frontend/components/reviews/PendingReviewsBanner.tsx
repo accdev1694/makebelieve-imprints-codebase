@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { Star, ChevronRight, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPendingReviews } from '@/lib/api/reviews';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('PendingReviewsBanner');
 
 export function PendingReviewsBanner() {
   const [pendingCount, setPendingCount] = useState(0);
@@ -18,7 +21,7 @@ export function PendingReviewsBanner() {
         setPendingCount(data.orders.length);
         setTotalPoints(data.totalPotentialPoints);
       } catch (error) {
-        console.error('Failed to fetch pending reviews:', error);
+        logger.error('Failed to fetch pending reviews', { error: error instanceof Error ? error.message : String(error) });
       } finally {
         setIsLoading(false);
       }

@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import Image from 'next/image';
+import { createLogger } from '@/lib/logger';
 import {
   Search,
   ExternalLink,
@@ -38,6 +40,8 @@ interface SourceResult {
   count: number;
   error?: string;
 }
+
+const logger = createLogger('product-search');
 
 const SOURCE_COLORS: Record<string, string> = {
   amazon: 'bg-orange-500/10 text-orange-500 border-orange-500/50',
@@ -106,7 +110,7 @@ function ProductSearchContent() {
       }
     } catch (err) {
       setError('Search failed. Please try again.');
-      console.error('Search error:', err);
+      logger.error('Search error', { query, error: err });
     } finally {
       setSearching(false);
     }
@@ -120,7 +124,7 @@ function ProductSearchContent() {
         product,
       });
     } catch (err) {
-      console.error('Save error:', err);
+      logger.error('Save product error', { productId: product.id, error: err });
     } finally {
       setSavingProductId(null);
     }
@@ -280,11 +284,13 @@ function ProductSearchContent() {
                   <CardContent className="p-4">
                     {/* Product Image */}
                     {product.imageUrl && (
-                      <div className="aspect-square bg-muted/30 rounded-lg overflow-hidden mb-3">
-                        <img
+                      <div className="aspect-square bg-muted/30 rounded-lg overflow-hidden mb-3 relative">
+                        <Image
                           src={product.imageUrl}
                           alt={product.title}
-                          className="w-full h-full object-contain"
+                          fill
+                          className="object-contain"
+                          unoptimized
                         />
                       </div>
                     )}

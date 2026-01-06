@@ -33,8 +33,9 @@ function DesignDetailsContent({ designId }: DesignDetailsClientProps) {
       try {
         const designData = await designsService.get(designId);
         setDesign(designData);
-      } catch (err: any) {
-        setError(err?.error || err?.message || 'Failed to load design');
+      } catch (err: unknown) {
+        const error = err as { error?: string; message?: string };
+        setError(error?.error || error?.message || 'Failed to load design');
       } finally {
         setLoading(false);
       }
@@ -51,8 +52,9 @@ function DesignDetailsContent({ designId }: DesignDetailsClientProps) {
     try {
       await designsService.delete(design.id);
       router.push('/design/my-designs');
-    } catch (err: any) {
-      alert(err?.error || err?.message || 'Failed to delete design');
+    } catch (err: unknown) {
+      const error = err as { error?: string; message?: string };
+      alert(error?.error || error?.message || 'Failed to delete design');
     }
   };
 

@@ -9,7 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import apiClient from '@/lib/api/client';
+import { createLogger } from '@/lib/logger';
 import Link from 'next/link';
+
+const logger = createLogger('wise-dashboard');
 import {
   Wallet,
   RefreshCw,
@@ -81,7 +84,7 @@ function WiseDashboardContent() {
       }
     } catch (err) {
       setError('Failed to load accounts');
-      console.error('Fetch accounts error:', err);
+      logger.error('Fetch accounts error', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }
@@ -115,7 +118,7 @@ function WiseDashboardContent() {
       }
     } catch (err) {
       setConnectError('Failed to connect account');
-      console.error('Connect error:', err);
+      logger.error('Connect error', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setConnecting(false);
     }
@@ -128,7 +131,7 @@ function WiseDashboardContent() {
       await apiClient.post(`/admin/wise/accounts/${accountId}`);
       fetchAccounts();
     } catch (err) {
-      console.error('Sync error:', err);
+      logger.error('Sync error', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setSyncing(null);
     }
@@ -141,7 +144,7 @@ function WiseDashboardContent() {
       });
       fetchAccounts();
     } catch (err) {
-      console.error('Update error:', err);
+      logger.error('Update error', { error: err instanceof Error ? err.message : String(err) });
     }
   };
 
@@ -154,7 +157,7 @@ function WiseDashboardContent() {
       await apiClient.delete(`/admin/wise/accounts/${accountId}`);
       fetchAccounts();
     } catch (err) {
-      console.error('Disconnect error:', err);
+      logger.error('Disconnect error', { error: err instanceof Error ? err.message : String(err) });
     }
   };
 

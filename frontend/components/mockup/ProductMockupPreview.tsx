@@ -5,7 +5,6 @@ import { MockupCanvas } from './MockupCanvas';
 import {
   getMockupTemplates,
   getDefaultMockupTemplate,
-  MockupTemplate,
   MOCKUP_PLACEHOLDER_COLORS,
 } from '@/lib/mockup-templates';
 import { Button } from '@/components/ui/button';

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { designsService, Design, MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import Link from 'next/link';
@@ -25,8 +25,9 @@ function MyDesignsContent() {
       setLoading(true);
       const data = await designsService.list();
       setDesigns(data);
-    } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to load designs');
+    } catch (err: unknown) {
+      const error = err as { error?: string; message?: string };
+      setError(error?.error || error?.message || 'Failed to load designs');
     } finally {
       setLoading(false);
     }
@@ -40,8 +41,9 @@ function MyDesignsContent() {
     try {
       await designsService.delete(id);
       setDesigns(designs.filter((d) => d.id !== id));
-    } catch (err: any) {
-      alert(err?.error || err?.message || 'Failed to delete design');
+    } catch (err: unknown) {
+      const error = err as { error?: string; message?: string };
+      alert(error?.error || error?.message || 'Failed to delete design');
     }
   };
 

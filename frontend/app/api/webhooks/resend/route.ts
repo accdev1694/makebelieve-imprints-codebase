@@ -49,14 +49,6 @@ function verifySignature(payload: string, signature: string, secret: string): bo
   );
 }
 
-// Extract campaign ID from subject if present (e.g., "[Campaign:abc123] Subject")
-function extractCampaignId(subject: string): string | null {
-  // We don't embed campaign IDs in subjects, so we'll track by most recent campaign
-  // sent to this recipient. This is a simplification - for production you might
-  // want to add campaign tracking headers to emails.
-  return null;
-}
-
 // POST /api/webhooks/resend - Handle Resend webhook events
 export async function POST(request: NextRequest) {
   try {

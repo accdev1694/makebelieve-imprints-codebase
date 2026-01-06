@@ -15,7 +15,6 @@ import {
   validatePromoCode,
   recordPromoUsage,
   ensureWelcome10Promo,
-  PromoValidationResult,
   CartItem,
 } from '../promo-service';
 

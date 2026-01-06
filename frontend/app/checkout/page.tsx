@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCart, CartItem } from '@/contexts/CartContext';
+import { useCart } from '@/contexts/CartContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ import {
   ShippingAddress,
 } from '@/lib/api/orders';
 import { formatPrice, Product, productsService } from '@/lib/api/products';
-import { ShoppingBag, CreditCard, Lock, Truck, Clock, Zap, CheckCircle, ExternalLink, Tag, X, Loader2, Plus, ChevronLeft, ChevronRight, Coins } from 'lucide-react';
+import { ShoppingBag, CreditCard, Lock, Truck, Clock, Zap, CheckCircle, ExternalLink, Tag, X, Loader2, Plus, ChevronRight, Coins } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { redirectToCheckout } from '@/lib/stripe';
@@ -104,11 +104,11 @@ function CheckoutContent() {
     selectedItemsArray: cartItems,
     selectedSubtotal: subtotal,
     selectedTax: tax,
-    selectedTotal: total,
+    selectedTotal: _total,
     selectedCount: itemCount,
     selectedItemIds,
     addItem,
-    clearSelectedItems,
+    clearSelectedItems: _clearSelectedItems,
   } = useCart();
 
   const designId = searchParams.get('designId');
@@ -158,7 +158,7 @@ function CheckoutContent() {
 
   // Suggested products state
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+  const [_loadingSuggestions, setLoadingSuggestions] = useState(true);
 
   // Load suggested products
   useEffect(() => {
@@ -211,8 +211,9 @@ function CheckoutContent() {
       try {
         const designData = await designsService.get(designId);
         setDesign(designData);
-      } catch (err: any) {
-        setError(err?.error || err?.message || 'Failed to load design');
+      } catch (err: unknown) {
+        const error = err as { error?: string; message?: string };
+        setError(error?.error || error?.message || 'Failed to load design');
       } finally {
         setLoading(false);
       }
@@ -431,8 +432,9 @@ function CheckoutContent() {
       } else {
         throw new Error('No checkout URL received');
       }
-    } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to place order');
+    } catch (err: unknown) {
+      const error = err as { error?: string; message?: string };
+      setError(error?.error || error?.message || 'Failed to place order');
       setSubmitting(false);
     }
   };
@@ -737,9 +739,9 @@ function CheckoutContent() {
                     <span>Your payment information is encrypted and secure</span>
                   </div>
                   <div className="flex gap-2">
-                    <img src="https://cdn.brandfolder.io/KGT2DTA4/at/8vbr8k4mr5xjwk4hxq4t9vs/Visa-logo.svg" alt="Visa" className="h-8" />
-                    <img src="https://cdn.brandfolder.io/KGT2DTA4/at/rvgw3kcc58g4g4fm9n7bh3/Mastercard-logo.svg" alt="Mastercard" className="h-8" />
-                    <img src="https://cdn.brandfolder.io/KGT2DTA4/at/x5v5z6w7h8fh8qxt6b5ggn/Amex-logo.svg" alt="Amex" className="h-8" />
+                    <Image src="https://cdn.brandfolder.io/KGT2DTA4/at/8vbr8k4mr5xjwk4hxq4t9vs/Visa-logo.svg" alt="Visa" width={50} height={32} className="h-8 w-auto" />
+                    <Image src="https://cdn.brandfolder.io/KGT2DTA4/at/rvgw3kcc58g4g4fm9n7bh3/Mastercard-logo.svg" alt="Mastercard" width={50} height={32} className="h-8 w-auto" />
+                    <Image src="https://cdn.brandfolder.io/KGT2DTA4/at/x5v5z6w7h8fh8qxt6b5ggn/Amex-logo.svg" alt="Amex" width={50} height={32} className="h-8 w-auto" />
                   </div>
                 </CardContent>
               </Card>
@@ -789,11 +791,13 @@ function CheckoutContent() {
                   {/* Design Order (Legacy) */}
                   {mode === 'design' && design && (
                     <>
-                      <div className="aspect-square w-full bg-card/30 rounded-lg overflow-hidden flex items-center justify-center">
-                        <img
+                      <div className="relative aspect-square w-full bg-card/30 rounded-lg overflow-hidden">
+                        <Image
                           src={design.previewUrl || design.imageUrl}
                           alt={design.name}
-                          className="max-w-full max-h-full object-contain"
+                          fill
+                          className="object-contain"
+                          sizes="(max-width: 768px) 100vw, 50vw"
                         />
                       </div>
 

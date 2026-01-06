@@ -22,9 +22,12 @@ import {
   Package,
   Clock,
 } from 'lucide-react';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('custom-order');
 
 export default function CustomOrderPage() {
-  const router = useRouter();
+  const _router = useRouter();
   const { user, logout } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -79,7 +82,7 @@ export default function CustomOrderPage() {
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     // In production, this would send to an API endpoint
-    console.log('Custom order inquiry:', { ...formData, file });
+    logger.info('Custom order inquiry submitted', { ...formData, fileName: file?.name });
 
     setSubmitted(true);
     setSubmitting(false);

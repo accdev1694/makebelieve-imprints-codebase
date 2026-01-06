@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreditCard, Plus, Trash2, Check, Shield } from 'lucide-react';
 
@@ -86,7 +86,7 @@ export default function PaymentMethodsPage() {
     }
   };
 
-  const getCardIcon = (brand?: string) => {
+  const getCardIcon = (_brand?: string) => {
     // In a real app, you'd use actual card brand icons
     return <CreditCard className="h-8 w-8" />;
   };

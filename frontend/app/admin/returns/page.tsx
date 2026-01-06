@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertCircle, MessageSquare, Truck } from 'lucide-react';
 
@@ -466,12 +467,13 @@ function IssuesContent() {
                             {issue.imageUrls.slice(0, 3).map((url, idx) => (
                               <div
                                 key={idx}
-                                className="w-10 h-10 rounded overflow-hidden border border-border"
+                                className="w-10 h-10 rounded overflow-hidden border border-border relative"
                               >
-                                <img
+                                <Image
                                   src={url}
                                   alt={`Evidence ${idx + 1}`}
-                                  className="w-full h-full object-cover"
+                                  fill
+                                  className="object-cover"
                                 />
                               </div>
                             ))}

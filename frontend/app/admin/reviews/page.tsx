@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -17,6 +17,9 @@ import {
 import { Star, Award, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('admin-reviews');
 
 interface AdminReview {
   id: string;
@@ -70,11 +73,7 @@ function AdminReviewsContent() {
     }
   }, [user, router]);
 
-  useEffect(() => {
-    fetchReviews();
-  }, [currentPage, ratingFilter, featuredFilter, approvedFilter]);
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -106,7 +105,11 @@ function AdminReviewsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, ratingFilter, featuredFilter, approvedFilter]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
 
   const toggleFeatured = async (reviewId: string, currentFeatured: boolean) => {
     try {
@@ -119,7 +122,7 @@ function AdminReviewsContent() {
         r.id === reviewId ? { ...r, featured: !currentFeatured } : r
       ));
     } catch (err) {
-      console.error('Failed to toggle featured:', err);
+      logger.error('Failed to toggle featured', { error: String(err) });
       setError('Failed to update review');
     } finally {
       setUpdatingId(null);
@@ -137,7 +140,7 @@ function AdminReviewsContent() {
         r.id === reviewId ? { ...r, approved: !currentApproved } : r
       ));
     } catch (err) {
-      console.error('Failed to toggle approved:', err);
+      logger.error('Failed to toggle approved', { error: String(err) });
       setError('Failed to update review');
     } finally {
       setUpdatingId(null);

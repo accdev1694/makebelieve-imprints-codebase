@@ -27,9 +27,12 @@ import { storageService } from '@/lib/api/storage';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Camera, AlertCircle, MessageSquare, Lock, RefreshCw, CheckCircle, XCircle, CreditCard, Share2, Copy, Check, Star } from 'lucide-react';
+import { X, Camera, AlertCircle, MessageSquare, Lock, RefreshCw, CheckCircle, XCircle, CreditCard, Share2, Check, Star } from 'lucide-react';
 import { useCart, AddToCartPayload } from '@/contexts/CartContext';
 import { ReviewForm } from '@/components/reviews';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('OrderDetailsClient');
 
 // Enhanced issue reasons with NEVER_ARRIVED
 const ISSUE_REASONS = [
@@ -41,7 +44,8 @@ const ISSUE_REASONS = [
   { value: 'OTHER', label: 'Other', description: 'Another issue not listed above' },
 ];
 
-const REASON_LABELS: Record<string, string> = {
+// Kept for reference - maps issue reason codes to display labels
+const _REASON_LABELS: Record<string, string> = {
   DAMAGED_IN_TRANSIT: 'Damaged in Transit',
   QUALITY_ISSUE: 'Quality Issue',
   WRONG_ITEM: 'Wrong Item',
@@ -209,7 +213,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
               orderedItemIds.forEach((itemId) => removeItem(itemId));
             } catch {
               // Fallback: if parsing fails, try product keys
-              console.error('Failed to parse orderedItemIds, trying product keys fallback');
+              logger.error('Failed to parse orderedItemIds, trying product keys fallback');
               if (orderedProductKeysJson) {
                 try {
                   const productKeys = JSON.parse(orderedProductKeysJson) as string[];
@@ -226,7 +230,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                     }
                   });
                 } catch {
-                  console.error('Failed to parse orderedProductKeys');
+                  logger.error('Failed to parse orderedProductKeys');
                 }
               }
             }
@@ -262,7 +266,7 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
         window.location.href = result.data.url;
       }
     } catch (err) {
-      console.error('Failed to retry payment:', err);
+      logger.error('Failed to retry payment', { error: err instanceof Error ? err.message : String(err) });
       setError('Failed to retry payment. Please try again.');
     } finally {
       setRetryingPayment(false);
@@ -1207,11 +1211,14 @@ function OrderDetailsContent({ orderId }: OrderDetailsClientProps) {
                       <div className="flex flex-wrap gap-2 mt-2">
                         {issueImages.map((url, index) => (
                           <div key={index} className="relative group">
-                            <div className="w-20 h-20 rounded-lg overflow-hidden border border-border">
-                              <img
+                            <div className="w-20 h-20 rounded-lg overflow-hidden border border-border relative">
+                              <Image
                                 src={url}
                                 alt={`Issue photo ${index + 1}`}
-                                className="w-full h-full object-cover"
+                                fill
+                                sizes="80px"
+                                className="object-cover"
+                                unoptimized
                               />
                             </div>
                             <button

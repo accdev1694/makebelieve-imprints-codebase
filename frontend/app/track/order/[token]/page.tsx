@@ -78,7 +78,7 @@ export default function OrderTrackingPage() {
         }
 
         setOrder(data.data.order);
-      } catch (err) {
+      } catch {
         setError('Failed to load order. Please try again.');
       } finally {
         setLoading(false);

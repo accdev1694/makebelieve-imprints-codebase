@@ -51,8 +51,8 @@ export function VariantManager({
 
       onVariantsChange(updatedVariants);
       setShowForm(false);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to add variant');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to add variant');
     } finally {
       setIsLoading(false);
     }
@@ -84,8 +84,8 @@ export function VariantManager({
 
       onVariantsChange(updatedVariants);
       setEditingVariant(null);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to update variant');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update variant');
     } finally {
       setIsLoading(false);
     }
@@ -100,8 +100,8 @@ export function VariantManager({
     try {
       await productsService.deleteVariant(productId, variantId);
       onVariantsChange(variants.filter((v) => v.id !== variantId));
-    } catch (err: any) {
-      setError(err?.message || 'Failed to delete variant');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete variant');
     } finally {
       setIsLoading(false);
     }
@@ -120,8 +120,8 @@ export function VariantManager({
       }));
 
       onVariantsChange(updatedVariants);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to set default variant');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to set default variant');
     } finally {
       setIsLoading(false);
     }

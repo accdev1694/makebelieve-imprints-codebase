@@ -30,9 +30,12 @@ export default function LoginPage() {
 
     try {
       await login({ email, password });
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Handle different error codes from the API
-      const errorCode = err?.code || err?.data?.code;
+      const errObj = err as Record<string, unknown> | null;
+      const errorCode =
+        (errObj?.code as string) ||
+        ((errObj?.data as Record<string, unknown> | null)?.code as string);
 
       if (errorCode === 'USER_NOT_FOUND') {
         setError({
@@ -49,10 +52,11 @@ export default function LoginPage() {
         let errorMessage = 'Login failed. Please check your credentials.';
         if (typeof err === 'string') {
           errorMessage = err;
-        } else if (err?.message) {
+        } else if (err instanceof Error) {
           errorMessage = err.message;
-        } else if (err?.error) {
-          errorMessage = typeof err.error === 'string' ? err.error : errorMessage;
+        } else if (errObj?.error) {
+          errorMessage =
+            typeof errObj.error === 'string' ? errObj.error : errorMessage;
         }
         setError({
           type: 'GENERIC',

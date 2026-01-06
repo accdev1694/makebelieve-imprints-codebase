@@ -13,6 +13,9 @@ import { designsService } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import { PendingReviewsBanner } from '@/components/reviews';
 import { getUserPoints } from '@/lib/api/points';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('dashboard');
 
 function DashboardContent() {
   const { user } = useAuth();
@@ -62,7 +65,7 @@ function DashboardContent() {
           // Points endpoint might fail
         }
       } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
+        logger.error('Failed to fetch dashboard data', { error: error instanceof Error ? error.message : String(error) });
       } finally {
         setLoading(false);
       }

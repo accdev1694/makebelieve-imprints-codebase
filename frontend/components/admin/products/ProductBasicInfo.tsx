@@ -8,7 +8,6 @@ import {
   ProductCategory,
   ProductType,
   CustomizationType,
-  ProductStatus,
   CATEGORY_LABELS,
   PRODUCT_TYPE_LABELS,
   CUSTOMIZATION_TYPE_LABELS,

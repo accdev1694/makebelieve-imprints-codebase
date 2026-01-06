@@ -8,7 +8,7 @@ import { ChevronLeft } from 'lucide-react';
 
 import { ProductCard } from '@/components/products/ProductCard';
 import { ProductGridSkeleton } from '@/components/ui/Skeleton';
-import { Product, productsService, CustomizationType } from '@/lib/api/products';
+import { Product, productsService } from '@/lib/api/products';
 import { Category, Subcategory, categoriesService, getSubcategoryImage } from '@/lib/api/categories';
 import { CategoryHero } from '@/components/category/CategoryHero';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -19,7 +19,7 @@ interface SubcategoryPageProps {
 }
 
 export function SubcategoryPage({ categorySlug, subcategorySlug }: SubcategoryPageProps) {
-  const router = useRouter();
+  const _router = useRouter();
 
   // Data state
   const [category, setCategory] = useState<Category | null>(null);

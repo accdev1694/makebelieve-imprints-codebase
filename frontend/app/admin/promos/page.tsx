@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -94,11 +94,7 @@ function AdminPromosContent() {
     }
   }, [user, router]);
 
-  useEffect(() => {
-    fetchPromos();
-  }, [currentPage]);
-
-  const fetchPromos = async () => {
+  const fetchPromos = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/promos?page=${currentPage}&limit=20`);
@@ -117,7 +113,11 @@ function AdminPromosContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage]);
+
+  useEffect(() => {
+    fetchPromos();
+  }, [fetchPromos]);
 
   const openCreateModal = () => {
     setEditingPromo(null);

@@ -18,10 +18,12 @@ import {
   AlertCircle,
   RefreshCw,
   PoundSterling,
-  Percent,
   TrendingUp,
 } from 'lucide-react';
 import apiClient from '@/lib/api/client';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('admin-recovery-campaigns');
 
 interface Campaign {
   id: string;
@@ -99,7 +101,7 @@ function AdminRecoveryCampaignsContent() {
       setTotalPages(response.data.data.pagination.totalPages);
     } catch (err) {
       setError('Failed to load campaigns');
-      console.error(err);
+      logger.error('Failed to load campaigns', { error: String(err) });
     } finally {
       setLoading(false);
     }
@@ -110,7 +112,7 @@ function AdminRecoveryCampaignsContent() {
       const response = await apiClient.get('/admin/recovery-campaigns/stats?days=30');
       setStats(response.data.data);
     } catch (err) {
-      console.error('Failed to load stats:', err);
+      logger.error('Failed to load stats', { error: String(err) });
     }
   }, []);
 
@@ -119,7 +121,7 @@ function AdminRecoveryCampaignsContent() {
       const response = await apiClient.get('/admin/recovery-campaigns/settings');
       setIsPaused(response.data.data.isPaused);
     } catch (err) {
-      console.error('Failed to load settings:', err);
+      logger.error('Failed to load settings', { error: String(err) });
     }
   }, []);
 
@@ -135,7 +137,7 @@ function AdminRecoveryCampaignsContent() {
       await apiClient.patch('/admin/recovery-campaigns/settings', { isPaused: !isPaused });
       setIsPaused(!isPaused);
     } catch (err) {
-      console.error('Failed to toggle pause:', err);
+      logger.error('Failed to toggle pause', { error: String(err) });
     } finally {
       setTogglingPause(false);
     }
@@ -148,7 +150,7 @@ function AdminRecoveryCampaignsContent() {
       await apiClient.patch(`/admin/recovery-campaigns/${id}`, { action: 'cancel' });
       fetchCampaigns();
     } catch (err) {
-      console.error('Failed to cancel campaign:', err);
+      logger.error('Failed to cancel campaign', { error: String(err) });
     }
   };
 

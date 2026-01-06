@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { logout } from '@/lib/server/auth-service';
 import { clearAuthCookies, handleApiError } from '@/lib/server/auth';
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const refreshToken = cookieStore.get('refresh_token')?.value;

@@ -14,7 +14,7 @@ import {
   PartyPopper,
   Calendar,
 } from 'lucide-react';
-import { templates, getTemplatesByCategory, getCategoryName } from '@/lib/templates';
+import { templates, getTemplatesByCategory } from '@/lib/templates';
 
 // Occasion configuration with emotional messaging
 const occasions = [

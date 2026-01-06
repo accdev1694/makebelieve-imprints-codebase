@@ -31,7 +31,7 @@ interface ProductFormProps {
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'basic', label: 'Basic Info', icon: <FileText className="h-4 w-4" /> },
   { id: 'variants', label: 'Variants', icon: <Package className="h-4 w-4" /> },
-  { id: 'images', label: 'Images', icon: <Image className="h-4 w-4" /> },
+  { id: 'images', label: 'Images', icon: <Image alt="" className="h-4 w-4" /> },
   { id: 'settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> },
 ];
 
@@ -121,8 +121,9 @@ export function ProductForm({
       };
 
       await onSave(data);
-    } catch (err: any) {
-      setSaveError(err?.message || 'Failed to save product');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save product';
+      setSaveError(message);
     }
   };
 

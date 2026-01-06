@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 export default function GlobalError({
   error,
@@ -14,7 +15,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     // Log error to console in development, could send to error tracking service
-    console.error('Global error boundary caught:', error);
+    logger.error('Global error boundary caught:', { error: error.message, digest: error.digest });
   }, [error]);
 
   return (

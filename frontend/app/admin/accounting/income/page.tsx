@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -33,7 +33,7 @@ import { ReceiptScanner, ExtractedReceiptData } from '@/components/admin/account
 import { DateInputUK } from '@/components/ui/date-input-uk';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import { Camera, ArrowUp, ArrowDown, Trash2, ClipboardPaste, PenLine } from 'lucide-react';
+import { Camera, ArrowUp, ArrowDown, ClipboardPaste, PenLine } from 'lucide-react';
 
 interface Category {
   value: string;
@@ -201,7 +201,7 @@ function IncomeManagementContent() {
   }, [user, router]);
 
   // Fetch income entries
-  const fetchIncome = async () => {
+  const fetchIncome = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -243,11 +243,11 @@ function IncomeManagementContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, searchQuery, categoryFilter, sourceFilter, filterTaxYear, filterMonth, sortOrder]);
 
   useEffect(() => {
     fetchIncome();
-  }, [page, searchQuery, categoryFilter, sourceFilter, filterTaxYear, filterMonth, sortOrder]);
+  }, [fetchIncome]);
 
   const handleAddIncome = async () => {
     setFormError('');

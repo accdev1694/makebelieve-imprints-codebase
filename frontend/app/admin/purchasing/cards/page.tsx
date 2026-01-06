@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { createLogger } from '@/lib/logger';
 import {
   CreditCard,
   Plus,
@@ -41,6 +42,8 @@ interface VirtualCard {
   transactionCount: number;
   totalSpent: number;
 }
+
+const logger = createLogger('virtual-cards');
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE: 'bg-green-500/10 text-green-500 border-green-500/50',
@@ -90,7 +93,7 @@ function VirtualCardsContent() {
       }
     } catch (err) {
       setError('Failed to load cards');
-      console.error('Fetch cards error:', err);
+      logger.error('Fetch cards error', { error: err });
     } finally {
       setLoading(false);
     }
@@ -121,7 +124,7 @@ function VirtualCardsContent() {
       }
     } catch (err) {
       setError('Failed to create card');
-      console.error('Create card error:', err);
+      logger.error('Create card error', { error: err });
     } finally {
       setCreating(false);
     }
@@ -136,7 +139,7 @@ function VirtualCardsContent() {
       fetchCards();
     } catch (err) {
       setError(`Failed to ${action} card`);
-      console.error('Card action error:', err);
+      logger.error('Card action error', { action, cardId, error: err });
     } finally {
       setActionLoading(null);
     }

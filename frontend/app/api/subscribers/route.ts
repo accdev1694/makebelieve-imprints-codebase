@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendSubscriptionConfirmEmail } from '@/lib/server/email';
-import { requireAdmin, handleApiError, AuthError } from '@/lib/server/auth';
+import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import crypto from 'crypto';
 
 // POST /api/subscribers - Subscribe to newsletter

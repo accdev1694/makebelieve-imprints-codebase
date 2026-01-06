@@ -22,16 +22,13 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
-  GripVertical,
-  X,
-  Check,
   FolderTree,
   Package,
 } from 'lucide-react';
 
 function CategoryManagementContent() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout: _logout } = useAuth();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,8 +74,8 @@ function CategoryManagementContent() {
       setLoading(true);
       const data = await categoriesService.list({ includeInactive: true, includeSubcategories: true });
       setCategories(data);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load categories');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load categories');
     } finally {
       setLoading(false);
     }
@@ -203,8 +200,8 @@ function CategoryManagementContent() {
       setShowCategoryModal(false);
       fetchCategories();
       setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (err: any) {
-      setFormError(err?.message || 'Failed to save category');
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : 'Failed to save category');
     } finally {
       setFormLoading(false);
     }
@@ -249,8 +246,8 @@ function CategoryManagementContent() {
       setShowSubcategoryModal(false);
       fetchCategories();
       setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (err: any) {
-      setFormError(err?.message || 'Failed to save subcategory');
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : 'Failed to save subcategory');
     } finally {
       setFormLoading(false);
     }
@@ -267,8 +264,8 @@ function CategoryManagementContent() {
       setSuccessMessage('Category deleted successfully');
       fetchCategories();
       setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to delete category');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete category');
       setTimeout(() => setError(''), 5000);
     }
   };
@@ -284,8 +281,8 @@ function CategoryManagementContent() {
       setSuccessMessage('Subcategory deleted successfully');
       fetchCategories();
       setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to delete subcategory');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete subcategory');
       setTimeout(() => setError(''), 5000);
     }
   };

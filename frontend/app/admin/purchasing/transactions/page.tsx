@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { createLogger } from '@/lib/logger';
 import { Receipt, Loader2, ExternalLink, CheckCircle2, Clock, XCircle, RotateCcw } from 'lucide-react';
 
 interface Transaction {
@@ -22,6 +23,8 @@ interface Transaction {
   createdAt: string;
   expenseId?: string;
 }
+
+const logger = createLogger('purchasing-transactions');
 
 const STATUS_CONFIG: Record<string, { icon: React.ElementType; color: string; label: string }> = {
   PENDING: { icon: Clock, color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/50', label: 'Pending' },
@@ -61,7 +64,7 @@ function TransactionsContent() {
       }
     } catch (err) {
       setError('Failed to load transactions');
-      console.error('Fetch transactions error:', err);
+      logger.error('Fetch transactions error', { error: err });
     } finally {
       setLoading(false);
     }

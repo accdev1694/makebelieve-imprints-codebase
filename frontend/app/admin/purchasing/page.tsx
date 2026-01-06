@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { createLogger } from '@/lib/logger';
 import {
   Search,
   CreditCard,
@@ -33,6 +34,8 @@ interface SourceStatus {
   configured: boolean;
   envVars: string[];
 }
+
+const logger = createLogger('purchasing-dashboard');
 
 function PurchasingDashboardContent() {
   const router = useRouter();
@@ -81,7 +84,7 @@ function PurchasingDashboardContent() {
         setSearchSources(searchRes.data.data.sources);
       }
     } catch (error) {
-      console.error('Failed to fetch status:', error);
+      logger.error('Failed to fetch status', { error });
     } finally {
       setLoading(false);
     }

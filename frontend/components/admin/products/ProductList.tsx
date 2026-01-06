@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import {
   productsService,
   formatPrice,
 } from '@/lib/api/products';
-import { Category, categoriesService } from '@/lib/api/categories';
+import { Category } from '@/lib/api/categories';
 import {
   Search,
   Plus,
@@ -56,8 +57,9 @@ export function ProductList({ initialData, categories }: ProductListProps) {
 
       setProducts(response.products);
       setPagination(response.pagination);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to fetch products');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch products';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -77,8 +79,9 @@ export function ProductList({ initialData, categories }: ProductListProps) {
     try {
       await productsService.delete(productId);
       setProducts(products.filter((p) => p.id !== productId));
-    } catch (err: any) {
-      setError(err?.message || 'Failed to delete product');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete product';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -95,8 +98,9 @@ export function ProductList({ initialData, categories }: ProductListProps) {
           p.id === product.id ? { ...p, featured: !p.featured } : p
         )
       );
-    } catch (err: any) {
-      setError(err?.message || 'Failed to update product');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update product';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -205,13 +209,12 @@ export function ProductList({ initialData, categories }: ProductListProps) {
             <Card key={product.id} className="overflow-hidden group">
               {/* Image */}
               <div className="aspect-video relative bg-muted">
-                <img
+                <Image
                   src={getProductImage(product)}
                   alt={product.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/placeholder-product.svg';
-                  }}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 />
 
                 {/* Featured badge */}

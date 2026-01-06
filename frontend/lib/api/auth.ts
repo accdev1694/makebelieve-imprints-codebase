@@ -3,7 +3,6 @@ import {
   RegisterData as SharedRegisterData,
   LoginData as SharedLoginData,
   User as SharedUser,
-  AuthResponse as SharedAuthResponse,
 } from '@mkbl/shared';
 
 // Frontend uses userType with different values than shared (CUSTOMER vs customer)

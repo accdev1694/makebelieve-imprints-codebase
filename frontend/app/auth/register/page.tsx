@@ -43,18 +43,22 @@ export default function RegisterPage() {
         password,
         userType: 'CUSTOMER', // Default to customer
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Handle different error formats from the API
       let errorMessage = 'Registration failed. Please try again.';
 
       if (typeof err === 'string') {
         errorMessage = err;
-      } else if (err?.error?.message) {
-        errorMessage = err.error.message;
-      } else if (err?.message) {
+      } else if (err instanceof Error) {
         errorMessage = err.message;
-      } else if (err?.error) {
-        errorMessage = typeof err.error === 'string' ? err.error : errorMessage;
+      } else {
+        const errObj = err as Record<string, unknown> | null;
+        const errError = errObj?.error as Record<string, unknown> | string | null;
+        if (typeof errError === 'object' && errError?.message) {
+          errorMessage = errError.message as string;
+        } else if (typeof errError === 'string') {
+          errorMessage = errError;
+        }
       }
 
       setError(errorMessage);

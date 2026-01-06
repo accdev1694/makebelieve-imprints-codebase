@@ -35,7 +35,7 @@ function ProductsPageContent() {
 
   // Build query params from filters
   const queryParams = useMemo(() => {
-    const params: any = {
+    const params: Record<string, unknown> = {
       page: currentPage,
       limit: ITEMS_PER_PAGE,
       status: 'ACTIVE',

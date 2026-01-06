@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -150,19 +151,7 @@ function IssueDetailContent() {
   const [appealing, setAppealing] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
 
-  useEffect(() => {
-    fetchIssue();
-  }, [issueId]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [issue?.messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const fetchIssue = async () => {
+  const fetchIssue = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiClient.get<{ issue: Issue }>(`/issues/${issueId}`);
@@ -173,6 +162,18 @@ function IssueDetailContent() {
     } finally {
       setLoading(false);
     }
+  }, [issueId]);
+
+  useEffect(() => {
+    fetchIssue();
+  }, [fetchIssue]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [issue?.messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const sendMessage = async () => {
@@ -358,12 +359,14 @@ function IssueDetailContent() {
             <CardContent>
               <div className="flex gap-6">
                 {/* Item Image */}
-                <div className="w-24 h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                <div className="w-24 h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative">
                   {getItemImage() ? (
-                    <img
+                    <Image
                       src={getItemImage()!}
                       alt="Item"
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
@@ -425,12 +428,14 @@ function IssueDetailContent() {
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block w-16 h-16 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+                        className="block w-16 h-16 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors relative"
                       >
-                        <img
+                        <Image
                           src={url}
                           alt={`Evidence ${index + 1}`}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          unoptimized
                         />
                       </a>
                     ))}
@@ -649,11 +654,13 @@ function IssueDetailContent() {
                     <div className="flex flex-wrap gap-2 mb-3">
                       {messageImages.map((url, index) => (
                         <div key={index} className="relative group">
-                          <div className="w-16 h-16 rounded-lg overflow-hidden border border-border">
-                            <img
+                          <div className="w-16 h-16 rounded-lg overflow-hidden border border-border relative">
+                            <Image
                               src={url}
                               alt={`Attachment ${index + 1}`}
-                              className="w-full h-full object-cover"
+                              fill
+                              className="object-cover"
+                              unoptimized
                             />
                           </div>
                           <button
@@ -793,12 +800,14 @@ function MessageBubble({ message }: { message: IssueMessage }) {
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-12 h-12 rounded overflow-hidden border border-border/50 hover:border-border transition-colors"
+                className="block w-12 h-12 rounded overflow-hidden border border-border/50 hover:border-border transition-colors relative"
               >
-                <img
+                <Image
                   src={url}
                   alt={`Attachment ${index + 1}`}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  unoptimized
                 />
               </a>
             ))}

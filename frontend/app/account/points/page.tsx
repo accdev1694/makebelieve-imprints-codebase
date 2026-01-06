@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserPoints, getPointsHistory, PointsBalance, PointsHistory } from '@/lib/api/points';
 import { Coins, Gift, Star, ShoppingCart, Info, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 export default function PointsPage() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function PointsPage() {
         setHistory(historyData);
       } catch (err) {
         setError('Failed to load points data');
-        console.error(err);
+        logger.error('Failed to load points data', { error: String(err) });
       } finally {
         setLoading(false);
       }

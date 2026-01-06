@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -60,8 +61,9 @@ export function ImageManager({
       setNewImageAlt('');
       setNewImageVariantId('');
       setShowAddForm(false);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to add image');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to add image';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -76,8 +78,9 @@ export function ImageManager({
     try {
       await productsService.deleteImage(productId, imageId);
       onImagesChange(images.filter((img) => img.id !== imageId));
-    } catch (err: any) {
-      setError(err?.message || 'Failed to delete image');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete image';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -96,8 +99,9 @@ export function ImageManager({
       }));
 
       onImagesChange(updatedImages);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to set primary image');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to set primary image';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -195,14 +199,18 @@ export function ImageManager({
               {newImageUrl && (
                 <div className="border rounded-md p-2">
                   <p className="text-xs text-muted-foreground mb-2">Preview:</p>
-                  <img
-                    src={newImageUrl}
-                    alt="Preview"
-                    className="max-h-32 rounded-md object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder-product.svg';
-                    }}
-                  />
+                  <div className="relative h-32 w-full">
+                    <Image
+                      src={newImageUrl}
+                      alt="Preview"
+                      fill
+                      className="rounded-md object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/placeholder-product.svg';
+                      }}
+                      unoptimized
+                    />
+                  </div>
                 </div>
               )}
 
@@ -243,13 +251,15 @@ export function ImageManager({
               }`}
             >
               <div className="aspect-square relative">
-                <img
+                <Image
                   src={image.imageUrl}
                   alt={image.altText || 'Product image'}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/placeholder-product.svg';
                   }}
+                  unoptimized
                 />
 
                 {/* Primary badge */}

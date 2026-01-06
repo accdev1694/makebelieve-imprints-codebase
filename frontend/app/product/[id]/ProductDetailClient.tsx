@@ -47,8 +47,9 @@ export default function ProductDetailClient({ productId }: ProductDetailClientPr
           });
           setRelatedProducts(related.products.filter((p) => p.id !== productId));
         }
-      } catch (err: any) {
-        setError(err?.error || err?.message || 'Failed to load product');
+      } catch (err: unknown) {
+        const errorObj = err as { error?: string; message?: string };
+        setError(errorObj?.error || errorObj?.message || 'Failed to load product');
       } finally {
         setLoading(false);
       }

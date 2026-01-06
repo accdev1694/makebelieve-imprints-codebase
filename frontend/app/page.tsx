@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { Product, productsService } from '@/lib/api/products';
 import { Category, categoriesService, getCategoryImage } from '@/lib/api/categories';
+import { logger } from '@/lib/logger';
 
 // Home page components
 import { HeroSection } from '@/components/home/HeroSection';
@@ -21,10 +22,10 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
-  const [categoryProducts, setCategoryProducts] = useState<Record<string, Product[]>>({});
+  const [categoryProducts, _setCategoryProducts] = useState<Record<string, Product[]>>({});
 
-  // Fallback categories in case API fails
-  const fallbackCategories: Category[] = [
+  // Fallback categories in case API fails (stored in ref to avoid useEffect dependency)
+  const fallbackCategoriesRef = useRef<Category[]>([
     {
       id: '1',
       name: 'Home & Lifestyle',
@@ -80,7 +81,7 @@ export default function Home() {
       createdAt: '',
       updatedAt: '',
     },
-  ];
+  ]);
 
   // Fetch categories and products
   useEffect(() => {
@@ -91,9 +92,9 @@ export default function Home() {
         // Fetch categories from API
         try {
           const categoriesData = await categoriesService.list({ includeSubcategories: true });
-          setCategories(categoriesData.length > 0 ? categoriesData : fallbackCategories);
+          setCategories(categoriesData.length > 0 ? categoriesData : fallbackCategoriesRef.current);
         } catch {
-          setCategories(fallbackCategories);
+          setCategories(fallbackCategoriesRef.current);
         }
 
         // Fetch bestsellers (featured products)
@@ -125,9 +126,7 @@ export default function Home() {
 
       } catch {
         // Ensure fallback categories are set even on complete failure
-        if (categories.length === 0) {
-          setCategories(fallbackCategories);
-        }
+        setCategories((current) => current.length === 0 ? fallbackCategoriesRef.current : current);
       } finally {
         setLoading(false);
       }
@@ -139,7 +138,7 @@ export default function Home() {
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Implement newsletter signup
-    console.log('Newsletter signup:', email);
+    logger.info('Newsletter signup', { email });
   };
 
   return (

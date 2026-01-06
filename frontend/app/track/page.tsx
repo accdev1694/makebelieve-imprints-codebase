@@ -38,8 +38,9 @@ function TrackingPageContent() {
     try {
       const result = await shippingService.getTrackingStatus(trackingNumber.trim());
       setTracking(result);
-    } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to retrieve tracking information');
+    } catch (err: unknown) {
+      const error = err as { error?: string; message?: string };
+      setError(error?.error || error?.message || 'Failed to retrieve tracking information');
     } finally {
       setLoading(false);
     }

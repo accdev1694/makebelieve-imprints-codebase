@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -58,11 +58,7 @@ function AdminSubscribersContent() {
     }
   }, [user, router]);
 
-  useEffect(() => {
-    fetchSubscribers();
-  }, [currentPage, statusFilter]);
-
-  const fetchSubscribers = async () => {
+  const fetchSubscribers = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -87,7 +83,11 @@ function AdminSubscribersContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, statusFilter, searchQuery]);
+
+  useEffect(() => {
+    fetchSubscribers();
+  }, [fetchSubscribers]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

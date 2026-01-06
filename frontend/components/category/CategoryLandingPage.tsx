@@ -20,7 +20,7 @@ interface CategoryLandingPageProps {
 
 export function CategoryLandingPage({
   categorySlug,
-  categoryName,
+  categoryName: _categoryName,
   categoryDescription,
 }: CategoryLandingPageProps) {
   const [category, setCategory] = useState<Category | null>(null);

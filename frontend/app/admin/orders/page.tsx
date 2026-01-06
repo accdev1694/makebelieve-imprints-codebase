@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -22,6 +22,7 @@ import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowUpDown } from 'lucide-react';
 
 const ORDER_TABS: OrderTab[] = ['all', 'in_progress', 'shipped', 'completed', 'cancelled'];
@@ -49,11 +50,7 @@ function AdminOrdersContent() {
     }
   }, [user, router]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [activeTab, currentPage, sortOption]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const data = await ordersService.list(currentPage, 15, {
@@ -69,7 +66,11 @@ function AdminOrdersContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, currentPage, sortOption]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const handleSortChange = (value: string) => {
     const option = ADMIN_SORT_OPTIONS.find(
@@ -274,13 +275,14 @@ function AdminOrdersContent() {
                       {/* Order Image and Basic Info */}
                       <div className="flex gap-4 flex-1">
                         {order.design && (
-                          <div className="w-24 h-24 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
-                            <img
+                          <div className="w-24 h-24 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
+                            <Image
                               src={
                                 order.previewUrl || order.design.previewUrl || order.design.imageUrl
                               }
                               alt={order.design.name}
-                              className="max-w-full max-h-full object-contain"
+                              fill
+                              className="object-contain"
                             />
                           </div>
                         )}

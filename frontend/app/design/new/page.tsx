@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { FileUpload } from '@/components/design/FileUpload';
 import { MaterialSelector } from '@/components/design/MaterialSelector';
 import { SizeSelector } from '@/components/design/SizeSelector';
@@ -23,7 +22,7 @@ import { Eye, Layers } from 'lucide-react';
 function DesignEditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
 
   // Design state
   const [name, setName] = useState('');
@@ -41,6 +40,17 @@ function DesignEditorContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [previewMode, setPreviewMode] = useState<'simple' | 'mockup'>('simple');
+
+  const handleTemplateSelect = useCallback((template: Template) => {
+    setSelectedTemplate(template);
+    setSelectedFile(null); // Clear file when template is selected
+    setPreview(template.previewUrl);
+
+    // Auto-fill recommended settings
+    setMaterial(template.recommendedMaterial);
+    setPrintSize(template.recommendedSize);
+    setName((prevName) => prevName || template.name);
+  }, []);
 
   // Handle URL query parameters (template pre-selection from gifts page)
   useEffect(() => {
@@ -61,7 +71,7 @@ function DesignEditorContent() {
         handleTemplateSelect(template);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, handleTemplateSelect]);
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
@@ -74,19 +84,6 @@ function DesignEditorContent() {
       setPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleTemplateSelect = (template: Template) => {
-    setSelectedTemplate(template);
-    setSelectedFile(null); // Clear file when template is selected
-    setPreview(template.previewUrl);
-
-    // Auto-fill recommended settings
-    setMaterial(template.recommendedMaterial);
-    setPrintSize(template.recommendedSize);
-    if (!name) {
-      setName(template.name);
-    }
   };
 
   const handleSave = async () => {
@@ -139,30 +136,39 @@ function DesignEditorContent() {
 
       // Redirect to designs gallery
       router.push('/design/my-designs');
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Extract error message from various possible formats
       let errorMessage = 'Failed to save design. Please try again.';
 
+      // Type guard for error object
+      const error = err as {
+        data?: { error?: { errors?: Record<string, string[]>; message?: string }; message?: string };
+        error?: { errors?: Record<string, string[]> } | string;
+        message?: string;
+      };
+
       // Handle validation errors with specific field messages
-      if (err?.data?.error?.errors || err?.error?.errors) {
-        const errors = err?.data?.error?.errors || err?.error?.errors;
-        const errorMessages = Object.entries(errors)
-          .map(([field, msgs]: [string, any]) => {
-            const messages = Array.isArray(msgs) ? msgs : [msgs];
-            return `${field}: ${messages.join(', ')}`;
-          })
-          .join('; ');
-        errorMessage = `Validation failed: ${errorMessages}`;
+      if (error?.data?.error?.errors || (typeof error?.error === 'object' && error?.error?.errors)) {
+        const errors = error?.data?.error?.errors || (typeof error?.error === 'object' ? error?.error?.errors : undefined);
+        if (errors) {
+          const errorMessages = Object.entries(errors)
+            .map(([field, msgs]: [string, string[]]) => {
+              const messages = Array.isArray(msgs) ? msgs : [msgs];
+              return `${field}: ${messages.join(', ')}`;
+            })
+            .join('; ');
+          errorMessage = `Validation failed: ${errorMessages}`;
+        }
       } else if (typeof err === 'string') {
         errorMessage = err;
-      } else if (err?.data?.error?.message) {
-        errorMessage = err.data.error.message;
-      } else if (err?.data?.message) {
-        errorMessage = err.data.message;
-      } else if (err?.message) {
-        errorMessage = err.message;
-      } else if (err?.error) {
-        errorMessage = typeof err.error === 'string' ? err.error : errorMessage;
+      } else if (error?.data?.error?.message) {
+        errorMessage = error.data.error.message;
+      } else if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error?.error === 'string') {
+        errorMessage = error.error;
       }
 
       setError(errorMessage);
@@ -359,11 +365,13 @@ function DesignEditorContent() {
                 <CardContent>
                   {previewMode === 'simple' ? (
                     <div className="space-y-4">
-                      <div className="aspect-square w-full bg-card/30 rounded-lg overflow-hidden flex items-center justify-center">
-                        <img
+                      <div className="aspect-square w-full bg-card/30 rounded-lg overflow-hidden relative">
+                        <Image
                           src={preview}
                           alt="Design preview"
-                          className="max-w-full max-h-full object-contain"
+                          fill
+                          className="object-contain"
+                          unoptimized
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4 text-sm">

@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 import { nanoid } from 'nanoid';
 import { sendRecoveryEmail } from './email';
-import { RecoveryType, RecoveryCampaignStatus } from '@prisma/client';
+import { RecoveryType } from '@prisma/client';
 
 // Configuration constants
 const RECOVERY_THRESHOLD_DAYS = 3;
@@ -213,7 +213,7 @@ export async function findEligibleRecoveryUsers(): Promise<EligibleUser[]> {
 /**
  * Create a recovery promo code for a user
  */
-export async function createRecoveryPromo(userId: string): Promise<{ id: string; code: string }> {
+export async function createRecoveryPromo(_userId: string): Promise<{ id: string; code: string }> {
   const code = generateRecoveryPromoCode();
   const now = new Date();
   const expiresAt = new Date();

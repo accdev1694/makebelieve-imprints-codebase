@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,6 @@ import apiClient from '@/lib/api/client';
 import Link from 'next/link';
 
 function AccountSettingsContent() {
-  const router = useRouter();
   const { user, refetch } = useAuth();
 
   const [name, setName] = useState(user?.name || '');
@@ -50,8 +48,9 @@ function AccountSettingsContent() {
 
       // Refresh user data in context
       await refetch();
-    } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to update profile');
+    } catch (err: unknown) {
+      const error = err as { error?: string; message?: string };
+      setError(error?.error || error?.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }

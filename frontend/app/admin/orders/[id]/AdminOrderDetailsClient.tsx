@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,20 @@ import {
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('AdminOrderDetails');
+
+// API error type
+interface ApiError {
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
+  error?: string;
+  message?: string;
+}
 
 // Resolution types
 interface Resolution {
@@ -121,8 +136,9 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
       try {
         const orderData = await ordersService.get(orderId);
         setOrder(orderData);
-      } catch (err: any) {
-        setError(err?.error || err?.message || 'Failed to load order');
+      } catch (err: unknown) {
+        const e = err as ApiError;
+        setError(e?.error || e?.message || 'Failed to load order');
       } finally {
         setLoading(false);
       }
@@ -139,7 +155,7 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
         const response = await apiClient.get<{ resolutions: Resolution[] }>(`/orders/${orderId}/resolutions`);
         setResolutions(response.data?.resolutions || []);
       } catch (err) {
-        console.error('Failed to load resolutions:', err);
+        logger.error('Failed to load resolutions', { error: String(err) });
       }
     };
     loadResolutions();
@@ -168,8 +184,9 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
       // Reload resolutions
       const resResponse = await apiClient.get<{ resolutions: Resolution[] }>(`/orders/${orderId}/resolutions`);
       setResolutions(resResponse.data?.resolutions || []);
-    } catch (err: any) {
-      setError(err?.response?.data?.error || err?.message || 'Failed to create reprint');
+    } catch (err: unknown) {
+      const e = err as ApiError;
+      setError(e?.response?.data?.error || e?.message || 'Failed to create reprint');
     } finally {
       setProcessingResolution(false);
     }
@@ -202,8 +219,9 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
       // Reload resolutions
       const resResponse = await apiClient.get<{ resolutions: Resolution[] }>(`/orders/${orderId}/resolutions`);
       setResolutions(resResponse.data?.resolutions || []);
-    } catch (err: any) {
-      setError(err?.response?.data?.error || err?.message || 'Failed to issue refund');
+    } catch (err: unknown) {
+      const e = err as ApiError;
+      setError(e?.response?.data?.error || e?.message || 'Failed to issue refund');
     } finally {
       setProcessingResolution(false);
     }
@@ -220,8 +238,9 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
       await apiClient.put(`/orders/${order.id}/status`, { status: newStatus });
       setOrder({ ...order, status: newStatus });
       setSuccess(`Order status updated to ${ORDER_STATUS_LABELS[newStatus]}`);
-    } catch (err: any) {
-      setError(err?.error || err?.message || 'Failed to update order status');
+    } catch (err: unknown) {
+      const e = err as ApiError;
+      setError(e?.error || e?.message || 'Failed to update order status');
     } finally {
       setUpdating(false);
     }
@@ -255,8 +274,9 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
       // Reload resolutions
       const resResponse = await apiClient.get<{ resolutions: Resolution[] }>(`/orders/${orderId}/resolutions`);
       setResolutions(resResponse.data?.resolutions || []);
-    } catch (err: any) {
-      setError(err?.response?.data?.error || err?.message || 'Failed to process issue');
+    } catch (err: unknown) {
+      const e = err as ApiError;
+      setError(e?.response?.data?.error || e?.message || 'Failed to process issue');
     } finally {
       setProcessingResolution(false);
     }
@@ -292,8 +312,9 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
       // Reload order to get updated status
       const orderData = await ordersService.get(orderId);
       setOrder(orderData);
-    } catch (err: any) {
-      setError(err?.response?.data?.error || err?.message || 'Failed to cancel order');
+    } catch (err: unknown) {
+      const e = err as ApiError;
+      setError(e?.response?.data?.error || e?.message || 'Failed to cancel order');
     } finally {
       setProcessingCancellation(false);
     }
@@ -328,8 +349,9 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
       // Reload order to get updated status
       const orderData = await ordersService.get(orderId);
       setOrder(orderData);
-    } catch (err: any) {
-      setError(err?.response?.data?.error || err?.message || 'Failed to review cancellation request');
+    } catch (err: unknown) {
+      const e = err as ApiError;
+      setError(e?.response?.data?.error || e?.message || 'Failed to review cancellation request');
     } finally {
       setProcessingCancellation(false);
     }
@@ -494,11 +516,12 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
               <CardContent className="space-y-6">
                 {order.design && (
                   <div className="flex gap-4 items-start">
-                    <div className="w-32 h-32 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
-                      <img
+                    <div className="w-32 h-32 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
+                      <Image
                         src={order.previewUrl || order.design.previewUrl || order.design.imageUrl}
                         alt={order.design.name}
-                        className="max-w-full max-h-full object-contain"
+                        fill
+                        className="object-contain"
                       />
                     </div>
                     <div className="flex-1 space-y-2">
@@ -540,12 +563,13 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
                   <div className="space-y-4">
                     {order.items.map((item: OrderItem) => (
                       <div key={item.id} className="flex gap-4 items-start">
-                        <div className="w-20 h-20 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+                        <div className="w-20 h-20 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
                           {item.product?.images?.[0]?.imageUrl ? (
-                            <img
+                            <Image
                               src={item.product.images[0].imageUrl}
                               alt={item.product?.name || 'Product'}
-                              className="max-w-full max-h-full object-cover"
+                              fill
+                              className="object-cover"
                             />
                           ) : (
                             <div className="text-muted-foreground text-xs">No image</div>
@@ -824,12 +848,13 @@ function AdminOrderDetailsContent({ orderId }: AdminOrderDetailsClientProps) {
                                   href={url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="block w-16 h-16 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+                                  className="block w-16 h-16 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors relative"
                                 >
-                                  <img
+                                  <Image
                                     src={url}
                                     alt={`Issue photo ${imgIndex + 1}`}
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    className="object-cover"
                                   />
                                 </a>
                               ))}

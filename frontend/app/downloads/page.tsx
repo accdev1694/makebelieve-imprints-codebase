@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { CartIcon } from '@/components/cart/CartIcon';
 import { apiClient } from '@/lib/api/client';
-import { formatPrice } from '@/lib/api/products';
 import {
   Download,
   FileText,
@@ -45,8 +44,8 @@ interface DownloadLink {
 }
 
 function DownloadsContent() {
-  const router = useRouter();
-  const { user, logout } = useAuth();
+  const _router = useRouter();
+  const { user: _user, logout } = useAuth();
 
   const [downloads, setDownloads] = useState<DigitalDownload[]>([]);
   const [loading, setLoading] = useState(true);

@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Star, Award } from 'lucide-react';
 import { getHomepageReviews, HomepageReview } from '@/lib/api/reviews';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('CustomerTestimonials');
 
 // Fallback testimonials for when no reviews exist yet
 const FALLBACK_TESTIMONIALS = [
@@ -48,7 +51,7 @@ export function CustomerTestimonials() {
           setReviews(FALLBACK_TESTIMONIALS);
         }
       } catch (error) {
-        console.error('Failed to fetch reviews:', error);
+        logger.error('Failed to fetch reviews', { error: error instanceof Error ? error.message : String(error) });
         // Use fallback on error
         setReviews(FALLBACK_TESTIMONIALS);
       } finally {

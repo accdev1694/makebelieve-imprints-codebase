@@ -47,8 +47,8 @@ export default function WishlistPage() {
           text: 'Check out my wishlist!',
           url: window.location.href,
         });
-      } catch (err) {
-        console.log('Share cancelled');
+      } catch {
+        // Share was cancelled by user - no action needed
       }
     } else {
       // Fallback: copy to clipboard

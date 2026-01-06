@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { ordersService, Order, ORDER_STATUS_LABELS } from '@/lib/api/orders';
 import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import Link from 'next/link';
+import Image from 'next/image';
 
 function ConfirmationContent() {
   const router = useRouter();
@@ -33,8 +34,9 @@ function ConfirmationContent() {
       try {
         const orderData = await ordersService.get(orderId);
         setOrder(orderData);
-      } catch (err: any) {
-        setError(err?.error || err?.message || 'Failed to load order');
+      } catch (err: unknown) {
+        const error = err as { error?: string; message?: string };
+        setError(error?.error || error?.message || 'Failed to load order');
       } finally {
         setLoading(false);
       }
@@ -100,11 +102,13 @@ function ConfirmationContent() {
             {/* Design Preview */}
             {order.design && (
               <div className="flex gap-4 items-start">
-                <div className="w-24 h-24 bg-card/30 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
-                  <img
+                <div className="relative w-24 h-24 bg-card/30 rounded-lg overflow-hidden flex-shrink-0">
+                  <Image
                     src={order.previewUrl || order.design.previewUrl || order.design.imageUrl}
                     alt={order.design.name}
-                    className="max-w-full max-h-full object-contain"
+                    fill
+                    className="object-contain"
+                    sizes="96px"
                   />
                 </div>
                 <div className="flex-1">

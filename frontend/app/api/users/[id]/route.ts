@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireAuth, requireAdmin, handleApiError } from '@/lib/server/auth';
+import { requireAuth, handleApiError } from '@/lib/server/auth';
 
 interface RouteParams {
   params: Promise<{ id: string }>;

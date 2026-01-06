@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useCamera } from '@/lib/native';
@@ -40,24 +41,27 @@ export function FileUpload({
   // Native camera hook
   const { takePhoto, pickFromGallery, isAvailable: isCameraAvailable, isLoading: isCameraLoading } = useCamera();
 
-  const validateFile = (file: File): boolean => {
-    setError('');
+  const validateFile = useCallback(
+    (file: File): boolean => {
+      setError('');
 
-    // Check file type
-    if (!acceptedTypes.includes(file.type)) {
-      setError(`File type not supported. Please upload: ${acceptedTypes.join(', ')}`);
-      return false;
-    }
+      // Check file type
+      if (!acceptedTypes.includes(file.type)) {
+        setError(`File type not supported. Please upload: ${acceptedTypes.join(', ')}`);
+        return false;
+      }
 
-    // Check file size
-    const fileSizeMB = file.size / (1024 * 1024);
-    if (fileSizeMB > maxSize) {
-      setError(`File too large. Maximum size: ${maxSize}MB`);
-      return false;
-    }
+      // Check file size
+      const fileSizeMB = file.size / (1024 * 1024);
+      if (fileSizeMB > maxSize) {
+        setError(`File too large. Maximum size: ${maxSize}MB`);
+        return false;
+      }
 
-    return true;
-  };
+      return true;
+    },
+    [acceptedTypes, maxSize]
+  );
 
   const handleFile = useCallback(
     (file: File) => {
@@ -65,7 +69,7 @@ export function FileUpload({
         onFileSelect(file);
       }
     },
-    [onFileSelect, maxSize, acceptedTypes]
+    [onFileSelect, validateFile]
   );
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -133,7 +137,15 @@ export function FileUpload({
       >
         {preview ? (
           <div className="relative group">
-            <img src={preview} alt="Preview" className="w-full h-auto max-h-96 object-contain" />
+            <Image
+              src={preview}
+              alt="Preview"
+              width={0}
+              height={0}
+              sizes="100vw"
+              className="w-full h-auto max-h-96 object-contain"
+              unoptimized
+            />
             <div className="absolute inset-0 dark:bg-black/60 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
               {isCameraAvailable ? (
                 /* Native platform - show camera and gallery buttons */

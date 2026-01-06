@@ -15,7 +15,7 @@ interface RouteParams {
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const admin = await requireAdmin(request);
+    const _admin = await requireAdmin(request);
     const { id: resolutionId } = await params;
 
     const body = await request.json();

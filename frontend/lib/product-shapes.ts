@@ -483,7 +483,7 @@ function drawKeychain({ ctx, width, height, primaryColor, secondaryColor }: Shap
 /**
  * Draw a water bottle shape
  */
-function drawWaterBottle({ ctx, width, height, primaryColor, secondaryColor }: ShapeRenderContext): PrintAreaResult {
+function drawWaterBottle({ ctx, width, height, primaryColor, secondaryColor: _secondaryColor }: ShapeRenderContext): PrintAreaResult {
   const centerX = width / 2;
   const bottleWidth = width * 0.3;
   const bottleHeight = height * 0.75;

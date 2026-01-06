@@ -7,7 +7,15 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-const mapDesignToFrontend = (design: any) => {
+interface DesignRecord {
+  title?: string | null;
+  fileUrl?: string | null;
+  printWidth?: number | null;
+  printHeight?: number | null;
+  [key: string]: unknown;
+}
+
+const mapDesignToFrontend = (design: DesignRecord | null) => {
   if (!design) return null;
   const { title, fileUrl, printWidth, printHeight, ...rest } = design;
   return {

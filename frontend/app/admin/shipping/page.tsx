@@ -10,10 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ordersService, Order, ORDER_STATUS_LABELS } from '@/lib/api/orders';
-import { MATERIAL_LABELS, PRINT_SIZE_LABELS } from '@/lib/api/designs';
 import apiClient from '@/lib/api/client';
 import Link from 'next/link';
-import { Package, Truck, Download, FileText, RefreshCw, CheckCircle, AlertCircle, Trash2, ExternalLink } from 'lucide-react';
+import { Package, Truck, FileText, RefreshCw, CheckCircle, AlertCircle, Trash2, ExternalLink } from 'lucide-react';
 
 interface ApiHealth {
   status: string;
@@ -115,7 +114,7 @@ function AdminShippingContent() {
     }
   };
 
-  const handleDownloadLabel = async (order: Order) => {
+  const _handleDownloadLabel = async (order: Order) => {
     setProcessingOrderId(order.id);
     setProcessingAction('label');
     setError('');

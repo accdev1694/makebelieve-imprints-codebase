@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/server/auth';
+import { validateRequired, validateUUID } from '@/lib/server/validation';
 
 // Lazy initialization of Stripe to avoid build-time errors
 let stripe: Stripe | null = null;
@@ -38,9 +39,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { orderId } = body;
 
-    if (!orderId) {
+    // Validate required fields
+    const requiredValidation = validateRequired({ orderId }, ['orderId']);
+    if (!requiredValidation.valid) {
       return NextResponse.json(
-        { error: 'orderId is required' },
+        { error: requiredValidation.errors[0] },
+        { status: 400 }
+      );
+    }
+
+    // Validate orderId is a valid UUID
+    const uuidValidation = validateUUID(orderId);
+    if (!uuidValidation.valid) {
+      return NextResponse.json(
+        { error: 'Invalid order ID format' },
         { status: 400 }
       );
     }

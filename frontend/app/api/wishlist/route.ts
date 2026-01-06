@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
 import { getWishlistItems, addWishlistItem } from '@/lib/server/wishlist-service';
+import { validateRequired } from '@/lib/server/validation';
 
 /**
  * GET /api/wishlist
@@ -29,6 +30,18 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth(request);
     const body = await request.json();
+
+    // Validate required fields
+    const requiredValidation = validateRequired(
+      { productId: body.productId },
+      ['productId']
+    );
+    if (!requiredValidation.valid) {
+      return NextResponse.json(
+        { success: false, error: requiredValidation.errors[0] },
+        { status: 400 }
+      );
+    }
 
     const result = await addWishlistItem(user.userId, body.productId);
 

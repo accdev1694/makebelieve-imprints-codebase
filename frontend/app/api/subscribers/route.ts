@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import { subscribe, listSubscribers, SubscriberStatus, SubscriberSource } from '@/lib/server/subscriber-service';
+import { validateEmail, validatePagination } from '@/lib/server/validation';
 
 /**
  * POST /api/subscribers
@@ -10,6 +11,12 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { email, name, source = 'FOOTER' } = body as { email: string; name?: string; source?: SubscriberSource };
+
+    // Validate email using shared validator
+    const emailValidation = validateEmail(email || '');
+    if (!emailValidation.valid) {
+      return NextResponse.json({ error: emailValidation.errors[0] }, { status: 400 });
+    }
 
     const result = await subscribe(email, name, source);
 
@@ -36,8 +43,11 @@ export async function GET(request: NextRequest) {
     await requireAdmin(request);
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const { page, limit } = validatePagination(
+      searchParams.get('page'),
+      searchParams.get('limit'),
+      100
+    );
     const status = searchParams.get('status') as SubscriberStatus | null;
     const search = searchParams.get('search');
 

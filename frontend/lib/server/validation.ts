@@ -105,13 +105,17 @@ export function validatePagination(
 
 /**
  * Validates a numeric amount (non-negative)
+ * Returns the parsed value on success
  */
-export function validateAmount(amount: unknown): ValidationResult {
+export function validateAmount(
+  amount: unknown,
+  fieldName: string = 'Amount'
+): { valid: boolean; value?: number; errors: string[] } {
   const num = Number(amount);
   if (isNaN(num) || num < 0) {
-    return { valid: false, errors: ['Invalid amount'] };
+    return { valid: false, errors: [`${fieldName} must be a valid non-negative number`] };
   }
-  return { valid: true, errors: [] };
+  return { valid: true, value: num, errors: [] };
 }
 
 /**
@@ -151,33 +155,49 @@ export function createStringValidator(
 
 /**
  * Creates an enum validator
+ * Returns the validated value on success for type safety
  */
 export function createEnumValidator<T extends string>(
   fieldName: string,
   validValues: readonly T[]
-): (value: string) => ValidationResult {
-  return (value: string): ValidationResult => {
-    if (!validValues.includes(value as T)) {
+): (value: unknown) => { valid: boolean; value?: T; errors: string[] } {
+  return (value: unknown): { valid: boolean; value?: T; errors: string[] } => {
+    if (typeof value !== 'string' || !validValues.includes(value as T)) {
       return {
         valid: false,
         errors: [`Invalid ${fieldName}. Must be one of: ${validValues.join(', ')}`],
       };
     }
-    return { valid: true, errors: [] };
+    return { valid: true, value: value as T, errors: [] };
   };
 }
 
 /**
  * Validates that required fields are present and non-empty
+ * Returns list of missing fields for detailed error handling
  */
-export function validateRequired(fields: Record<string, unknown>): ValidationResult {
-  const errors: string[] = [];
-  for (const [key, value] of Object.entries(fields)) {
+export function validateRequired(
+  fields: Record<string, unknown>,
+  requiredKeys?: string[]
+): { valid: boolean; missing?: string[]; errors: string[] } {
+  const keysToCheck = requiredKeys || Object.keys(fields);
+  const missing: string[] = [];
+
+  for (const key of keysToCheck) {
+    const value = fields[key];
     if (value === undefined || value === null || value === '') {
-      errors.push(`${key} is required`);
+      missing.push(key);
     }
   }
-  return { valid: errors.length === 0, errors };
+
+  if (missing.length > 0) {
+    return {
+      valid: false,
+      missing,
+      errors: [`Missing required fields: ${missing.join(', ')}`],
+    };
+  }
+  return { valid: true, errors: [] };
 }
 
 /**

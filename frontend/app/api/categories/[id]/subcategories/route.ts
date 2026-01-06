@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
+import { listSubcategories, createSubcategory } from '@/lib/server/category-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -16,36 +16,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get('includeInactive') === 'true';
 
-    const isUUID = categoryId.length === 36 && categoryId.includes('-');
+    const result = await listSubcategories(categoryId, { includeInactive });
 
-    // Find category by ID or slug
-    const category = await prisma.category.findFirst({
-      where: isUUID ? { id: categoryId } : { slug: categoryId },
-    });
-
-    if (!category) {
-      return NextResponse.json(
-        { error: 'Category not found' },
-        { status: 404 }
-      );
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 404 });
     }
-
-    const subcategories = await prisma.subcategory.findMany({
-      where: {
-        categoryId: category.id,
-        ...(includeInactive ? {} : { isActive: true }),
-      },
-      include: {
-        _count: {
-          select: { products: true },
-        },
-      },
-      orderBy: { displayOrder: 'asc' },
-    });
 
     return NextResponse.json({
       success: true,
-      data: { subcategories },
+      data: result.data,
     });
   } catch (error) {
     return handleApiError(error);
@@ -62,46 +41,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const { id: categoryId } = await params;
     const body = await request.json();
-    const { name, slug, description, image, displayOrder, isActive } = body;
 
-    // Check category exists
-    const category = await prisma.category.findUnique({ where: { id: categoryId } });
-    if (!category) {
-      return NextResponse.json(
-        { error: 'Category not found' },
-        { status: 404 }
-      );
+    const result = await createSubcategory(categoryId, body);
+
+    if (!result.success) {
+      const status = result.error === 'Category not found' ? 404 : 400;
+      return NextResponse.json({ error: result.error }, { status });
     }
-
-    // Check for duplicate slug
-    const existing = await prisma.subcategory.findUnique({ where: { slug } });
-    if (existing) {
-      return NextResponse.json(
-        { error: 'A subcategory with this slug already exists' },
-        { status: 400 }
-      );
-    }
-
-    const subcategory = await prisma.subcategory.create({
-      data: {
-        categoryId,
-        name,
-        slug,
-        description,
-        image,
-        displayOrder: displayOrder ?? 0,
-        isActive: isActive ?? true,
-      },
-      include: {
-        category: true,
-        _count: {
-          select: { products: true },
-        },
-      },
-    });
 
     return NextResponse.json(
-      { success: true, data: { subcategory } },
+      { success: true, data: result.data },
       { status: 201 }
     );
   } catch (error) {

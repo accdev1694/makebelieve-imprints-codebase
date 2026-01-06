@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
+import { listCategories, createCategory } from '@/lib/server/category-service';
 
 /**
  * GET /api/categories
@@ -12,31 +12,11 @@ export async function GET(request: NextRequest) {
     const includeInactive = searchParams.get('includeInactive') === 'true';
     const includeSubcategories = searchParams.get('includeSubcategories') !== 'false';
 
-    const where = includeInactive ? {} : { isActive: true };
-
-    const categories = await prisma.category.findMany({
-      where,
-      include: includeSubcategories
-        ? {
-            subcategories: {
-              where: includeInactive ? {} : { isActive: true },
-              orderBy: { displayOrder: 'asc' },
-            },
-            _count: {
-              select: { products: true },
-            },
-          }
-        : {
-            _count: {
-              select: { products: true },
-            },
-          },
-      orderBy: { displayOrder: 'asc' },
-    });
+    const result = await listCategories({ includeInactive, includeSubcategories });
 
     return NextResponse.json({
       success: true,
-      data: { categories },
+      data: result.data,
     });
   } catch (error) {
     return handleApiError(error);
@@ -52,36 +32,14 @@ export async function POST(request: NextRequest) {
     await requireAdmin(request);
 
     const body = await request.json();
-    const { name, slug, description, image, displayOrder, isActive } = body;
+    const result = await createCategory(body);
 
-    // Check for duplicate slug
-    const existing = await prisma.category.findUnique({ where: { slug } });
-    if (existing) {
-      return NextResponse.json(
-        { error: 'A category with this slug already exists' },
-        { status: 400 }
-      );
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    const category = await prisma.category.create({
-      data: {
-        name,
-        slug,
-        description,
-        image,
-        displayOrder: displayOrder ?? 0,
-        isActive: isActive ?? true,
-      },
-      include: {
-        subcategories: true,
-        _count: {
-          select: { products: true },
-        },
-      },
-    });
-
     return NextResponse.json(
-      { success: true, data: { category } },
+      { success: true, data: result.data },
       { status: 201 }
     );
   } catch (error) {

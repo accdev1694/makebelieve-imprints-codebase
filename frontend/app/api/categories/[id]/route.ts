@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
+import { getCategory, updateCategory, deleteCategory } from '@/lib/server/category-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -13,31 +13,16 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const isUUID = id.length === 36 && id.includes('-');
 
-    const category = await prisma.category.findFirst({
-      where: isUUID ? { id } : { slug: id },
-      include: {
-        subcategories: {
-          where: { isActive: true },
-          orderBy: { displayOrder: 'asc' },
-        },
-        _count: {
-          select: { products: true },
-        },
-      },
-    });
+    const result = await getCategory(id);
 
-    if (!category) {
-      return NextResponse.json(
-        { error: 'Category not found' },
-        { status: 404 }
-      );
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 404 });
     }
 
     return NextResponse.json({
       success: true,
-      data: { category },
+      data: result.data,
     });
   } catch (error) {
     return handleApiError(error);
@@ -55,42 +40,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const body = await request.json();
 
-    // Check if category exists
-    const existing = await prisma.category.findUnique({ where: { id } });
-    if (!existing) {
-      return NextResponse.json(
-        { error: 'Category not found' },
-        { status: 404 }
-      );
-    }
+    const result = await updateCategory(id, body);
 
-    // Check for duplicate slug if changing
-    if (body.slug && body.slug !== existing.slug) {
-      const duplicateSlug = await prisma.category.findUnique({
-        where: { slug: body.slug },
-      });
-      if (duplicateSlug) {
-        return NextResponse.json(
-          { error: 'A category with this slug already exists' },
-          { status: 400 }
-        );
-      }
+    if (!result.success) {
+      const status = result.error === 'Category not found' ? 404 : 400;
+      return NextResponse.json({ error: result.error }, { status });
     }
-
-    const category = await prisma.category.update({
-      where: { id },
-      data: body,
-      include: {
-        subcategories: true,
-        _count: {
-          select: { products: true },
-        },
-      },
-    });
 
     return NextResponse.json({
       success: true,
-      data: { category },
+      data: result.data,
     });
   } catch (error) {
     return handleApiError(error);
@@ -107,30 +66,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
 
-    const existing = await prisma.category.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: { products: true, subcategories: true },
-        },
-      },
-    });
+    const result = await deleteCategory(id);
 
-    if (!existing) {
-      return NextResponse.json(
-        { error: 'Category not found' },
-        { status: 404 }
-      );
+    if (!result.success) {
+      const status = result.error === 'Category not found' ? 404 : 400;
+      return NextResponse.json({ error: result.error }, { status });
     }
-
-    if (existing._count.products > 0) {
-      return NextResponse.json(
-        { error: `Cannot delete category with ${existing._count.products} products. Move or delete products first.` },
-        { status: 400 }
-      );
-    }
-
-    await prisma.category.delete({ where: { id } });
 
     return NextResponse.json({
       success: true,

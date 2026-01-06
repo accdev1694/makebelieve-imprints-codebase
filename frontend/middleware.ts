@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getRateLimiter } from '@/lib/server/rate-limiter';
 
 /**
  * Next.js Middleware for CORS, Security Headers, and Rate Limiting
@@ -8,7 +9,7 @@ import type { NextRequest } from 'next/server';
  * - CORS preflight requests (OPTIONS)
  * - CORS headers for allowed origins
  * - Security headers for all responses
- * - Basic rate limiting for sensitive endpoints
+ * - Rate limiting for sensitive endpoints (via bounded in-memory or Upstash Redis)
  */
 
 // Environment check
@@ -29,17 +30,6 @@ const allowedOrigins = [
   'capacitor://localhost',
   'ionic://localhost',
 ];
-
-// Rate limiting storage (in-memory, resets on deploy - use Redis for production scale)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
-// Rate limit configuration per endpoint pattern
-const rateLimitConfig: Record<string, { maxRequests: number; windowMs: number }> = {
-  '/api/auth/login': { maxRequests: 5, windowMs: 15 * 60 * 1000 }, // 5 per 15 min
-  '/api/auth/register': { maxRequests: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour
-  '/api/auth/forgot-password': { maxRequests: 3, windowMs: 60 * 60 * 1000 }, // 3 per hour
-  '/api/subscribers': { maxRequests: 5, windowMs: 60 * 1000 }, // 5 per minute
-};
 
 // Check if origin is allowed
 function isAllowedOrigin(origin: string | null, pathname: string, request: NextRequest): boolean {
@@ -80,53 +70,10 @@ function isAllowedOrigin(origin: string | null, pathname: string, request: NextR
   return false;
 }
 
-// Simple rate limiting check
-function checkRateLimit(ip: string, pathname: string): { allowed: boolean; retryAfter?: number } {
-  const config = Object.entries(rateLimitConfig).find(([pattern]) => pathname.startsWith(pattern));
-  if (!config) return { allowed: true };
-
-  const [, { maxRequests, windowMs }] = config;
-  const key = `${ip}:${pathname}`;
-  const now = Date.now();
-
-  const record = rateLimitStore.get(key);
-
-  if (!record || now > record.resetTime) {
-    // New window
-    rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
-    return { allowed: true };
-  }
-
-  if (record.count >= maxRequests) {
-    const retryAfter = Math.ceil((record.resetTime - now) / 1000);
-    return { allowed: false, retryAfter };
-  }
-
-  record.count++;
-  return { allowed: true };
-}
-
-// Clean up old rate limit entries periodically (every 100 requests)
-let requestCount = 0;
-function cleanupRateLimitStore() {
-  requestCount++;
-  if (requestCount % 100 === 0) {
-    const now = Date.now();
-    for (const [key, record] of rateLimitStore.entries()) {
-      if (now > record.resetTime) {
-        rateLimitStore.delete(key);
-      }
-    }
-  }
-}
-
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const origin = request.headers.get('origin');
   const pathname = request.nextUrl.pathname;
   const isApiRoute = pathname.startsWith('/api');
-
-  // Clean up rate limit store periodically
-  cleanupRateLimitStore();
 
   // Handle preflight requests
   if (request.method === 'OPTIONS' && isApiRoute) {
@@ -157,7 +104,8 @@ export function middleware(request: NextRequest) {
                request.headers.get('x-real-ip') ||
                'unknown';
 
-    const rateLimit = checkRateLimit(ip, pathname);
+    const limiter = getRateLimiter();
+    const rateLimit = await limiter.check(ip, pathname);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },

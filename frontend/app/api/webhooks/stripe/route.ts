@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
     const existingEvent = await prisma.auditLog.findFirst({
       where: {
         action: 'WEBHOOK_PROCESSED',
-        details: {
+        entityType: 'PAYMENT',
+        metadata: {
           path: ['stripeEventId'],
           equals: event.id,
         },
@@ -84,11 +85,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Record event as being processed (before handling to prevent race conditions)
+    // Note: entityId uses a placeholder UUID since Stripe event IDs aren't UUIDs.
+    // The actual event ID is stored in metadata for idempotency lookup.
     await prisma.auditLog.create({
       data: {
         action: 'WEBHOOK_PROCESSED',
+        entityType: 'PAYMENT',
+        entityId: '00000000-0000-0000-0000-000000000000',
         actorType: 'WEBHOOK',
-        details: {
+        metadata: {
           stripeEventId: event.id,
           eventType: event.type,
           processedAt: new Date().toISOString(),

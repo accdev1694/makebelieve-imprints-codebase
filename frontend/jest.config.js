@@ -33,6 +33,8 @@ const customJestConfig = {
     '/cypress/',
     // Skip shipping routes tests due to Istanbul/Edge runtime incompatibility
     'app/api/shipping/__tests__/',
+    // Integration tests run separately with: npm run test:integration
+    '__tests__/integration/',
   ],
   // Coverage thresholds - raise these incrementally as test coverage improves
   // Current baseline: ~3.7% (Jan 2026) - raise as tests are added

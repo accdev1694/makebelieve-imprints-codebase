@@ -14,6 +14,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:integration": "RUN_INTEGRATION_TESTS=true jest --testPathPatterns=integration --runInBand",
     "build:mobile": "node scripts/build-mobile.js",
     "generate:assets": "node scripts/generate-assets.js",
     "cap:sync": "npx cap sync",

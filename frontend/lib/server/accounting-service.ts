@@ -3,7 +3,7 @@
  * Automatically creates income entries when orders are placed, delivered, cancelled, or refunded
  */
 
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { Order, IncomeCategory, IncomeStatus, InvoiceStatus } from '@prisma/client';
 import { calculateVATFromGross, UK_VAT_RATES } from './tax-utils';
 

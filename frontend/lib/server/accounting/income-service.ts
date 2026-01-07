@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import type { IncomeCategory } from '@prisma/client';
 import { getTaxYearForDate, INCOME_CATEGORY_LABELS } from '../tax-utils';
 import { IncomeFilters, IncomeData, IncomeTotals, ServiceResult } from './types';
 
@@ -195,7 +196,7 @@ export async function createIncome(data: IncomeData): Promise<ServiceResult<Retu
       incomeNumber,
       description: data.description.trim(),
       amount: data.amount,
-      category: data.category,
+      category: data.category as IncomeCategory,
       source: data.source?.trim() || null,
       customerName: data.customerName?.trim() || null,
       incomeDate,

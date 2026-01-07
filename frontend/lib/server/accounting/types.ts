@@ -2,9 +2,31 @@
  * Accounting Types
  *
  * Shared types for expense, income, and financial services.
+ *
+ * NOTE: We use string literal types instead of importing enums from @prisma/client
+ * to avoid build-time evaluation issues on Linux CI.
  */
 
-import { ExpenseCategory, IncomeCategory } from '@prisma/client';
+// String literal types matching Prisma schema enums
+export type ExpenseCategoryType =
+  | 'MATERIALS'
+  | 'PACKAGING'
+  | 'SHIPPING_SUPPLIES'
+  | 'EQUIPMENT'
+  | 'SOFTWARE'
+  | 'UTILITIES'
+  | 'MARKETING'
+  | 'OTHER';
+
+export type IncomeCategoryType =
+  | 'PRODUCT_SALES'
+  | 'WHOLESALE'
+  | 'MARKET_SALES'
+  | 'ONLINE_MARKETPLACE'
+  | 'CUSTOM_ORDERS'
+  | 'SHIPPING_REIMBURSEMENT'
+  | 'REFUND_RECEIVED'
+  | 'OTHER';
 
 // =============================================================================
 // Expense Types
@@ -25,7 +47,7 @@ export interface ExpenseFilters {
 export interface ExpenseData {
   description: string;
   amount: number;
-  category: ExpenseCategory;
+  category: ExpenseCategoryType;
   purchaseDate: Date;
   supplierId?: string | null;
   receiptUrl?: string | null;
@@ -62,7 +84,7 @@ export interface IncomeFilters {
 export interface IncomeData {
   description: string;
   amount: number;
-  category: IncomeCategory;
+  category: IncomeCategoryType;
   incomeDate?: Date;
   source?: string | null;
   customerName?: string | null;
@@ -105,7 +127,7 @@ export interface ParsedExpenseRow {
 export interface ValidatedExpense {
   description: string;
   amount: number;
-  category: ExpenseCategory;
+  category: ExpenseCategoryType;
   purchaseDate: Date;
   supplierName?: string;
   externalReference?: string;

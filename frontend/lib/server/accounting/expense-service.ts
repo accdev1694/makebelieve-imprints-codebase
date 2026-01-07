@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import type { ExpenseCategory } from '@prisma/client';
 import { getTaxYearForDate, EXPENSE_CATEGORY_LABELS } from '../tax-utils';
 import { ExpenseFilters, ExpenseData, ExpenseTotals, ServiceResult } from './types';
 
@@ -226,7 +227,7 @@ export async function createExpense(data: ExpenseData): Promise<ServiceResult<Re
       expenseNumber,
       description: data.description,
       amount: data.amount,
-      category: data.category,
+      category: data.category as ExpenseCategory,
       purchaseDate: new Date(data.purchaseDate),
       supplierId: data.supplierId || null,
       receiptUrl: data.receiptUrl || null,
@@ -290,7 +291,7 @@ export async function updateExpense(
     data: {
       description: data.description,
       amount: data.amount,
-      category: data.category,
+      category: data.category as ExpenseCategory,
       purchaseDate: new Date(data.purchaseDate),
       supplierId: data.supplierId || null,
       receiptUrl: data.receiptUrl || null,

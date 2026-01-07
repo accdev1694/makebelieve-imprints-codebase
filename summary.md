@@ -2,14 +2,17 @@
 
 **Last Updated**: 2026-01-07
 
-## Session: BMAD Squad Critical Items Implementation (IN PROGRESS)
+## Session: BMAD Squad Critical Items Implementation (COMPLETE)
 
 ### What Was Accomplished This Session
 
-Started addressing critical items from the BMAD Squad review.
+All 5 critical items from the BMAD Squad review have been completed.
 
 #### Commits Made
-1. **Pending** - C1: Upstash Redis support + C2: Prisma Neon adapter
+1. **1cf7eb0** - C1: Upstash Redis support + C2: Prisma Neon adapter
+2. **a2a021b** - C3: Enforce 60% coverage thresholds for critical services
+3. **2525e58** - C4: Add integration test infrastructure for critical DB operations
+4. **c79a125** - C5: Add circuit breaker pattern for external API resilience
 
 #### C1: Upstash Redis Support for Token Blacklist & Rate Limiter ✅
 
@@ -44,9 +47,79 @@ Started addressing critical items from the BMAD Squad review.
 - `@prisma/adapter-neon@6.19.1`
 - `@neondatabase/serverless@1.0.2`
 
+#### C3: Coverage Thresholds for Critical Services ✅
+
+**jest.config.js**:
+- Added 60% per-file coverage requirements for:
+  - `auth-service.ts` (already at 96%+)
+  - `stripe-service.ts` (already at 98%+)
+  - `order-state-machine.ts` (already at 96%+)
+  - `token-blacklist.ts` (at 80%+)
+  - `rate-limiter.ts` (raised to 85%+)
+- Global threshold raised from 2% to 3%
+
+**Rate Limiter Tests (`lib/server/__tests__/rate-limiter.test.ts`)**:
+- Added 9 Upstash Redis tests (31 total)
+- Tests: env var detection, pipeline calls, rate blocking, fail-open behavior, reset, custom config
+
+#### C4: Integration Test Infrastructure ✅
+
+**New Files**:
+- `lib/server/testing/db-test-utils.ts` - Test fixtures and helpers
+- `lib/server/__tests__/integration/auth.integration.test.ts` - 17 auth tests
+- `lib/server/__tests__/integration/order.integration.test.ts` - 15 order tests
+
+**Auth Integration Tests**:
+- User registration with DB validation
+- Login with real password hash verification
+- Token refresh with stored tokens
+- Password reset flow with token storage
+- Duplicate email rejection
+
+**Order Integration Tests**:
+- Order creation with foreign key validation
+- Full happy path status transitions
+- Invalid transition rejection
+- Cancellation request flow
+- Cascade delete verification
+- Concurrent update handling
+
+**Configuration**:
+- `npm run test:integration` - runs with `RUN_INTEGRATION_TESTS=true`
+- Tests excluded from regular `npm test` runs
+- Safety check prevents running against production DB
+
+#### C5: Circuit Breaker for External APIs ✅
+
+**New Files**:
+- `lib/server/circuit-breaker.ts` - Core circuit breaker implementation (393 lines)
+- `lib/server/__tests__/circuit-breaker.test.ts` - 30 comprehensive tests
+
+**Circuit Breaker Features**:
+- Three-state pattern: CLOSED (normal), OPEN (fail-fast), HALF_OPEN (testing recovery)
+- Configurable failure threshold, reset timeout, success threshold
+- Request timeout protection with automatic failure counting
+- User-friendly error messages when service unavailable
+- Global registry for monitoring circuit breaker states
+- Callbacks for state change notifications
+
+**Service Configurations**:
+| Service | Failure Threshold | Reset Timeout | Request Timeout |
+|---------|-------------------|---------------|-----------------|
+| Stripe | 5 failures | 30s | 15s |
+| Wise | 5 failures | 60s | 20s |
+| Royal Mail | 3 failures | 60s | 30s |
+
+**Integration Points**:
+- `stripe-service.ts` - All API calls wrapped (refunds, payment intents, sessions)
+- `royal-mail-service.ts` - Central `royalMailRequest()` wrapped
+- `wise-service.ts` - Central `wiseApiRequest()` wrapped
+
 ### Test Count Progress
 - Start of session: 373 tests
-- End of session: 392 tests (+19 tests)
+- After C1-C4: 401 tests (+28 unit tests)
+- After C5: 431 tests (+30 circuit breaker tests)
+- Integration tests: 32 tests (run separately)
 
 ### BMAD Squad Critical Items Status
 
@@ -54,9 +127,9 @@ Started addressing critical items from the BMAD Squad review.
 |---|------|--------|
 | C1 | Wire up Upstash Redis for token-blacklist and rate-limiter | ✅ Done |
 | C2 | Add Prisma Neon adapter with connection pooling | ✅ Done |
-| C3 | Raise coverage to 60% for auth-service, stripe-service, order-state-machine | 🔲 Pending |
-| C4 | Add integration tests for critical DB operations | 🔲 Pending |
-| C5 | Implement circuit breaker for external APIs | 🔲 Pending |
+| C3 | Raise coverage to 60% for critical services | ✅ Done |
+| C4 | Add integration tests for critical DB operations | ✅ Done |
+| C5 | Implement circuit breaker for external APIs | ✅ Done |
 
 ### Environment Variables Required for Production
 
@@ -179,6 +252,7 @@ Plus commits from previous context:
 - `lib/server/rate-limiter.ts` - Production rate limiting (322 lines)
 - `lib/server/token-blacklist.ts` - Token revocation (198 lines)
 - `lib/server/logger.ts` - Structured logging (264 lines)
+- `lib/server/circuit-breaker.ts` - Circuit breaker pattern (393 lines)
 
 ### Tests
 - `lib/server/__tests__/rate-limiter.test.ts` (248 lines)
@@ -188,6 +262,12 @@ Plus commits from previous context:
 - `lib/server/__tests__/wise-service.test.ts` (421 lines)
 - `lib/server/__tests__/invoice-service.test.ts` (358 lines)
 - `lib/server/__tests__/logger.test.ts` (285 lines)
+- `lib/server/__tests__/circuit-breaker.test.ts` (415 lines)
+
+### Integration Tests
+- `lib/server/testing/db-test-utils.ts` - Test fixtures and helpers
+- `lib/server/__tests__/integration/auth.integration.test.ts` (17 tests)
+- `lib/server/__tests__/integration/order.integration.test.ts` (15 tests)
 
 ### CI/CD
 - `.github/workflows/ci.yml` - GitHub Actions workflow
@@ -223,15 +303,18 @@ Plus commits from previous context:
 - Add more integration tests
 - Increase coverage thresholds incrementally
 - Add APM/tracing integration to logger
+- Add correlation IDs for request tracing
 
 ---
 
 ## Build Status
 - ✅ All TypeScript compilation passes
-- ✅ All 373 tests pass
+- ✅ All 431 tests pass
+- ✅ All coverage thresholds pass
 - ✅ Production build successful
 
 ## Key Files Reference
+- Circuit breaker: `lib/server/circuit-breaker.ts`
 - Rate limiter: `lib/server/rate-limiter.ts`
 - Token blacklist: `lib/server/token-blacklist.ts`
 - Logger: `lib/server/logger.ts`
@@ -244,7 +327,7 @@ Plus commits from previous context:
 
 ---
 
-## 🔥 BMAD Squad Brutal Review (2026-01-07)
+## BMAD Squad Brutal Review (2026-01-07)
 
 ### Expert Panel
 - 🏗️ **Winston** (Architect) - Architecture & Scalability
@@ -253,15 +336,15 @@ Plus commits from previous context:
 
 ---
 
-### 🚨 CRITICAL (Production Blockers)
+### 🚨 CRITICAL (Production Blockers) - ALL COMPLETE ✅
 
-| # | Issue | Owner | File/Location | Recommendation |
-|---|-------|-------|---------------|----------------|
-| C1 | In-memory state in serverless | Winston | `token-blacklist.ts`, `rate-limiter.ts` | Wire up Upstash Redis for production - in-memory won't propagate across Vercel instances |
-| C2 | No DB connection pooling | Winston | `prisma/` | Add `@prisma/adapter-neon` with connection pooling to prevent cold start connection limit hits |
-| C3 | 2% coverage threshold | Murat | `jest.config.js` | Raise to 60%+ for critical paths (auth, payments, orders) |
-| C4 | Zero integration tests | Murat | `__tests__/` | Add real DB integration tests - mocks don't catch Prisma/Neon issues |
-| C5 | No circuit breakers | Winston | External API calls | Add circuit breaker pattern for Stripe, Wise, Royal Mail - prevent cascade failures |
+| # | Issue | Owner | File/Location | Status |
+|---|-------|-------|---------------|--------|
+| C1 | In-memory state in serverless | Winston | `token-blacklist.ts`, `rate-limiter.ts` | ✅ Done |
+| C2 | No DB connection pooling | Winston | `prisma/` | ✅ Done |
+| C3 | 2% coverage threshold | Murat | `jest.config.js` | ✅ Done |
+| C4 | Zero integration tests | Murat | `__tests__/` | ✅ Done |
+| C5 | No circuit breakers | Winston | External API calls | ✅ Done |
 
 ---
 
@@ -316,23 +399,24 @@ Plus commits from previous context:
 
 ---
 
-### Recommended Attack Order
+### Recommended Attack Order (CRITICAL COMPLETE)
 
-**Week 1 - Critical:**
-1. [ ] C1: Wire up Upstash Redis for token-blacklist and rate-limiter
-2. [ ] C2: Add Prisma Neon adapter with connection pooling
-3. [ ] C3: Raise coverage to 60% for auth-service, stripe-service, order-state-machine
+**Week 1 - Critical:** ✅ ALL DONE
+1. [x] C1: Wire up Upstash Redis for token-blacklist and rate-limiter
+2. [x] C2: Add Prisma Neon adapter with connection pooling
+3. [x] C3: Raise coverage to 60% for auth-service, stripe-service, order-state-machine
+4. [x] C4: Add integration tests for critical DB operations
+5. [x] C5: Implement circuit breaker for external APIs
 
 **Week 2 - High:**
-4. [ ] H1: Split checkout page into components
-5. [ ] H3: Add request correlation IDs to logger
-6. [ ] H6: Standardize error handling pattern across services
-7. [ ] H7: Replace console.log with logger in cart/storage.ts
+1. [ ] H1: Split checkout page into components
+2. [ ] H3: Add request correlation IDs to logger
+3. [ ] H6: Standardize error handling pattern across services
+4. [ ] H7: Replace console.log with logger in cart/storage.ts
 
 **Week 3 - Medium:**
-8. [ ] C4: Add integration tests for critical DB operations
-9. [ ] C5: Implement circuit breaker for external APIs
-10. [ ] M3: Add accounting-service tests
+1. [ ] M3: Add accounting-service tests
+2. [ ] H2: Split monolithic service files
 
 **Ongoing:**
 - Incrementally raise coverage thresholds

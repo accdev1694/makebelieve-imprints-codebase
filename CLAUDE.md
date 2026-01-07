@@ -169,6 +169,48 @@ Key variables (see `.env.example` for full list):
 - All API routes require auth except public endpoints
 - Input validation with proper error handling in services
 
+## Common Issues & Fixes
+
+### Prisma Import Pattern (CRITICAL)
+
+**Always use named imports for Prisma**:
+```typescript
+// ✅ CORRECT - Named import
+import { prisma } from '@/lib/prisma';
+
+// ❌ WRONG - Default import (causes issues)
+import prisma from '@/lib/prisma';
+```
+
+**Why**: Default imports can cause module resolution inconsistencies, especially in serverless environments. This has caused cart operations (delete, increment, decrement) to silently fail and CI builds to break on Ubuntu while passing on Windows.
+
+**Files to check if cart/database operations fail**: `lib/server/cart-service.ts`, `lib/server/accounting-service.ts`, and any service file importing prisma.
+
+### Barrel File Import Issues (CI Build Failures)
+
+If CI fails with "Failed to collect page data for /api/..." errors:
+
+1. **Avoid importing through barrel file wrappers** that re-export from other barrel files
+2. **Import directly from the source module**:
+```typescript
+// ✅ CORRECT - Direct import
+import { getExpense } from '@/lib/server/accounting/expense-service';
+
+// ❌ PROBLEMATIC - Through deprecated wrapper with re-exports
+import { getExpense } from '@/lib/server/expense-service';
+```
+
+**Why**: Circular dependencies in barrel files cause Next.js static analysis to fail on Linux (CI) while working on Windows (local).
+
+### Cart ID Mismatch
+
+If cart operations fail after login, the issue is likely **client-server ID mismatch**:
+- Guest cart items have temporary client IDs (`cart_timestamp_random`)
+- Server assigns database UUIDs on sync
+- Operations fail if client still uses old IDs
+
+**Fix**: The CartContext has auto-recovery that re-syncs on 404 errors. If issues persist, user should log out and back in.
+
 ## Recent Development Focus
 
 Recent commits show active work on:

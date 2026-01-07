@@ -128,34 +128,8 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Access-Control-Allow-Credentials', 'true');
   }
 
-  // Security headers for all routes
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-XSS-Protection', '1; mode=block');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-
-  // Additional security headers for production
-  if (isProduction) {
-    // HSTS - enforce HTTPS for 1 year, include subdomains
-    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-
-    // Content Security Policy - adjust as needed for your app
-    response.headers.set('Content-Security-Policy', [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: https: blob:",
-      "connect-src 'self' https://api.stripe.com https://*.stripe.com wss://*.stripe.com",
-      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-    ].join('; '));
-
-    // Permissions Policy
-    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  }
+  // Note: Security headers (CSP, HSTS, etc.) are now configured in next.config.ts
+  // This middleware only handles CORS and rate limiting for API routes
 
   return response;
 }

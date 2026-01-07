@@ -260,3 +260,181 @@ describe('Rate Limiter', () => {
     });
   });
 });
+
+describe('Rate Limiter - Upstash Redis', () => {
+  let originalFetch: typeof global.fetch;
+  let mockFetch: jest.Mock;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+    mockFetch = jest.fn();
+    global.fetch = mockFetch;
+    resetRateLimiter();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    resetRateLimiter();
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  });
+
+  it('should use Upstash when env vars are set', () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    const instance = getRateLimiter();
+    expect(instance).toBeDefined();
+  });
+
+  it('should allow requests for unconfigured paths', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    const instance = getRateLimiter();
+    const result = await instance.check('192.168.1.1', '/api/products');
+
+    expect(result.allowed).toBe(true);
+    expect(result.remaining).toBe(Infinity);
+  });
+
+  it('should call Redis pipeline on check for configured path', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    // Mock pipeline response: [removedCount, currentCount, addedCount, expireResult]
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([
+        { result: 0 },      // ZREMRANGEBYSCORE
+        { result: 1 },      // ZCARD (count before our add)
+        { result: 1 },      // ZADD
+        { result: 1 },      // EXPIRE
+      ]),
+    });
+
+    const instance = getRateLimiter();
+    const result = await instance.check('192.168.1.1', '/api/auth/login');
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://test.upstash.io/pipeline',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-token',
+        }),
+      })
+    );
+    expect(result.allowed).toBe(true);
+  });
+
+  it('should block when over limit', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    // Mock: count is already at max (5)
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([
+          { result: 0 },
+          { result: 5 },  // At limit
+          { result: 1 },
+          { result: 1 },
+        ]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ result: 1 }), // Remove latest entry
+      });
+
+    const instance = getRateLimiter();
+    const result = await instance.check('192.168.1.1', '/api/auth/login');
+
+    expect(result.allowed).toBe(false);
+    expect(result.remaining).toBe(0);
+  });
+
+  it('should fail open when Redis returns error', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
+
+    const instance = getRateLimiter();
+    const result = await instance.check('192.168.1.1', '/api/auth/login');
+
+    // Should fail open - allow request
+    expect(result.allowed).toBe(true);
+  });
+
+  it('should fail open when fetch throws', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    mockFetch.mockRejectedValue(new Error('Network error'));
+
+    const instance = getRateLimiter();
+    const result = await instance.check('192.168.1.1', '/api/auth/login');
+
+    // Should fail open - allow request
+    expect(result.allowed).toBe(true);
+  });
+
+  it('should call DEL on reset', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ result: 1 }),
+    });
+
+    const instance = getRateLimiter();
+    await instance.reset('192.168.1.1', '/api/auth/login');
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://test.upstash.io',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('DEL'),
+      })
+    );
+  });
+
+  it('should handle reset errors gracefully', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    mockFetch.mockRejectedValue(new Error('Network error'));
+
+    const instance = getRateLimiter();
+
+    // Should not throw
+    await expect(instance.reset('192.168.1.1', '/api/auth/login')).resolves.toBeUndefined();
+  });
+
+  it('should handle custom config with Upstash', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([
+        { result: 0 },
+        { result: 0 },
+        { result: 1 },
+        { result: 1 },
+      ]),
+    });
+
+    const instance = getRateLimiter({ '/api/custom': { maxRequests: 10, windowMs: 60000 } });
+    const result = await instance.check('192.168.1.1', '/api/custom');
+
+    expect(result.allowed).toBe(true);
+    expect(result.remaining).toBe(9); // 10 - 0 - 1
+  });
+});

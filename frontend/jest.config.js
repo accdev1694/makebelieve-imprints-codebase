@@ -35,13 +35,45 @@ const customJestConfig = {
     'app/api/shipping/__tests__/',
   ],
   // Coverage thresholds - raise these incrementally as test coverage improves
-  // Current baseline: ~2.6% (Jan 2026) - increase by 5% each sprint
+  // Current baseline: ~3.7% (Jan 2026) - raise as tests are added
   coverageThreshold: {
     global: {
-      lines: 2,
-      functions: 2,
-      branches: 2,
-      statements: 2,
+      lines: 3,
+      functions: 3,
+      branches: 3,
+      statements: 3,
+    },
+    // Critical service coverage requirements (per BMAD Squad review)
+    // These files must maintain 60%+ coverage
+    './lib/server/auth-service.ts': {
+      lines: 60,
+      functions: 60,
+      branches: 60,
+      statements: 60,
+    },
+    './lib/server/stripe-service.ts': {
+      lines: 60,
+      functions: 60,
+      branches: 60,
+      statements: 60,
+    },
+    './lib/server/order-state-machine.ts': {
+      lines: 60,
+      functions: 60,
+      branches: 60,
+      statements: 60,
+    },
+    './lib/server/token-blacklist.ts': {
+      lines: 60,
+      functions: 60,
+      branches: 60,
+      statements: 60,
+    },
+    './lib/server/rate-limiter.ts': {
+      lines: 60,
+      functions: 60,
+      branches: 60,
+      statements: 60,
     },
   },
 };

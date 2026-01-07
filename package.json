@@ -5,15 +5,13 @@
   "description": "Single-printer custom print service platform with mobile apps",
   "workspaces": [
     "frontend",
-    "backend",
     "shared"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=frontend\" \"npm run dev --workspace=backend\"",
+    "dev": "npm run dev --workspace=frontend",
     "dev:frontend": "npm run dev --workspace=frontend",
-    "dev:backend": "npm run dev --workspace=backend",
-    "build": "npm run build --workspace=frontend && npm run build --workspace=backend",
-    "lint": "npm run lint --workspace=frontend && npm run lint --workspace=backend",
+    "build": "npm run build --workspace=frontend",
+    "lint": "npm run lint --workspace=frontend",
     "format": "npx prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "npx prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "prepare": "husky || true"

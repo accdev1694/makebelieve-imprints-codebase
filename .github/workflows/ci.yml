@@ -151,6 +151,7 @@ jobs:
           # Provide minimal env vars for build
           DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
           JWT_SECRET: "ci-build-secret-not-real"
+          JWT_REFRESH_SECRET: "ci-build-refresh-secret-not-real"
           NEXT_PUBLIC_API_URL: "http://localhost:3000"
 
   # E2E tests (optional - runs on main branch only)
@@ -187,4 +188,5 @@ jobs:
         env:
           DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
           JWT_SECRET: "ci-e2e-secret-not-real"
+          JWT_REFRESH_SECRET: "ci-e2e-refresh-secret-not-real"
           NEXT_PUBLIC_API_URL: "http://localhost:3000"

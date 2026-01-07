@@ -22,7 +22,7 @@ import {
   cleanupTestProduct,
   resetTestCounters,
   TestUser,
-} from '../../testing/db-test-utils';
+} from '../helpers/db-test-utils';
 import {
   transitionOrderStatus,
   isValidTransition,

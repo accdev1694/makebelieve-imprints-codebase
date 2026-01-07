@@ -18,7 +18,7 @@ import {
   cleanupTestUser,
   resetTestCounters,
   TestUser,
-} from '../../testing/db-test-utils';
+} from '../helpers/db-test-utils';
 import {
   register,
   login,

@@ -11,7 +11,7 @@
  */
 
 import { PrismaClient, UserType } from '@prisma/client';
-import { hashPassword } from '../../../password';
+import { hashPassword } from '../../password';
 
 // Use a separate Prisma client for tests to avoid conflicts
 let prismaTestClient: PrismaClient | null = null;

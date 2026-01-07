@@ -35,6 +35,8 @@ const customJestConfig = {
     'app/api/shipping/__tests__/',
     // Integration tests run separately with: npm run test:integration
     '__tests__/integration/',
+    // Test helper utilities (not tests themselves)
+    '__tests__/helpers/',
   ],
   // Coverage thresholds - raise these incrementally as test coverage improves
   // Current baseline: ~3.7% (Jan 2026) - raise as tests are added

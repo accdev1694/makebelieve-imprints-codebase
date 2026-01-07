@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
-import { getExpense, updateExpense, deleteExpense } from '@/lib/server/expense-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -15,6 +14,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     await requireAdmin(request);
     const { id } = await params;
 
+    const { getExpense } = await import('@/lib/server/expense-service');
     const result = await getExpense(id);
 
     if (!result.success) {
@@ -37,6 +37,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     await requireAdmin(request);
     const { id } = await params;
 
+    const { updateExpense } = await import('@/lib/server/expense-service');
     const body = await request.json();
     const result = await updateExpense(id, {
       description: body.description,
@@ -73,6 +74,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     await requireAdmin(request);
     const { id } = await params;
 
+    const { deleteExpense } = await import('@/lib/server/expense-service');
     const result = await deleteExpense(id);
 
     if (!result.success) {

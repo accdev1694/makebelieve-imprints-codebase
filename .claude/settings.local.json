@@ -29,7 +29,26 @@
       "Bash(do if head -1 $f)",
       "Bash(curl:*)",
       "Bash(npx prisma migrate:*)",
-      "Bash(npx prisma db push:*)"
+      "Bash(npx prisma db push:*)",
+      "Bash(git stash pop:*)",
+      "Bash(git checkout:*)",
+      "Bash(git stash show:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx eslint:*)",
+      "Bash(wc:*)",
+      "Bash(npm run lint)",
+      "Bash(npx next build --no-lint)",
+      "Bash(timeout 30 npm run dev:*)",
+      "Bash(npx next build:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(npm test:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm run test:integration:*)",
+      "Bash(DATABASE_URL=\"postgresql://placeholder:placeholder@localhost:5432/placeholder\" JWT_SECRET=\"ci-build-secret-not-real\" NEXT_PUBLIC_API_URL=\"http://localhost:3000\" npm run build:*)",
+      "Bash(git fetch:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

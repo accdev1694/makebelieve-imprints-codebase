@@ -5,7 +5,6 @@
 
 import prisma from '@/lib/prisma';
 import { Order, IncomeCategory, IncomeStatus, InvoiceStatus } from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/library';
 import { calculateVATFromGross, UK_VAT_RATES } from './tax-utils';
 
 // UK tax year runs April 6 to April 5
@@ -107,14 +106,14 @@ export async function createIncomeFromOrder(
       orderId: order.id,
       category: IncomeCategory.PRODUCT_SALES,
       description: `Order #${order.id.slice(0, 8).toUpperCase()} - Online Sale`,
-      amount: new Decimal(totalPrice),
+      amount: totalPrice,
       currency: 'GBP',
       source: 'MakeBelieve Imprints Website',
       customerName: order.customer.name || order.customer.email,
       incomeDate: new Date(),
       taxYear,
-      vatAmount: new Decimal(vatAmount),
-      vatRate: new Decimal(UK_VAT_RATES.STANDARD),
+      vatAmount: vatAmount,
+      vatRate: UK_VAT_RATES.STANDARD,
       isVatIncluded: true,
       externalReference: order.id,
       status: status as IncomeStatus,
@@ -155,10 +154,10 @@ export async function createInvoiceFromOrder(
     data: {
       invoiceNumber,
       orderId: order.id,
-      subtotal: new Decimal(netAmount),
-      vatRate: new Decimal(UK_VAT_RATES.STANDARD),
-      vatAmount: new Decimal(vatAmount),
-      total: new Decimal(totalPrice),
+      subtotal: netAmount,
+      vatRate: UK_VAT_RATES.STANDARD,
+      vatAmount: vatAmount,
+      total: totalPrice,
       currency: 'GBP',
       issueDate: now,
       dueDate: now, // Already paid, so due date is same as issue date
@@ -205,7 +204,7 @@ export async function updateIncomeStatus(
  */
 export async function createRefundEntry(
   order: OrderWithCustomer,
-  refundAmount: number | Decimal,
+  refundAmount: number,
   reason: string
 ): Promise<void> {
   const incomeNumber = await generateIncomeNumber();
@@ -222,14 +221,14 @@ export async function createRefundEntry(
       orderId: order.id,
       category: IncomeCategory.PRODUCT_SALES,
       description: `REFUND - Order #${order.id.slice(0, 8).toUpperCase()} - ${reason}`,
-      amount: new Decimal(-amount), // Negative amount for refund
+      amount: -amount, // Negative amount for refund
       currency: 'GBP',
       source: 'MakeBelieve Imprints Website',
       customerName: order.customer.name || order.customer.email,
       incomeDate: new Date(),
       taxYear,
-      vatAmount: new Decimal(-vatAmount),
-      vatRate: new Decimal(UK_VAT_RATES.STANDARD),
+      vatAmount: -vatAmount,
+      vatRate: UK_VAT_RATES.STANDARD,
       isVatIncluded: true,
       externalReference: order.id,
       status: 'CONFIRMED' as IncomeStatus, // Refunds are immediately confirmed
@@ -350,12 +349,12 @@ export async function createReprintExpense(
         expenseNumber,
         category: 'MATERIALS',
         description: `Reprint materials - ${reason} - Order #${originalOrderId.slice(0, 8).toUpperCase()}: ${itemDescriptions}`,
-        amount: new Decimal(materialCostEstimate),
+        amount: materialCostEstimate,
         currency: 'GBP',
         purchaseDate: new Date(),
         taxYear,
-        vatAmount: new Decimal(vatAmount),
-        vatRate: new Decimal(UK_VAT_RATES.STANDARD),
+        vatAmount: vatAmount,
+        vatRate: UK_VAT_RATES.STANDARD,
         isVatReclaimable: true,
         importSource: 'MANUAL',
         notes: `Auto-generated expense for reprint order ${reprintOrderId.slice(0, 8).toUpperCase()}. Original order: ${originalOrderId.slice(0, 8).toUpperCase()}. Reason: ${reason}. This is an estimated material cost.`,

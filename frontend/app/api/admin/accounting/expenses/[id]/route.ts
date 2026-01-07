@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import { getExpense, updateExpense, deleteExpense } from '@/lib/server/accounting/expense-service';
 
+// Force dynamic to skip static analysis that fails on Linux CI
+export const dynamic = 'force-dynamic';
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }

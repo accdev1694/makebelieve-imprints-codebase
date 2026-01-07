@@ -186,12 +186,17 @@ import prisma from '@/lib/prisma';
 
 **Files to check if cart/database operations fail**: `lib/server/cart-service.ts`, `lib/server/accounting-service.ts`, and any service file importing prisma.
 
-### Barrel File Import Issues (CI Build Failures)
+### CI Build Failures ("Failed to collect page data")
 
-If CI fails with "Failed to collect page data for /api/..." errors:
+If CI fails with "Failed to collect page data for /api/..." errors on Linux but works on Windows:
 
-1. **Avoid importing through barrel file wrappers** that re-export from other barrel files
-2. **Import directly from the source module**:
+1. **Add `force-dynamic` export** to the failing route:
+```typescript
+// Add at top of route file, after imports
+export const dynamic = 'force-dynamic';
+```
+
+2. **Import directly from source modules** (not barrel file wrappers):
 ```typescript
 // ✅ CORRECT - Direct import
 import { getExpense } from '@/lib/server/accounting/expense-service';
@@ -200,7 +205,7 @@ import { getExpense } from '@/lib/server/accounting/expense-service';
 import { getExpense } from '@/lib/server/expense-service';
 ```
 
-**Why**: Circular dependencies in barrel files cause Next.js static analysis to fail on Linux (CI) while working on Windows (local).
+**Why**: Next.js static analysis can fail on Linux due to circular dependencies or module resolution differences. `force-dynamic` skips static analysis for routes that are inherently dynamic (require auth, database).
 
 ### Cart ID Mismatch
 

@@ -190,22 +190,36 @@ import prisma from '@/lib/prisma';
 
 If CI fails with "Failed to collect page data for /api/..." errors on Linux but works on Windows:
 
-1. **Add `force-dynamic` export** to the failing route:
+**Root Cause**: Prisma enums evaluated at module scope during Next.js static analysis.
+
 ```typescript
-// Add at top of route file, after imports
-export const dynamic = 'force-dynamic';
+// ❌ NEVER DO THIS - executes at build time, fails on Linux CI
+import { ExpenseCategory } from '@prisma/client';
+if (Object.values(ExpenseCategory).includes(value)) { ... }
+
+// ✅ USE STRING LITERALS INSTEAD
+const VALID_CATEGORIES = ['MATERIALS', 'PACKAGING', ...] as const;
+type CategoryType = (typeof VALID_CATEGORIES)[number];
+if (VALID_CATEGORIES.includes(value)) { ... }
 ```
 
-2. **Import directly from source modules** (not barrel file wrappers):
+**Additional fixes if needed**:
+
+1. **Import directly from source modules** (not barrel file wrappers):
 ```typescript
-// ✅ CORRECT - Direct import
+// ✅ Direct import
 import { getExpense } from '@/lib/server/accounting/expense-service';
 
-// ❌ PROBLEMATIC - Through deprecated wrapper with re-exports
+// ❌ Through re-export wrapper (can cause circular deps)
 import { getExpense } from '@/lib/server/expense-service';
 ```
 
-**Why**: Next.js static analysis can fail on Linux due to circular dependencies or module resolution differences. `force-dynamic` skips static analysis for routes that are inherently dynamic (require auth, database).
+2. **Last resort** - force dynamic if nothing else works:
+```typescript
+export const dynamic = 'force-dynamic';
+```
+
+**Why it fails on CI but not locally**: Linux is stricter with module resolution. Node 22 (CI) + ESM + barrel exports is a known issue. Windows masks problems due to case-insensitive filesystem and different module caching.
 
 ### Cart ID Mismatch
 

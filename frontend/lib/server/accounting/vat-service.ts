@@ -4,13 +4,29 @@
  * Handles VAT calculations and parsing for expense and income management.
  */
 
-import { ExpenseCategory } from '@prisma/client';
+// NOTE: We use string literals instead of importing ExpenseCategory enum from @prisma/client
+// to avoid build-time evaluation issues. Prisma enums require runtime bindings that fail
+// during Next.js static analysis on Linux CI.
+
+// Valid expense categories (must match Prisma schema)
+const VALID_EXPENSE_CATEGORIES = [
+  'MATERIALS',
+  'PACKAGING',
+  'SHIPPING_SUPPLIES',
+  'EQUIPMENT',
+  'SOFTWARE',
+  'UTILITIES',
+  'MARKETING',
+  'OTHER',
+] as const;
+
+type ExpenseCategoryType = (typeof VALID_EXPENSE_CATEGORIES)[number];
 
 // =============================================================================
 // Category Mappings for CSV Import
 // =============================================================================
 
-export const CATEGORY_MAPPINGS: Record<string, ExpenseCategory> = {
+export const CATEGORY_MAPPINGS: Record<string, ExpenseCategoryType> = {
   // Direct matches (from schema enum)
   MATERIALS: 'MATERIALS',
   PACKAGING: 'PACKAGING',
@@ -68,15 +84,15 @@ export const CATEGORY_MAPPINGS: Record<string, ExpenseCategory> = {
 /**
  * Parse a category string to ExpenseCategory enum
  */
-export function parseCategory(value: string | undefined): ExpenseCategory | null {
+export function parseCategory(value: string | undefined): ExpenseCategoryType | null {
   if (!value) return null;
 
   const normalized = value.trim().toLowerCase();
 
   // Try direct enum match first
-  const upperValue = value.trim().toUpperCase().replace(/\s+/g, '_');
-  if (Object.values(ExpenseCategory).includes(upperValue as ExpenseCategory)) {
-    return upperValue as ExpenseCategory;
+  const upperValue = value.trim().toUpperCase().replace(/\s+/g, '_') as ExpenseCategoryType;
+  if (VALID_EXPENSE_CATEGORIES.includes(upperValue)) {
+    return upperValue;
   }
 
   // Try mappings

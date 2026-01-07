@@ -1,12 +1,14 @@
 'use client';
 
 import * as React from 'react';
+import { useEffect } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { X, ShoppingBag } from 'lucide-react';
+import { X, ShoppingBag, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CartItem } from './CartItem';
 import { CartSummary } from './CartSummary';
 import { cn } from '@/lib/utils';
@@ -25,7 +27,19 @@ export function CartDrawer() {
     deselectItem,
     selectAll,
     deselectAll,
+    error,
+    clearError,
   } = useCart();
+
+  // Auto-dismiss error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        clearError();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, clearError]);
 
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={(open: boolean) => !open && closeCart()}>
@@ -68,6 +82,24 @@ export function CartDrawer() {
                 </Button>
               </DialogPrimitive.Close>
             </div>
+
+            {/* Error Alert */}
+            {error && (
+              <Alert variant="destructive" className="mx-4 mt-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>{error}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 -mr-2"
+                    onClick={clearError}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Select All (only show when there are items) */}
             {items.length > 0 && (

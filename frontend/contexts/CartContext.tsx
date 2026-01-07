@@ -51,6 +51,8 @@ interface CartContextType {
   selectAll: () => void;
   deselectAll: () => void;
   clearSelectedItems: () => Promise<void>;
+  // Loading state for individual items
+  operatingItemIds: Set<string>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -63,6 +65,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [operatingItemIds, setOperatingItemIds] = useState<Set<string>>(new Set());
   const lastUserIdRef = useRef<string | null>(null);
   const hasSyncedRef = useRef(false);
   const selectionInitializedRef = useRef(false);
@@ -290,6 +293,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       let previousItems: CartItem[] = [];
       let previousSelection: Set<string> = new Set();
 
+      // Set item as operating
+      setOperatingItemIds((prev) => new Set([...prev, itemId]));
+
       // Optimistic update - remove from cart and selection
       setItems((currentItems) => {
         previousItems = currentItems; // Capture for potential revert
@@ -302,14 +308,46 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return next;
       });
 
+      // Clear operating state (item is removed)
+      setOperatingItemIds((prev) => {
+        const next = new Set(prev);
+        next.delete(itemId);
+        return next;
+      });
+
       // If logged in, sync with server
       if (user) {
-        cartService.removeFromCart(itemId).catch((err) => {
+        cartService.removeFromCart(itemId).catch(async (err) => {
           console.error('Failed to remove item from server cart:', err);
-          // Revert on error using captured state
-          setItems(previousItems);
-          setSelectedItemIds(previousSelection);
-          setError('Failed to remove item from server. Please try again.');
+
+          // Check if item not found - means ID mismatch, need to re-sync
+          const isNotFound = err?.message?.toLowerCase().includes('not found') ||
+            err?.statusCode === 404 ||
+            err?.data?.error?.toLowerCase().includes('not found');
+
+          if (isNotFound) {
+            try {
+              // Re-fetch cart from server to sync IDs
+              const serverItems = await cartService.getCart();
+              const syncedItems = serverItems.map(transformServerItem);
+              setItems(syncedItems);
+              saveCartToStorage(syncedItems);
+              // Update selection to match synced items
+              const newItemIds = new Set(syncedItems.map((item) => item.id));
+              setSelectedItemIds(newItemIds);
+              saveSelectionToStorage(newItemIds);
+              setError('Cart synced with server. Please try again.');
+            } catch {
+              setItems(previousItems);
+              setSelectedItemIds(previousSelection);
+              setError('Failed to sync cart. Please refresh the page.');
+            }
+          } else {
+            // Revert on other errors
+            setItems(previousItems);
+            setSelectedItemIds(previousSelection);
+            setError('Failed to remove item. Please try again.');
+          }
         });
       }
     },
@@ -330,6 +368,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Capture previous state inside updater to avoid stale closure
       let previousItems: CartItem[] = [];
 
+      // Set item as operating
+      setOperatingItemIds((prev) => new Set([...prev, itemId]));
+
       // Optimistic update
       setItems((currentItems) => {
         previousItems = currentItems; // Capture for potential revert
@@ -340,11 +381,58 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       // If logged in, sync with server
       if (user) {
-        cartService.updateCartItemQuantity(itemId, clampedQuantity).catch((err) => {
-          console.error('Failed to update cart item on server:', err);
-          // Revert on error using captured state
-          setItems(previousItems);
-          setError('Failed to update quantity on server. Please try again.');
+        cartService.updateCartItemQuantity(itemId, clampedQuantity)
+          .then(() => {
+            // Clear operating state on success
+            setOperatingItemIds((prev) => {
+              const next = new Set(prev);
+              next.delete(itemId);
+              return next;
+            });
+          })
+          .catch(async (err) => {
+            console.error('Failed to update cart item on server:', err);
+
+            // Clear operating state on error
+            setOperatingItemIds((prev) => {
+              const next = new Set(prev);
+              next.delete(itemId);
+              return next;
+            });
+
+            // Check if item not found - means ID mismatch, need to re-sync
+            const isNotFound = err?.message?.toLowerCase().includes('not found') ||
+              err?.statusCode === 404 ||
+              err?.data?.error?.toLowerCase().includes('not found');
+
+            if (isNotFound) {
+              try {
+                // Re-fetch cart from server to sync IDs
+                const serverItems = await cartService.getCart();
+                const syncedItems = serverItems.map(transformServerItem);
+                setItems(syncedItems);
+                saveCartToStorage(syncedItems);
+                // Update selection to match synced items
+                const newItemIds = new Set(syncedItems.map((item) => item.id));
+                setSelectedItemIds(newItemIds);
+                saveSelectionToStorage(newItemIds);
+                setError('Cart synced with server. Please try again.');
+              } catch {
+                setItems(previousItems);
+                setError('Failed to sync cart. Please refresh the page.');
+              }
+            } else {
+              // Revert on other errors
+              setItems(previousItems);
+              setError('Failed to update quantity. Please try again.');
+            }
+          });
+      } else {
+        // Clear operating state for guest users (no server call)
+        setOperatingItemIds((prev) => {
+          const next = new Set(prev);
+          next.delete(itemId);
+          return next;
         });
       }
     },
@@ -473,6 +561,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         selectAll,
         deselectAll,
         clearSelectedItems,
+        // Loading state
+        operatingItemIds,
       }}
     >
       {children}

@@ -2,11 +2,12 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingBag, Trash2 } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Trash2, AlertCircle, X } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CartItem } from '@/components/cart/CartItem';
 import { CartSummary } from '@/components/cart/CartSummary';
 import { Separator } from '@/components/ui/separator';
@@ -24,12 +25,24 @@ export default function CartPage() {
     deselectItem,
     selectAll,
     deselectAll,
+    error,
+    clearError,
   } = useCart();
 
   // Set page title
   useEffect(() => {
     document.title = 'Shopping Cart | MakeBelieve Imprints';
   }, []);
+
+  // Auto-dismiss error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        clearError();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, clearError]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,6 +66,26 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="container mx-auto px-4 pt-4">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>{error}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 -mr-2"
+                onClick={clearError}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">

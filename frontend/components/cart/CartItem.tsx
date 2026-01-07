@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Minus, Plus, Trash2 } from 'lucide-react';
+import { Minus, Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -34,8 +34,9 @@ export function CartItem({
   isSelected = false,
   onSelectionChange,
 }: CartItemProps) {
-  const { removeItem, updateQuantity } = useCart();
+  const { removeItem, updateQuantity, operatingItemIds } = useCart();
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const isOperating = operatingItemIds.has(item.id);
 
   const handleIncrement = () => {
     updateQuantity(item.id, item.quantity + 1);
@@ -123,8 +124,13 @@ export function CartItem({
                   size="icon"
                   className="h-6 w-6"
                   onClick={handleDecrement}
+                  disabled={isOperating}
                 >
-                  <Minus className="h-3 w-3" />
+                  {isOperating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Minus className="h-3 w-3" />
+                  )}
                 </Button>
                 <span className="w-8 text-center text-sm">{item.quantity}</span>
                 <Button
@@ -132,8 +138,13 @@ export function CartItem({
                   size="icon"
                   className="h-6 w-6"
                   onClick={handleIncrement}
+                  disabled={isOperating}
                 >
-                  <Plus className="h-3 w-3" />
+                  {isOperating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Plus className="h-3 w-3" />
+                  )}
                 </Button>
               </div>
               <div className="flex items-center gap-2">
@@ -143,6 +154,7 @@ export function CartItem({
                   size="icon"
                   className="h-6 w-6 text-muted-foreground hover:text-destructive"
                   onClick={handleRemove}
+                  disabled={isOperating}
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
@@ -229,6 +241,7 @@ export function CartItem({
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
               onClick={handleRemove}
+              disabled={isOperating}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -242,8 +255,13 @@ export function CartItem({
                 size="icon"
                 className="h-8 w-8"
                 onClick={handleDecrement}
+                disabled={isOperating}
               >
-                <Minus className="h-4 w-4" />
+                {isOperating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Minus className="h-4 w-4" />
+                )}
               </Button>
               <span className="w-12 text-center font-medium">{item.quantity}</span>
               <Button
@@ -251,8 +269,13 @@ export function CartItem({
                 size="icon"
                 className="h-8 w-8"
                 onClick={handleIncrement}
+                disabled={isOperating}
               >
-                <Plus className="h-4 w-4" />
+                {isOperating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
               </Button>
             </div>
             <div className="text-right">

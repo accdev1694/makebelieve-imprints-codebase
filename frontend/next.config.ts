@@ -79,6 +79,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Externalize Prisma to avoid build issues with native binaries
+  serverExternalPackages: ['@prisma/client'],
+
   // For Capacitor mobile apps, use static export
   ...(isMobileBuild && { output: 'export' }),
 

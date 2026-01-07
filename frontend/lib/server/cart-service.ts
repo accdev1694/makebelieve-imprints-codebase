@@ -3,7 +3,7 @@
  * Handles all cart business logic for customers
  */
 
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 // ============================================

@@ -13,6 +13,8 @@
  *   if (!result.allowed) return 429 response
  */
 
+import { logger } from './logger';
+
 // Rate limit configuration
 export interface RateLimitConfig {
   maxRequests: number;
@@ -88,7 +90,7 @@ class InMemoryRateLimiter implements RateLimiter {
 
     // If still at limit after cleanup, reject to prevent DoS
     if (this.store.size >= MAX_ENTRIES) {
-      console.warn('[RateLimiter] Store at capacity, rejecting new entries');
+      logger.warn('RateLimiter store at capacity, rejecting new entries');
       return {
         allowed: false,
         remaining: 0,
@@ -147,7 +149,7 @@ class InMemoryRateLimiter implements RateLimiter {
     }
 
     if (cleaned > 0) {
-      console.log(`[RateLimiter] Cleaned ${cleaned} expired entries, ${this.store.size} remaining`);
+      logger.debug('RateLimiter cleanup', { cleaned, remaining: this.store.size });
     }
   }
 
@@ -216,7 +218,7 @@ class UpstashRateLimiter implements RateLimiter {
       });
 
       if (!response.ok) {
-        console.error('[RateLimiter] Upstash error:', response.status);
+        logger.error('RateLimiter Upstash error', new Error(`HTTP ${response.status}`));
         // Fail open - allow request if Redis is down
         return { allowed: true, remaining: maxRequests, resetTime: now + windowMs };
       }
@@ -242,7 +244,7 @@ class UpstashRateLimiter implements RateLimiter {
         resetTime: now + windowMs,
       };
     } catch (error) {
-      console.error('[RateLimiter] Upstash error:', error);
+      logger.error('RateLimiter Upstash error', error);
       // Fail open
       return { allowed: true, remaining: maxRequests, resetTime: now + windowMs };
     }
@@ -275,7 +277,7 @@ class UpstashRateLimiter implements RateLimiter {
         body: JSON.stringify(['DEL', key]),
       });
     } catch (error) {
-      console.error('[RateLimiter] Failed to reset:', error);
+      logger.error('RateLimiter failed to reset', error);
     }
   }
 }
@@ -296,10 +298,10 @@ export function getRateLimiter(config?: Record<string, RateLimitConfig>): RateLi
   const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (upstashUrl && upstashToken) {
-    console.log('[RateLimiter] Using Upstash Redis');
+    logger.info('RateLimiter using Upstash Redis');
     rateLimiter = new UpstashRateLimiter(upstashUrl, upstashToken, config);
   } else {
-    console.log('[RateLimiter] Using bounded in-memory store');
+    logger.info('RateLimiter using bounded in-memory store');
     rateLimiter = new InMemoryRateLimiter(config);
   }
 

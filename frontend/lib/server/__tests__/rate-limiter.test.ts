@@ -6,6 +6,16 @@ import {
   RateLimiter,
 } from '../rate-limiter';
 
+// Mock logger to reduce noise
+jest.mock('../logger', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
 describe('Rate Limiter', () => {
   let limiter: RateLimiter;
 

@@ -1,5 +1,5 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { isTokenRevoked } from './token-blacklist';
+import { isTokenRevoked, getTokenBlacklist } from './token-blacklist';
 
 /**
  * JWT token utilities for authentication
@@ -8,6 +8,9 @@ import { isTokenRevoked } from './token-blacklist';
  *
  * Token revocation: Access tokens can be immediately revoked via the
  * token blacklist. This is checked during verification.
+ *
+ * Note: Use verifyAccessTokenAsync for production with Redis-backed blacklist.
+ * The sync version (verifyAccessToken) only works with in-memory blacklist.
  */
 
 // Token configuration
@@ -54,15 +57,46 @@ export function generateRefreshToken(payload: TokenPayload): string {
 }
 
 /**
- * Verify and decode an access token
+ * Verify and decode an access token (synchronous)
  * Also checks if the token has been revoked via the blacklist
+ *
+ * @deprecated Use verifyAccessTokenAsync for production with Redis-backed blacklist.
+ * This sync version only works correctly with in-memory blacklist.
  */
 export function verifyAccessToken(token: string): DecodedToken {
   try {
     const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET) as DecodedToken;
 
-    // Check if token has been revoked
+    // Check if token has been revoked (sync - only works with in-memory)
     if (isTokenRevoked(decoded.userId, decoded.iat)) {
+      throw new Error('Token has been revoked');
+    }
+
+    return decoded;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      throw new Error('Access token expired');
+    }
+    if (error instanceof jwt.JsonWebTokenError) {
+      throw new Error('Invalid access token');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Verify and decode an access token (asynchronous)
+ * Works with both in-memory and Redis-backed blacklist
+ *
+ * Use this version in production for proper Redis support.
+ */
+export async function verifyAccessTokenAsync(token: string): Promise<DecodedToken> {
+  try {
+    const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET) as DecodedToken;
+
+    // Check if token has been revoked (async - works with Redis)
+    const blacklist = getTokenBlacklist();
+    if (await blacklist.isTokenRevoked(decoded.userId, decoded.iat)) {
       throw new Error('Token has been revoked');
     }
 

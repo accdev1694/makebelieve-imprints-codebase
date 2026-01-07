@@ -6,10 +6,25 @@ import {
   getBlacklistStats,
   clearBlacklist,
   stopCleanupTimer,
+  getTokenBlacklist,
+  createInMemoryBlacklist,
+  resetTokenBlacklist,
+  TokenBlacklist,
 } from '../token-blacklist';
+
+// Mock logger to reduce noise
+jest.mock('../logger', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+}));
 
 describe('Token Blacklist', () => {
   beforeEach(() => {
+    resetTokenBlacklist();
     clearBlacklist();
   });
 
@@ -31,7 +46,7 @@ describe('Token Blacklist', () => {
     });
   });
 
-  describe('revokeToken', () => {
+  describe('revokeToken (legacy sync)', () => {
     it('should add token to blacklist', () => {
       const now = Math.floor(Date.now() / 1000);
       const expiresAt = now + 900; // 15 minutes from now
@@ -53,7 +68,7 @@ describe('Token Blacklist', () => {
     });
   });
 
-  describe('revokeAllUserTokens', () => {
+  describe('revokeAllUserTokens (legacy sync)', () => {
     it('should create barrier entry for user', () => {
       revokeAllUserTokens('user-456', 900, 'Password changed');
 
@@ -62,7 +77,7 @@ describe('Token Blacklist', () => {
     });
   });
 
-  describe('isTokenRevoked', () => {
+  describe('isTokenRevoked (legacy sync)', () => {
     it('should return false for non-revoked token', () => {
       const now = Math.floor(Date.now() / 1000);
       const isRevoked = isTokenRevoked('user-123', now);
@@ -121,7 +136,7 @@ describe('Token Blacklist', () => {
     });
   });
 
-  describe('getBlacklistStats', () => {
+  describe('getBlacklistStats (legacy sync)', () => {
     it('should return empty stats for empty blacklist', () => {
       const stats = getBlacklistStats();
       expect(stats.size).toBe(0);
@@ -143,7 +158,7 @@ describe('Token Blacklist', () => {
     });
   });
 
-  describe('clearBlacklist', () => {
+  describe('clearBlacklist (legacy sync)', () => {
     it('should remove all entries', () => {
       const now = Math.floor(Date.now() / 1000);
       revokeToken('token1', now + 100);
@@ -187,5 +202,293 @@ describe('Token Blacklist', () => {
       const stats = getBlacklistStats();
       expect(stats.size).toBe(2);
     });
+  });
+});
+
+describe('Token Blacklist - Async Interface', () => {
+  let blacklist: TokenBlacklist;
+
+  beforeEach(() => {
+    blacklist = createInMemoryBlacklist();
+  });
+
+  afterEach(async () => {
+    await blacklist.clear();
+  });
+
+  describe('revokeToken', () => {
+    it('should add token to blacklist asynchronously', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const expiresAt = now + 900;
+
+      await blacklist.revokeToken('user-123:12345', expiresAt, 'Test');
+
+      const stats = await blacklist.getStats();
+      expect(stats.size).toBe(1);
+    });
+
+    it('should skip expired tokens', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const expiredAt = now - 100;
+
+      await blacklist.revokeToken('user-123:12345', expiredAt);
+
+      const stats = await blacklist.getStats();
+      expect(stats.size).toBe(0);
+    });
+  });
+
+  describe('revokeAllUserTokens', () => {
+    it('should revoke all tokens for user', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const oldIat = now - 300;
+
+      await blacklist.revokeAllUserTokens('user-456', 900, 'Logout all');
+
+      const isRevoked = await blacklist.isTokenRevoked('user-456', oldIat);
+      expect(isRevoked).toBe(true);
+    });
+
+    it('should allow new tokens after revocation', async () => {
+      const now = Math.floor(Date.now() / 1000);
+
+      await blacklist.revokeAllUserTokens('user-456', 900);
+
+      // New token issued after revocation
+      const newIat = now + 10;
+      const isRevoked = await blacklist.isTokenRevoked('user-456', newIat);
+      expect(isRevoked).toBe(false);
+    });
+  });
+
+  describe('isTokenRevoked', () => {
+    it('should return false for valid token', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const isRevoked = await blacklist.isTokenRevoked('user-123', now);
+      expect(isRevoked).toBe(false);
+    });
+
+    it('should return true for revoked token', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const iat = now - 60;
+      const expiresAt = now + 840;
+
+      const identifier = getTokenIdentifier('user-123', iat);
+      await blacklist.revokeToken(identifier, expiresAt);
+
+      const isRevoked = await blacklist.isTokenRevoked('user-123', iat);
+      expect(isRevoked).toBe(true);
+    });
+  });
+
+  describe('getStats', () => {
+    it('should return stats asynchronously', async () => {
+      const stats = await blacklist.getStats();
+      expect(stats.size).toBe(0);
+      expect(stats.oldestEntry).toBeNull();
+    });
+
+    it('should track multiple entries', async () => {
+      const now = Math.floor(Date.now() / 1000);
+
+      await blacklist.revokeToken('t1', now + 100);
+      await blacklist.revokeToken('t2', now + 200);
+      await blacklist.revokeToken('t3', now + 150);
+
+      const stats = await blacklist.getStats();
+      expect(stats.size).toBe(3);
+      expect(stats.oldestEntry).toBe((now + 100) * 1000);
+      expect(stats.newestEntry).toBe((now + 200) * 1000);
+    });
+  });
+
+  describe('clear', () => {
+    it('should clear all entries', async () => {
+      const now = Math.floor(Date.now() / 1000);
+
+      await blacklist.revokeToken('t1', now + 100);
+      await blacklist.revokeToken('t2', now + 200);
+
+      let stats = await blacklist.getStats();
+      expect(stats.size).toBe(2);
+
+      await blacklist.clear();
+
+      stats = await blacklist.getStats();
+      expect(stats.size).toBe(0);
+    });
+  });
+});
+
+describe('Token Blacklist - Singleton', () => {
+  beforeEach(() => {
+    resetTokenBlacklist();
+  });
+
+  afterEach(() => {
+    resetTokenBlacklist();
+  });
+
+  it('should return same instance on multiple calls', () => {
+    const instance1 = getTokenBlacklist();
+    const instance2 = getTokenBlacklist();
+    expect(instance1).toBe(instance2);
+  });
+
+  it('should create new instance after reset', () => {
+    const instance1 = getTokenBlacklist();
+    resetTokenBlacklist();
+    const instance2 = getTokenBlacklist();
+    expect(instance1).not.toBe(instance2);
+  });
+
+  it('should use in-memory by default (no env vars)', () => {
+    const instance = getTokenBlacklist();
+    expect(instance).toBeDefined();
+  });
+});
+
+describe('Token Blacklist - Upstash Redis', () => {
+  let originalFetch: typeof global.fetch;
+  let mockFetch: jest.Mock;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+    mockFetch = jest.fn();
+    global.fetch = mockFetch;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    resetTokenBlacklist();
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  });
+
+  it('should use Upstash when env vars are set', () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    const instance = getTokenBlacklist();
+    expect(instance).toBeDefined();
+  });
+
+  it('should call Redis SET on revokeToken', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ result: 'OK' }),
+    });
+
+    const instance = getTokenBlacklist();
+    const now = Math.floor(Date.now() / 1000);
+    await instance.revokeToken('test-id', now + 900, 'test');
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://test.upstash.io',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-token',
+        }),
+      })
+    );
+  });
+
+  it('should call Redis GET on isTokenRevoked', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ result: null }),
+    });
+
+    const instance = getTokenBlacklist();
+    const now = Math.floor(Date.now() / 1000);
+    const isRevoked = await instance.isTokenRevoked('user-123', now);
+
+    expect(isRevoked).toBe(false);
+    expect(mockFetch).toHaveBeenCalled();
+  });
+
+  it('should return true when token is found in Redis', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    const now = Date.now();
+    const iat = Math.floor(now / 1000) - 60;
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        result: JSON.stringify({
+          identifier: getTokenIdentifier('user-123', iat),
+          expiresAt: now + 900000, // 15 min from now in ms
+          reason: 'test',
+        }),
+      }),
+    });
+
+    const instance = getTokenBlacklist();
+    const isRevoked = await instance.isTokenRevoked('user-123', iat);
+
+    expect(isRevoked).toBe(true);
+  });
+
+  it('should handle Redis errors gracefully', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
+
+    const instance = getTokenBlacklist();
+    const now = Math.floor(Date.now() / 1000);
+
+    // Should not throw
+    const isRevoked = await instance.isTokenRevoked('user-123', now);
+    expect(isRevoked).toBe(false);
+  });
+
+  it('should handle network errors gracefully', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    mockFetch.mockRejectedValue(new Error('Network error'));
+
+    const instance = getTokenBlacklist();
+    const now = Math.floor(Date.now() / 1000);
+
+    // Should not throw
+    const isRevoked = await instance.isTokenRevoked('user-123', now);
+    expect(isRevoked).toBe(false);
+  });
+
+  it('should call SCAN and DEL on clear', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://test.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+
+    // First call: SCAN returns keys
+    // Second call: DEL
+    // Third call: SCAN returns empty (cursor 0)
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ result: ['0', ['tokenblacklist:test1']] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ result: 1 }),
+      });
+
+    const instance = getTokenBlacklist();
+    await instance.clear();
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 });

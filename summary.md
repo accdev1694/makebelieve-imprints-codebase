@@ -2,6 +2,76 @@
 
 **Last Updated**: 2026-01-07
 
+## Session: BMAD Squad Critical Items Implementation (IN PROGRESS)
+
+### What Was Accomplished This Session
+
+Started addressing critical items from the BMAD Squad review.
+
+#### Commits Made
+1. **Pending** - C1: Upstash Redis support + C2: Prisma Neon adapter
+
+#### C1: Upstash Redis Support for Token Blacklist & Rate Limiter ✅
+
+**Token Blacklist (`lib/server/token-blacklist.ts`)**:
+- Refactored to async interface (`TokenBlacklist`)
+- Added `UpstashTokenBlacklist` class for Redis-backed revocation
+- Bounded in-memory implementation with MAX_ENTRIES protection
+- Legacy sync exports maintained for backward compatibility
+- New async exports: `getTokenBlacklist()`, `createInMemoryBlacklist()`
+- 34 tests (up from 15)
+
+**Rate Limiter (`lib/server/rate-limiter.ts`)**:
+- Already had Upstash Redis support
+- Replaced `console.log` with structured logger
+
+**JWT (`lib/server/jwt.ts`)**:
+- Added `verifyAccessTokenAsync()` for proper Redis support
+- Deprecated sync `verifyAccessToken()` with warning
+
+#### C2: Prisma Neon Adapter with Connection Pooling ✅
+
+**Schema Changes (`prisma/schema.prisma`)**:
+- Added `directUrl` for migrations (unpooled connection)
+
+**Prisma Client (`lib/prisma.ts`)**:
+- Integrated `@prisma/adapter-neon` v6.19.1
+- Uses `PrismaNeonHTTP` for HTTP-based queries (better for serverless)
+- Automatic detection of Neon connection strings
+- Fallback to standard PrismaClient for local development
+
+**New Dependencies**:
+- `@prisma/adapter-neon@6.19.1`
+- `@neondatabase/serverless@1.0.2`
+
+### Test Count Progress
+- Start of session: 373 tests
+- End of session: 392 tests (+19 tests)
+
+### BMAD Squad Critical Items Status
+
+| # | Task | Status |
+|---|------|--------|
+| C1 | Wire up Upstash Redis for token-blacklist and rate-limiter | ✅ Done |
+| C2 | Add Prisma Neon adapter with connection pooling | ✅ Done |
+| C3 | Raise coverage to 60% for auth-service, stripe-service, order-state-machine | 🔲 Pending |
+| C4 | Add integration tests for critical DB operations | 🔲 Pending |
+| C5 | Implement circuit breaker for external APIs | 🔲 Pending |
+
+### Environment Variables Required for Production
+
+```bash
+# Upstash Redis (for token blacklist and rate limiting)
+UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=xxx
+
+# Neon PostgreSQL
+DATABASE_URL=postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/db?sslmode=require
+DATABASE_URL_UNPOOLED=postgresql://user:pass@ep-xxx.region.aws.neon.tech/db?sslmode=require
+```
+
+---
+
 ## Session: Production Readiness & Security Hardening (COMPLETE)
 
 ### What Was Accomplished This Session
@@ -171,3 +241,100 @@ Plus commits from previous context:
 - Cart utilities: `lib/cart/`
 - Email module: `lib/server/email/`
 - Services: `lib/server/*-service.ts`
+
+---
+
+## 🔥 BMAD Squad Brutal Review (2026-01-07)
+
+### Expert Panel
+- 🏗️ **Winston** (Architect) - Architecture & Scalability
+- 🧪 **Murat** (Test Architect) - Quality Gates & Testing
+- 💻 **Amelia** (Developer) - Code Quality & Best Practices
+
+---
+
+### 🚨 CRITICAL (Production Blockers)
+
+| # | Issue | Owner | File/Location | Recommendation |
+|---|-------|-------|---------------|----------------|
+| C1 | In-memory state in serverless | Winston | `token-blacklist.ts`, `rate-limiter.ts` | Wire up Upstash Redis for production - in-memory won't propagate across Vercel instances |
+| C2 | No DB connection pooling | Winston | `prisma/` | Add `@prisma/adapter-neon` with connection pooling to prevent cold start connection limit hits |
+| C3 | 2% coverage threshold | Murat | `jest.config.js` | Raise to 60%+ for critical paths (auth, payments, orders) |
+| C4 | Zero integration tests | Murat | `__tests__/` | Add real DB integration tests - mocks don't catch Prisma/Neon issues |
+| C5 | No circuit breakers | Winston | External API calls | Add circuit breaker pattern for Stripe, Wise, Royal Mail - prevent cascade failures |
+
+---
+
+### ⚠️ HIGH PRIORITY (Should Fix Soon)
+
+| # | Issue | Owner | File/Location | Recommendation |
+|---|-------|-------|---------------|----------------|
+| H1 | God component | Amelia | `app/checkout/page.tsx:1057` | Split into CartReview, ShippingSection, PaymentSection, DiscountSection |
+| H2 | Monolithic service files | Winston | `product-search-service.ts` (25KB), `wise-service.ts` (20KB) | Split by domain - violates single responsibility |
+| H3 | No request tracing | Winston | `logger.ts` | Add correlation IDs that propagate through service calls |
+| H4 | No contract tests | Murat | API integrations | Add Pact/contract tests for Stripe, Wise, Royal Mail APIs |
+| H5 | Type safety gaps | Amelia | `wise-service.ts:684` | Remove `Record<string, unknown>` - use proper Prisma types |
+| H6 | Inconsistent error handling | Amelia | Services | Pick one pattern: typed errors OR `{success, error}` objects |
+| H7 | Console statements in prod | Amelia | `lib/cart/storage.ts:24,43,55,73,86,98` | Replace with logger service |
+| H8 | AdminDataTable monolith | Amelia | `components/admin/AdminDataTable.tsx:584` | Split into Table, Search, Pagination components |
+
+---
+
+### 📋 MEDIUM PRIORITY (Tech Debt)
+
+| # | Issue | Owner | File/Location | Recommendation |
+|---|-------|-------|---------------|----------------|
+| M1 | No caching strategy | Winston | Product catalog | Add Redis/CDN caching layer for product data |
+| M2 | CSP unsafe-inline | Winston | `next.config.ts` | Roadmap nonce-based CSP implementation |
+| M3 | Missing accounting tests | Murat | `accounting-service.ts` (12KB) | Add unit tests - 0 coverage currently |
+| M4 | Flaky test potential | Murat | `rate-limiter.test.ts`, `token-blacklist.test.ts` | Replace `Date.now()` with injectable clock |
+| M5 | No load testing | Murat | Infrastructure | Add k6/Artillery scripts for 10K+ concurrent users |
+| M6 | Magic numbers | Amelia | `token-blacklist.ts:155` | Extract `15 * 60` to named constant |
+| M7 | Dead code/unused imports | Amelia | `order-state-machine.test.ts:21-22` | Clean up lint warnings |
+| M8 | Admin components page | Amelia | `app/admin/components/page.tsx:1542` | Use dynamic routing to reduce size |
+
+---
+
+### 📝 LOW PRIORITY (Nice to Have)
+
+| # | Issue | Owner | File/Location | Recommendation |
+|---|-------|-------|---------------|----------------|
+| L1 | Email templates inline | Winston | `lib/server/email/templates/` | Consider Resend template engine |
+| L2 | No mutation testing | Murat | Test suite | Add Stryker to verify test quality |
+| L3 | Lock file integrity | Amelia | CI/CD | Enforce `npm ci` instead of `npm install` |
+| L4 | Inconsistent imports | Amelia | Various | Standardize on `@/lib` path aliases |
+
+---
+
+### 📊 Squad Verdict
+
+**Winston (Architect):** "Solid foundation but serverless-specific issues will bite you. Redis integration is non-negotiable for production scale."
+
+**Murat (Test Architect):** "373 tests is vanity metric. Coverage gates mean nothing at 2%. Critical paths are flying blind without integration tests."
+
+**Amelia (Developer):** "Clean service layer pattern. But those 1000+ line files are tech debt time bombs. Every sprint they get harder to refactor."
+
+---
+
+### Recommended Attack Order
+
+**Week 1 - Critical:**
+1. [ ] C1: Wire up Upstash Redis for token-blacklist and rate-limiter
+2. [ ] C2: Add Prisma Neon adapter with connection pooling
+3. [ ] C3: Raise coverage to 60% for auth-service, stripe-service, order-state-machine
+
+**Week 2 - High:**
+4. [ ] H1: Split checkout page into components
+5. [ ] H3: Add request correlation IDs to logger
+6. [ ] H6: Standardize error handling pattern across services
+7. [ ] H7: Replace console.log with logger in cart/storage.ts
+
+**Week 3 - Medium:**
+8. [ ] C4: Add integration tests for critical DB operations
+9. [ ] C5: Implement circuit breaker for external APIs
+10. [ ] M3: Add accounting-service tests
+
+**Ongoing:**
+- Incrementally raise coverage thresholds
+- Split large files as you touch them
+- Add contract tests before API upgrades

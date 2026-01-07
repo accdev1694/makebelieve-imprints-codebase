@@ -56,3 +56,4 @@ capacitor.config.ts
 # Temporary/reference files
 base/saas-hero/
 base/tailwind-cheatsheet.css
+.playwright-mcp/

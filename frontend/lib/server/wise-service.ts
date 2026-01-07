@@ -8,9 +8,13 @@
  * - Transfer tracking
  * - Multi-currency balances
  * - Auto-expense creation
+ *
+ * Protected by circuit breaker to prevent cascade failures
  */
 
 import prisma from '@/lib/prisma';
+import { getCircuitBreaker, CircuitBreakerError } from './circuit-breaker';
+import { logger } from './logger';
 import { ExpenseCategory } from '@prisma/client';
 
 const WISE_API_BASE = 'https://api.wise.com';
@@ -18,6 +22,9 @@ const WISE_SANDBOX_API_BASE = 'https://api.sandbox.transferwise.tech';
 
 // Use sandbox in development
 const API_BASE = process.env.NODE_ENV === 'production' ? WISE_API_BASE : WISE_SANDBOX_API_BASE;
+
+// Circuit breaker for Wise API calls
+const wiseCircuitBreaker = getCircuitBreaker('wise');
 
 interface WiseProfile {
   id: number;
@@ -136,6 +143,7 @@ function getApiToken(accountToken?: string): string {
 
 /**
  * Make authenticated request to Wise API
+ * Protected by circuit breaker to prevent cascade failures
  */
 async function wiseApiRequest<T>(
   endpoint: string,
@@ -144,22 +152,34 @@ async function wiseApiRequest<T>(
 ): Promise<T> {
   const token = getApiToken(apiToken);
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+  try {
+    // Execute with circuit breaker protection
+    const response = await wiseCircuitBreaker.execute(() =>
+      fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      })
+    );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`Wise API error: ${response.status} - ${errorText}`);
-    throw new Error(`Wise API error: ${response.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(`Wise API error: ${response.status}`, { endpoint, errorText });
+      throw new Error(`Wise API error: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    // Check if circuit breaker is open
+    if (error instanceof CircuitBreakerError) {
+      logger.error('Wise circuit breaker is open', { error: error.message });
+      throw new Error('Banking service temporarily unavailable. Please try again later.');
+    }
+    throw error;
   }
-
-  return response.json();
 }
 
 /**

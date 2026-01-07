@@ -2,9 +2,12 @@
  * Stripe Service for Server-side Operations
  *
  * Handles refunds and other server-side Stripe operations
+ * Protected by circuit breaker to prevent cascade failures
  */
 
 import Stripe from 'stripe';
+import { getCircuitBreaker, CircuitBreakerError } from './circuit-breaker';
+import { logger } from './logger';
 
 // Lazy initialization of Stripe to avoid build-time errors
 let stripe: Stripe | null = null;
@@ -19,6 +22,9 @@ function getStripe(): Stripe {
   }
   return stripe;
 }
+
+// Circuit breaker for Stripe API calls
+const stripeCircuitBreaker = getCircuitBreaker('stripe');
 
 export interface RefundResult {
   success: boolean;
@@ -60,7 +66,10 @@ export async function createRefund(
       requestOptions.idempotencyKey = `refund_${idempotencyKey}`;
     }
 
-    const refund = await stripeClient.refunds.create(refundParams, requestOptions);
+    // Execute with circuit breaker protection
+    const refund = await stripeCircuitBreaker.execute(() =>
+      stripeClient.refunds.create(refundParams, requestOptions)
+    );
 
     return {
       success: true,
@@ -68,7 +77,16 @@ export async function createRefund(
       amount: refund.amount / 100, // Convert back to pounds
     };
   } catch (error) {
-    console.error('Stripe refund error:', error);
+    // Check if circuit breaker is open
+    if (error instanceof CircuitBreakerError) {
+      logger.error('Stripe circuit breaker is open', { error: error.message });
+      return {
+        success: false,
+        error: 'Payment service temporarily unavailable. Please try again later.',
+      };
+    }
+
+    logger.error('Stripe refund error', { error });
 
     if (error instanceof Stripe.errors.StripeError) {
       return {
@@ -90,9 +108,15 @@ export async function createRefund(
 export async function getRefund(refundId: string): Promise<Stripe.Refund | null> {
   try {
     const stripeClient = getStripe();
-    return await stripeClient.refunds.retrieve(refundId);
+    return await stripeCircuitBreaker.execute(() =>
+      stripeClient.refunds.retrieve(refundId)
+    );
   } catch (error) {
-    console.error('Error retrieving refund:', error);
+    if (error instanceof CircuitBreakerError) {
+      logger.error('Stripe circuit breaker is open', { error: error.message });
+    } else {
+      logger.error('Error retrieving refund', { refundId, error });
+    }
     return null;
   }
 }
@@ -105,9 +129,15 @@ export async function getPaymentIntent(
 ): Promise<Stripe.PaymentIntent | null> {
   try {
     const stripeClient = getStripe();
-    return await stripeClient.paymentIntents.retrieve(paymentIntentId);
+    return await stripeCircuitBreaker.execute(() =>
+      stripeClient.paymentIntents.retrieve(paymentIntentId)
+    );
   } catch (error) {
-    console.error('Error retrieving payment intent:', error);
+    if (error instanceof CircuitBreakerError) {
+      logger.error('Stripe circuit breaker is open', { error: error.message });
+    } else {
+      logger.error('Error retrieving payment intent', { paymentIntentId, error });
+    }
     return null;
   }
 }
@@ -120,9 +150,15 @@ export async function getCheckoutSession(
 ): Promise<Stripe.Checkout.Session | null> {
   try {
     const stripeClient = getStripe();
-    return await stripeClient.checkout.sessions.retrieve(sessionId);
+    return await stripeCircuitBreaker.execute(() =>
+      stripeClient.checkout.sessions.retrieve(sessionId)
+    );
   } catch (error) {
-    console.error('Error retrieving checkout session:', error);
+    if (error instanceof CircuitBreakerError) {
+      logger.error('Stripe circuit breaker is open', { error: error.message });
+    } else {
+      logger.error('Error retrieving checkout session', { sessionId, error });
+    }
     return null;
   }
 }
@@ -141,7 +177,9 @@ export async function resolvePaymentIntentId(
 
     // Already a Payment Intent ID
     if (stripePaymentId.startsWith('pi_')) {
-      const paymentIntent = await stripeClient.paymentIntents.retrieve(stripePaymentId);
+      const paymentIntent = await stripeCircuitBreaker.execute(() =>
+        stripeClient.paymentIntents.retrieve(stripePaymentId)
+      );
       return {
         paymentIntentId: stripePaymentId,
         isPaid: paymentIntent.status === 'succeeded',
@@ -150,7 +188,9 @@ export async function resolvePaymentIntentId(
 
     // Checkout Session ID - need to look up the Payment Intent
     if (stripePaymentId.startsWith('cs_')) {
-      const session = await stripeClient.checkout.sessions.retrieve(stripePaymentId);
+      const session = await stripeCircuitBreaker.execute(() =>
+        stripeClient.checkout.sessions.retrieve(stripePaymentId)
+      );
 
       if (!session.payment_intent) {
         return {
@@ -176,7 +216,16 @@ export async function resolvePaymentIntentId(
       error: `Unknown payment ID format: ${stripePaymentId.substring(0, 10)}...`,
     };
   } catch (error) {
-    console.error('Error resolving payment intent ID:', error);
+    if (error instanceof CircuitBreakerError) {
+      logger.error('Stripe circuit breaker is open', { error: error.message });
+      return {
+        paymentIntentId: null,
+        isPaid: false,
+        error: 'Payment service temporarily unavailable. Please try again later.',
+      };
+    }
+
+    logger.error('Error resolving payment intent ID', { stripePaymentId, error });
     return {
       paymentIntentId: null,
       isPaid: false,

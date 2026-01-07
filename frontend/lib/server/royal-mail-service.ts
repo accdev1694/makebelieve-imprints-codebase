@@ -3,9 +3,17 @@
  *
  * API Documentation: https://api.parcel.royalmail.com/
  * Base URL: https://api.parcel.royalmail.com/api/v1
+ *
+ * Protected by circuit breaker to prevent cascade failures
  */
 
+import { getCircuitBreaker, CircuitBreakerError } from './circuit-breaker';
+import { logger } from './logger';
+
 const ROYAL_MAIL_API_URL = 'https://api.parcel.royalmail.com/api/v1';
+
+// Circuit breaker for Royal Mail API calls
+const royalMailCircuitBreaker = getCircuitBreaker('royal-mail');
 
 function getApiKey(): string {
   const apiKey = process.env.ROYAL_MAIL_API_KEY;
@@ -148,6 +156,7 @@ export function getCountryCode(countryName: string): string {
 
 /**
  * Make an authenticated request to Royal Mail API
+ * Protected by circuit breaker to prevent cascade failures
  */
 async function royalMailRequest<T>(
   endpoint: string,
@@ -158,21 +167,24 @@ async function royalMailRequest<T>(
   const url = `${ROYAL_MAIL_API_URL}${endpoint}`;
 
   try {
-    console.log(`Royal Mail API: ${options.method || 'GET'} ${endpoint}`);
+    logger.debug(`Royal Mail API: ${options.method || 'GET'} ${endpoint}`);
 
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...options.headers,
-      },
-    });
+    // Execute with circuit breaker protection
+    const response = await royalMailCircuitBreaker.execute(() =>
+      fetch(url, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...options.headers,
+        },
+      })
+    );
 
     // Handle rate limiting
     if (response.status === 429) {
-      console.error('Royal Mail API rate limit exceeded');
+      logger.error('Royal Mail API rate limit exceeded');
       return {
         error: {
           message: 'Rate limit exceeded. Please try again in a few seconds.',
@@ -183,7 +195,7 @@ async function royalMailRequest<T>(
 
     // Handle auth errors
     if (response.status === 401) {
-      console.error('Royal Mail API authentication failed');
+      logger.error('Royal Mail API authentication failed');
       return {
         error: {
           message: 'Authentication failed. Please check your API key.',
@@ -203,7 +215,7 @@ async function royalMailRequest<T>(
     // Handle JSON responses
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('Royal Mail API error:', response.status, errorData);
+      logger.error('Royal Mail API error', { status: response.status, errorData });
       return {
         error: {
           message: errorData.message || `API error: ${response.status}`,
@@ -216,7 +228,18 @@ async function royalMailRequest<T>(
     const data = await response.json();
     return { data };
   } catch (error) {
-    console.error('Royal Mail API request failed:', error);
+    // Check if circuit breaker is open
+    if (error instanceof CircuitBreakerError) {
+      logger.error('Royal Mail circuit breaker is open', { error: error.message });
+      return {
+        error: {
+          message: 'Shipping service temporarily unavailable. Please try again later.',
+          code: 'SERVICE_UNAVAILABLE',
+        },
+      };
+    }
+
+    logger.error('Royal Mail API request failed', { endpoint, error });
     return {
       error: {
         message: error instanceof Error ? error.message : 'Network request failed',

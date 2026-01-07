@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
-import { getExpense, updateExpense, deleteExpense } from '@/lib/server/expense-service';
+import { getExpense, updateExpense, deleteExpense } from '@/lib/server/accounting/expense-service';
 
 interface RouteParams {
   params: Promise<{ id: string }>;

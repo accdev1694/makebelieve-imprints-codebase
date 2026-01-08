@@ -16,6 +16,16 @@ import {
   deepEqual,
 } from '@/lib/cart';
 
+// Debounce delay for quantity updates (ms)
+const QUANTITY_UPDATE_DEBOUNCE = 400;
+
+// Pending update tracking for flush before checkout
+interface PendingUpdate {
+  itemId: string;
+  quantity: number;
+  timer: NodeJS.Timeout;
+}
+
 // Re-export types for backward compatibility
 export type { CartItem, AddToCartPayload } from '@/lib/cart';
 
@@ -53,6 +63,10 @@ interface CartContextType {
   clearSelectedItems: () => Promise<void>;
   // Loading state for individual items
   operatingItemIds: Set<string>;
+  // Pending sync state - true if there are unsaved quantity changes
+  hasPendingUpdates: boolean;
+  // Flush all pending updates to server - call before checkout
+  flushPendingUpdates: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -69,6 +83,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const lastUserIdRef = useRef<string | null>(null);
   const hasSyncedRef = useRef(false);
   const selectionInitializedRef = useRef(false);
+  // Pending updates map - tracks itemId -> {quantity, timer} for debounced server sync
+  const pendingUpdates = useRef<Map<string, PendingUpdate>>(new Map());
+  // State to trigger re-render when pending updates change
+  const [hasPendingUpdates, setHasPendingUpdates] = useState(false);
 
   // Load cart from localStorage on mount (for immediate display)
   useEffect(() => {
@@ -173,6 +191,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
       saveSelectionToStorage(selectedItemIds);
     }
   }, [selectedItemIds, isSyncing]);
+
+  // Cleanup debounce timers on unmount
+  useEffect(() => {
+    const pending = pendingUpdates.current;
+    return () => {
+      pending.forEach((update) => clearTimeout(update.timer));
+      pending.clear();
+    };
+  }, []);
+
+  // Sync pending updates before browser close/navigate away
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Use sendBeacon for reliable sync on page unload
+      const pending = pendingUpdates.current;
+      if (pending.size > 0 && user) {
+        pending.forEach((update) => {
+          // sendBeacon is fire-and-forget, works during unload
+          navigator.sendBeacon(
+            `/api/cart/${update.itemId}`,
+            JSON.stringify({ quantity: update.quantity })
+          );
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [user]);
 
   // Calculate totals
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -407,7 +454,63 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [user, operatingItemIds]
   );
 
-  // Update item quantity
+  // Sync a single pending update to server
+  const syncItemToServer = useCallback(
+    async (itemId: string, quantity: number): Promise<boolean> => {
+      try {
+        await cartService.updateCartItemQuantity(itemId, quantity);
+        return true;
+      } catch (err) {
+        console.error('Failed to update cart item on server:', err);
+
+        // Check if item not found - means ID mismatch, need to re-sync
+        const error = err as { message?: string; statusCode?: number; data?: { error?: string } };
+        const isNotFound = error?.message?.toLowerCase().includes('not found') ||
+          error?.statusCode === 404 ||
+          error?.data?.error?.toLowerCase().includes('not found');
+
+        if (isNotFound) {
+          try {
+            // Re-fetch cart from server to sync IDs
+            const serverItems = await cartService.getCart();
+            const syncedItems = serverItems.map(transformServerItem);
+            setItems(syncedItems);
+            saveCartToStorage(syncedItems);
+            // Update selection to match synced items
+            const newItemIds = new Set(syncedItems.map((item) => item.id));
+            setSelectedItemIds(newItemIds);
+            saveSelectionToStorage(newItemIds);
+            setError('Cart synced with server. Please try again.');
+          } catch {
+            setError('Failed to sync cart. Please refresh the page.');
+          }
+        } else {
+          setError('Failed to update quantity. Please try again.');
+        }
+        return false;
+      }
+    },
+    []
+  );
+
+  // Flush all pending updates to server - must be called before checkout
+  const flushPendingUpdates = useCallback(async (): Promise<void> => {
+    const pending = pendingUpdates.current;
+    if (pending.size === 0) return;
+
+    // Cancel all timers since we're syncing immediately
+    const updates = Array.from(pending.values());
+    updates.forEach((update) => clearTimeout(update.timer));
+    pending.clear();
+    setHasPendingUpdates(false);
+
+    // Sync all pending updates in parallel
+    await Promise.all(
+      updates.map((update) => syncItemToServer(update.itemId, update.quantity))
+    );
+  }, [syncItemToServer]);
+
+  // Update item quantity with debounced server sync for fast UI response
   const updateQuantity = useCallback(
     (itemId: string, quantity: number) => {
       if (quantity < 1) {
@@ -415,7 +518,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Prevent concurrent operations on this item (e.g., during ID reconciliation)
+      // Block only during ID reconciliation (new items being added), not during quantity updates
       if (operatingItemIds.has(itemId)) {
         return;
       }
@@ -423,78 +526,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Enforce max quantity limit
       const clampedQuantity = Math.min(quantity, CART.MAX_QUANTITY);
 
-      // Capture previous state inside updater to avoid stale closure
-      let previousItems: CartItem[] = [];
-
-      // Set item as operating
-      setOperatingItemIds((prev) => new Set([...prev, itemId]));
-
-      // Optimistic update
-      setItems((currentItems) => {
-        previousItems = currentItems; // Capture for potential revert
-        return currentItems.map((item) =>
+      // Optimistic update - UI updates instantly, no blocking
+      setItems((currentItems) =>
+        currentItems.map((item) =>
           item.id === itemId ? { ...item, quantity: clampedQuantity } : item
-        );
-      });
+        )
+      );
 
-      // If logged in, sync with server
+      // If logged in, debounce the server sync
       if (user) {
-        cartService.updateCartItemQuantity(itemId, clampedQuantity)
-          .then(() => {
-            // Clear operating state on success
-            setOperatingItemIds((prev) => {
-              const next = new Set(prev);
-              next.delete(itemId);
-              return next;
-            });
-          })
-          .catch(async (err) => {
-            console.error('Failed to update cart item on server:', err);
+        // Clear any existing debounce timer for this item
+        const existingUpdate = pendingUpdates.current.get(itemId);
+        if (existingUpdate) {
+          clearTimeout(existingUpdate.timer);
+        }
 
-            // Clear operating state on error
-            setOperatingItemIds((prev) => {
-              const next = new Set(prev);
-              next.delete(itemId);
-              return next;
-            });
+        // Set new debounce timer - only sync after user stops clicking
+        const timer = setTimeout(async () => {
+          pendingUpdates.current.delete(itemId);
+          setHasPendingUpdates(pendingUpdates.current.size > 0);
+          await syncItemToServer(itemId, clampedQuantity);
+        }, QUANTITY_UPDATE_DEBOUNCE);
 
-            // Check if item not found - means ID mismatch, need to re-sync
-            const isNotFound = err?.message?.toLowerCase().includes('not found') ||
-              err?.statusCode === 404 ||
-              err?.data?.error?.toLowerCase().includes('not found');
-
-            if (isNotFound) {
-              try {
-                // Re-fetch cart from server to sync IDs
-                const serverItems = await cartService.getCart();
-                const syncedItems = serverItems.map(transformServerItem);
-                setItems(syncedItems);
-                saveCartToStorage(syncedItems);
-                // Update selection to match synced items
-                const newItemIds = new Set(syncedItems.map((item) => item.id));
-                setSelectedItemIds(newItemIds);
-                saveSelectionToStorage(newItemIds);
-                setError('Cart synced with server. Please try again.');
-              } catch {
-                setItems(previousItems);
-                setError('Failed to sync cart. Please refresh the page.');
-              }
-            } else {
-              // Revert on other errors
-              setItems(previousItems);
-              setError('Failed to update quantity. Please try again.');
-            }
-          });
-      } else {
-        // Clear operating state for guest users (no server call)
-        setOperatingItemIds((prev) => {
-          const next = new Set(prev);
-          next.delete(itemId);
-          return next;
+        // Track this pending update
+        pendingUpdates.current.set(itemId, {
+          itemId,
+          quantity: clampedQuantity,
+          timer,
         });
+        setHasPendingUpdates(true);
       }
+      // Guest users: no server call needed, localStorage sync happens via useEffect
     },
-    [user, removeItem, operatingItemIds]
+    [user, removeItem, operatingItemIds, syncItemToServer]
   );
 
   // Clear all items from cart
@@ -621,6 +685,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearSelectedItems,
         // Loading state
         operatingItemIds,
+        // Pending sync state
+        hasPendingUpdates,
+        flushPendingUpdates,
       }}
     >
       {children}

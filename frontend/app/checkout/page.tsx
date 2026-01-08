@@ -48,6 +48,8 @@ function CheckoutContent() {
     selectedItemIds,
     addItem,
     clearSelectedItems: _clearSelectedItems,
+    flushPendingUpdates,
+    hasPendingUpdates,
   } = useCart();
 
   const designId = searchParams.get('designId');
@@ -244,6 +246,18 @@ function CheckoutContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Flush any pending cart updates before checkout to ensure server has latest quantities
+    if (hasPendingUpdates) {
+      setSubmitting(true);
+      try {
+        await flushPendingUpdates();
+      } catch {
+        setError('Failed to sync cart. Please try again.');
+        setSubmitting(false);
+        return;
+      }
+    }
 
     // Validation
     if (mode === 'cart' && cartItems.length === 0) {

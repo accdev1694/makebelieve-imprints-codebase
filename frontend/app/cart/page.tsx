@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingBag, Trash2, AlertCircle, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, ShoppingBag, Trash2, AlertCircle, X, Loader2 } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,7 @@ import { CartSummary } from '@/components/cart/CartSummary';
 import { Separator } from '@/components/ui/separator';
 
 export default function CartPage() {
+  const router = useRouter();
   const {
     items,
     clearCart,
@@ -27,7 +29,10 @@ export default function CartPage() {
     deselectAll,
     error,
     clearError,
+    flushPendingUpdates,
+    hasPendingUpdates,
   } = useCart();
+  const [isNavigatingToCheckout, setIsNavigatingToCheckout] = useState(false);
 
   // Set page title
   useEffect(() => {
@@ -43,6 +48,23 @@ export default function CartPage() {
       return () => clearTimeout(timer);
     }
   }, [error, clearError]);
+
+  // Handle checkout - flush pending updates then navigate
+  const handleCheckout = async () => {
+    if (selectedCount === 0) return;
+
+    setIsNavigatingToCheckout(true);
+    try {
+      // Ensure all quantity changes are synced before checkout
+      if (hasPendingUpdates) {
+        await flushPendingUpdates();
+      }
+      router.push('/checkout');
+    } catch {
+      setIsNavigatingToCheckout(false);
+      // Error will be shown via cart context
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -184,15 +206,18 @@ export default function CartPage() {
 
                   {/* Checkout Button */}
                   <Button
-                    asChild={selectedCount > 0}
                     size="lg"
                     className="w-full"
-                    disabled={selectedCount === 0}
+                    disabled={selectedCount === 0 || isNavigatingToCheckout}
+                    onClick={handleCheckout}
                   >
-                    {selectedCount > 0 ? (
-                      <Link href="/checkout">
-                        Checkout ({selectedCount} {selectedCount === 1 ? 'item' : 'items'})
-                      </Link>
+                    {isNavigatingToCheckout ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        {hasPendingUpdates ? 'Syncing cart...' : 'Redirecting...'}
+                      </>
+                    ) : selectedCount > 0 ? (
+                      <>Checkout ({selectedCount} {selectedCount === 1 ? 'item' : 'items'})</>
                     ) : (
                       <span>Select items to checkout</span>
                     )}

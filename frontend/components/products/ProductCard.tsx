@@ -115,8 +115,8 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
             )}
           </div>
 
-          {/* Quick Action Buttons */}
-          <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Quick Action Buttons - always visible on mobile, hover on desktop */}
+          <div className="absolute top-2 right-2 flex flex-col gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             <Button
               size="icon"
               variant="secondary"

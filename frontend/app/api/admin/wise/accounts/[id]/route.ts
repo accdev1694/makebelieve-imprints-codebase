@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/server/auth';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { disconnectWiseAccount, syncWiseTransactions } from '@/lib/server/wise-service';
 
 interface RouteContext {

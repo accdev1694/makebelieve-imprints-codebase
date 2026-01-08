@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { requireAdmin, handleApiError } from '@/lib/server/auth';
 import { updateIncomeStatus } from '@/lib/server/accounting-service';
 import {

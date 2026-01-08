@@ -321,7 +321,7 @@ function CheckoutContent() {
         }
 
         // Redirect to Stripe Checkout
-        await redirectToCheckout(data.sessionId);
+        await redirectToCheckout(data.url);
       } else if (design) {
         // Legacy design-based order
         const order = await ordersService.create({

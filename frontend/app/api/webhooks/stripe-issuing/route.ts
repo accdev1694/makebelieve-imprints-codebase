@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { ExpenseCategory, TransactionStatus } from '@prisma/client';
 
 // Lazy initialization of Stripe

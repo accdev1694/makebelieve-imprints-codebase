@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { requireAuth, handleApiError } from '@/lib/server/auth';
 import { getCheckoutSession } from '@/lib/server/stripe-service';
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/server/auth';
 import { validateRequired, validateUUID } from '@/lib/server/validation';
 

@@ -228,7 +228,15 @@ If cart operations fail after login, the issue is likely **client-server ID mism
 - Server assigns database UUIDs on sync
 - Operations fail if client still uses old IDs
 
-**Fix**: The CartContext has auto-recovery that re-syncs on 404 errors. If issues persist, user should log out and back in.
+**Prevention (Primary)**: The CartContext uses `operatingItemIds` to block operations on items during:
+- New item addition (temp ID → server UUID reconciliation)
+- Quantity updates and removals (server sync in progress)
+
+This prevents race conditions where users click +/- before the server responds with the real ID.
+
+**Recovery (Fallback)**: If an operation still returns 404, CartContext auto-re-syncs with the server.
+
+**If issues persist**: User should log out and back in to force a full cart resync.
 
 ## Recent Development Focus
 

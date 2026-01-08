@@ -215,6 +215,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       );
 
       if (existingItem) {
+        // Prevent concurrent operations on this item
+        if (operatingItemIds.has(existingItem.id)) {
+          return; // Skip if already operating on this item
+        }
+
         // Update quantity of existing item
         const updatedQuantity = existingItem.quantity + payload.quantity;
         setItems((currentItems) =>
@@ -227,16 +232,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         // If logged in, sync with server
         if (user) {
+          // Mark as operating to prevent race conditions
+          setOperatingItemIds((prev) => new Set([...prev, existingItem.id]));
+
           cartService.addToCart({
             productId: payload.productId,
             variantId: payload.variantId,
             quantity: payload.quantity,
             unitPrice: payload.unitPrice,
             customization: payload.customization,
-          }).catch((err) => {
-            console.error('Failed to add item to server cart:', err);
-            setError('Failed to sync cart with server. Your changes are saved locally.');
-          });
+          })
+            .then(() => {
+              // Clear operating state on success
+              setOperatingItemIds((prev) => {
+                const next = new Set(prev);
+                next.delete(existingItem.id);
+                return next;
+              });
+            })
+            .catch((err) => {
+              console.error('Failed to add item to server cart:', err);
+              setError('Failed to sync cart with server. Your changes are saved locally.');
+              // Clear operating state on error
+              setOperatingItemIds((prev) => {
+                const next = new Set(prev);
+                next.delete(existingItem.id);
+                return next;
+              });
+            });
         }
         return;
       }
@@ -249,46 +272,76 @@ export function CartProvider({ children }: { children: ReactNode }) {
         addedAt: new Date().toISOString(),
       };
 
-      // Optimistic update
+      // Optimistic update - mark as operating immediately to prevent race conditions
       setItems((currentItems) => [...currentItems, newItem]);
       setSelectedItemIds((prev) => new Set([...prev, tempId]));
 
       // If logged in, sync with server and reconcile ID
       if (user) {
+        // Mark temp ID as operating - blocks +/- until server responds with real ID
+        setOperatingItemIds((prev) => new Set([...prev, tempId]));
+
         cartService.addToCart({
           productId: payload.productId,
           variantId: payload.variantId,
           quantity: payload.quantity,
           unitPrice: payload.unitPrice,
           customization: payload.customization,
-        }).then((serverItem) => {
-          // CRITICAL FIX: Reconcile local ID with server ID
-          if (serverItem && serverItem.id !== tempId) {
-            setItems((currentItems) =>
-              currentItems.map((item) =>
-                item.id === tempId ? { ...item, id: serverItem.id } : item
-              )
-            );
-            // Update selection with new server ID
-            setSelectedItemIds((prev) => {
+        })
+          .then((serverItem) => {
+            // Reconcile local ID with server ID
+            if (serverItem && serverItem.id !== tempId) {
+              setItems((currentItems) =>
+                currentItems.map((item) =>
+                  item.id === tempId ? { ...item, id: serverItem.id } : item
+                )
+              );
+              // Update selection with new server ID
+              setSelectedItemIds((prev) => {
+                const next = new Set(prev);
+                next.delete(tempId);
+                next.add(serverItem.id);
+                return next;
+              });
+              // Clear operating state with new server ID (not temp ID)
+              setOperatingItemIds((prev) => {
+                const next = new Set(prev);
+                next.delete(tempId);
+                // Don't add serverItem.id - reconciliation is complete, item is ready
+                return next;
+              });
+            } else {
+              // Same ID or no server item - just clear operating state
+              setOperatingItemIds((prev) => {
+                const next = new Set(prev);
+                next.delete(tempId);
+                return next;
+              });
+            }
+          })
+          .catch((err) => {
+            console.error('Failed to add item to server cart:', err);
+            setError('Failed to sync cart with server. Your changes are saved locally.');
+            // Clear operating state on error - allow local-only operations
+            setOperatingItemIds((prev) => {
               const next = new Set(prev);
               next.delete(tempId);
-              next.add(serverItem.id);
               return next;
             });
-          }
-        }).catch((err) => {
-          console.error('Failed to add item to server cart:', err);
-          setError('Failed to sync cart with server. Your changes are saved locally.');
-        });
+          });
       }
     },
-    [user, items]
+    [user, items, operatingItemIds]
   );
 
   // Remove item from cart by itemId
   const removeItem = useCallback(
     (itemId: string) => {
+      // Prevent concurrent operations on this item (e.g., during ID reconciliation)
+      if (operatingItemIds.has(itemId)) {
+        return;
+      }
+
       // Capture previous state inside updater to avoid stale closure
       let previousItems: CartItem[] = [];
       let previousSelection: Set<string> = new Set();
@@ -351,7 +404,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [user]
+    [user, operatingItemIds]
   );
 
   // Update item quantity
@@ -359,6 +412,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     (itemId: string, quantity: number) => {
       if (quantity < 1) {
         removeItem(itemId);
+        return;
+      }
+
+      // Prevent concurrent operations on this item (e.g., during ID reconciliation)
+      if (operatingItemIds.has(itemId)) {
         return;
       }
 
@@ -436,7 +494,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [user, removeItem]
+    [user, removeItem, operatingItemIds]
   );
 
   // Clear all items from cart

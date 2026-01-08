@@ -150,14 +150,32 @@ export async function addCartItem(
     return { success: false, error: 'Valid unitPrice is required' };
   }
 
-  // Check if product exists and is active
-  const product = await prisma.product.findUnique({
-    where: { id: productId },
-    select: {
-      id: true,
-      status: true,
-    },
-  });
+  // Run all validation queries in parallel for better performance
+  const [product, variant, existingItem] = await Promise.all([
+    // Check if product exists and is active
+    prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        id: true,
+        status: true,
+      },
+    }),
+    // Check if variant exists (if specified)
+    variantId
+      ? prisma.productVariant.findUnique({
+          where: { id: variantId },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+    // Check if item already exists in cart
+    prisma.cartItem.findFirst({
+      where: {
+        userId,
+        productId,
+        variantId: variantId || null,
+      },
+    }),
+  ]);
 
   if (!product) {
     return { success: false, error: 'Product not found' };
@@ -167,25 +185,9 @@ export async function addCartItem(
     return { success: false, error: 'Product is not available' };
   }
 
-  // Check if variant exists (if specified)
-  if (variantId) {
-    const variant = await prisma.productVariant.findUnique({
-      where: { id: variantId },
-      select: { id: true },
-    });
-    if (!variant) {
-      return { success: false, error: 'Variant not found' };
-    }
+  if (variantId && !variant) {
+    return { success: false, error: 'Variant not found' };
   }
-
-  // Check if item already exists in cart
-  const existingItem = await prisma.cartItem.findFirst({
-    where: {
-      userId,
-      productId,
-      variantId: variantId || null,
-    },
-  });
 
   let cartItem: CartItemWithRelations;
   let isNew = false;

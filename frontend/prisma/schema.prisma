@@ -305,6 +305,7 @@ model Order {
 
   @@index([customerId])
   @@index([status])
+  @@index([customerId, status])
   @@index([createdAt(sort: Desc)])
   @@index([trackingNumber])
   @@index([promoCode])

@@ -20,10 +20,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: result.error }, { status: 404 });
     }
 
-    return NextResponse.json({
-      success: true,
-      data: result.data,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: result.data,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, max-age=600, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch (error) {
     return handleApiError(error);
   }

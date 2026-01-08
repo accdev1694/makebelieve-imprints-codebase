@@ -23,10 +23,17 @@ export async function GET(request: NextRequest) {
       customerName: formatCustomerName(review.reviewer?.name || 'Customer'),
     }));
 
-    return NextResponse.json({
-      success: true,
-      data: formattedReviews,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: formattedReviews,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, max-age=300, stale-while-revalidate=60',
+        },
+      }
+    );
   } catch (error) {
     console.error('Get homepage reviews error:', error);
     return NextResponse.json(

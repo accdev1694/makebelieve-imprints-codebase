@@ -23,46 +23,66 @@ export async function GET(request: NextRequest) {
     const taxYear = searchParams.get('taxYear') || getCurrentTaxYear();
     const { start: periodStart, end: periodEnd } = getTaxYearDates(taxYear);
 
-    // Get completed orders for revenue calculation
-    const orders = await prisma.order.findMany({
-      where: {
-        createdAt: {
-          gte: periodStart,
-          lte: periodEnd,
+    // Fetch orders, income, and expenses in parallel for better performance
+    const [orders, incomeEntries, expenses] = await Promise.all([
+      // Get completed orders for revenue calculation
+      prisma.order.findMany({
+        where: {
+          createdAt: {
+            gte: periodStart,
+            lte: periodEnd,
+          },
+          status: {
+            in: ['payment_confirmed', 'printing', 'shipped', 'delivered'],
+          },
         },
-        status: {
-          in: ['payment_confirmed', 'printing', 'shipped', 'delivered'],
+        select: {
+          id: true,
+          totalPrice: true,
+          subtotal: true,
+          discountAmount: true,
+          refundAmount: true,
+          status: true,
+          createdAt: true,
         },
-      },
-      select: {
-        id: true,
-        totalPrice: true,
-        subtotal: true,
-        discountAmount: true,
-        refundAmount: true,
-        status: true,
-        createdAt: true,
-      },
-    });
-
-    // Get manual income entries for the period
-    const incomeEntries = await prisma.income.findMany({
-      where: {
-        incomeDate: {
-          gte: periodStart,
-          lte: periodEnd,
+      }),
+      // Get manual income entries for the period
+      prisma.income.findMany({
+        where: {
+          incomeDate: {
+            gte: periodStart,
+            lte: periodEnd,
+          },
         },
-      },
-      select: {
-        id: true,
-        amount: true,
-        vatAmount: true,
-        category: true,
-        description: true,
-        source: true,
-        incomeDate: true,
-      },
-    });
+        select: {
+          id: true,
+          amount: true,
+          vatAmount: true,
+          category: true,
+          description: true,
+          source: true,
+          incomeDate: true,
+        },
+      }),
+      // Get expenses for the period
+      prisma.expense.findMany({
+        where: {
+          purchaseDate: {
+            gte: periodStart,
+            lte: periodEnd,
+          },
+        },
+        select: {
+          id: true,
+          amount: true,
+          vatAmount: true,
+          isVatReclaimable: true,
+          category: true,
+          description: true,
+          purchaseDate: true,
+        },
+      }),
+    ]);
 
     // Calculate order revenue metrics
     const orderRevenue = orders.reduce(
@@ -88,26 +108,7 @@ export async function GET(request: NextRequest) {
     const totalRevenue = orderRevenue + manualIncome;
     const netRevenue = netOrderRevenue + manualIncome;
 
-    // Get expenses for the period
-    const expenses = await prisma.expense.findMany({
-      where: {
-        purchaseDate: {
-          gte: periodStart,
-          lte: periodEnd,
-        },
-      },
-      select: {
-        id: true,
-        amount: true,
-        vatAmount: true,
-        isVatReclaimable: true,
-        category: true,
-        description: true,
-        purchaseDate: true,
-      },
-    });
-
-    // Calculate expense metrics
+    // Calculate expense metrics (expenses already fetched in parallel above)
     const totalExpenses = expenses.reduce(
       (sum, expense) => sum + Number(expense.amount || 0),
       0
@@ -161,47 +162,47 @@ export async function GET(request: NextRequest) {
     const incomeCount = incomeEntries.length;
     const averageOrderValue = orderCount > 0 ? netOrderRevenue / orderCount : 0;
 
-    // Get recent transactions (orders + income + expenses combined)
-    const recentOrders = await prisma.order.findMany({
-      where: {
-        status: {
-          in: ['payment_confirmed', 'printing', 'shipped', 'delivered'],
+    // Get recent transactions in parallel (orders + income + expenses combined)
+    const [recentOrders, recentIncome, recentExpenses] = await Promise.all([
+      prisma.order.findMany({
+        where: {
+          status: {
+            in: ['payment_confirmed', 'printing', 'shipped', 'delivered'],
+          },
         },
-      },
-      select: {
-        id: true,
-        totalPrice: true,
-        createdAt: true,
-        shippingAddress: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    });
-
-    const recentIncome = await prisma.income.findMany({
-      select: {
-        id: true,
-        amount: true,
-        description: true,
-        category: true,
-        source: true,
-        incomeDate: true,
-      },
-      orderBy: { incomeDate: 'desc' },
-      take: 5,
-    });
-
-    const recentExpenses = await prisma.expense.findMany({
-      select: {
-        id: true,
-        amount: true,
-        description: true,
-        category: true,
-        purchaseDate: true,
-      },
-      orderBy: { purchaseDate: 'desc' },
-      take: 5,
-    });
+        select: {
+          id: true,
+          totalPrice: true,
+          createdAt: true,
+          shippingAddress: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+      prisma.income.findMany({
+        select: {
+          id: true,
+          amount: true,
+          description: true,
+          category: true,
+          source: true,
+          incomeDate: true,
+        },
+        orderBy: { incomeDate: 'desc' },
+        take: 5,
+      }),
+      prisma.expense.findMany({
+        select: {
+          id: true,
+          amount: true,
+          description: true,
+          category: true,
+          purchaseDate: true,
+        },
+        orderBy: { purchaseDate: 'desc' },
+        take: 5,
+      }),
+    ]);
 
     // Combine and sort transactions
     const recentTransactions = [

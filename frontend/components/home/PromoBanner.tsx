@@ -47,6 +47,7 @@ export function PromoBanner({
                 src={image}
                 alt={title}
                 fill
+                priority
                 className="object-cover rounded-r-3xl"
                 sizes="(max-width: 768px) 100vw, 50vw"
               />

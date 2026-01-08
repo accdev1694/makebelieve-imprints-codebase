@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Image from 'next/image';
 import { Product, formatPrice } from '@/lib/api/products';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -14,7 +15,28 @@ interface ProductCardProps {
   product: Product;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+// Custom comparator for React.memo - only re-render if product data actually changed
+function arePropsEqual(prevProps: ProductCardProps, nextProps: ProductCardProps): boolean {
+  const prev = prevProps.product;
+  const next = nextProps.product;
+
+  // Compare primitive fields that affect rendering
+  return (
+    prev.id === next.id &&
+    prev.name === next.name &&
+    prev.description === next.description &&
+    prev.basePrice === next.basePrice &&
+    prev.status === next.status &&
+    prev.featured === next.featured &&
+    prev.currency === next.currency &&
+    prev.category?.name === next.category?.name &&
+    prev.images?.[0]?.imageUrl === next.images?.[0]?.imageUrl &&
+    prev.variants?.[0]?.price === next.variants?.[0]?.price &&
+    prev._count?.variants === next._count?.variants
+  );
+}
+
+export const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   const primaryImage = product.images?.find((img) => img.isPrimary) || product.images?.[0];
   const defaultVariant = product.variants?.find((v) => v.isDefault) || product.variants?.[0];
 
@@ -152,7 +174,7 @@ export function ProductCard({ product }: ProductCardProps) {
       </Card>
     </PrefetchLink>
   );
-}
+}, arePropsEqual);
 
 export function ProductCardSkeleton() {
   return (

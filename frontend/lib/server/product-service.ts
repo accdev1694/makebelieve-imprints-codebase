@@ -3,7 +3,7 @@
  * Handles all product, variant, and image business logic
  */
 
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { Prisma, ProductCategory, ProductStatus, CustomizationType, ProductType } from '@prisma/client';
 
 // ============================================
@@ -103,25 +103,34 @@ export async function listProducts(params: ProductListParams) {
   // Build where clause
   const where: Prisma.ProductWhereInput = {};
 
-  // Dynamic category filtering
+  // Parallelize category and subcategory slug lookups when needed
+  const needsCategoryLookup = !params.categoryId && params.categorySlug;
+  const needsSubcategoryLookup = !params.subcategoryId && params.subcategorySlug;
+
+  if (needsCategoryLookup || needsSubcategoryLookup) {
+    const [cat, subcat] = await Promise.all([
+      needsCategoryLookup
+        ? prisma.category.findUnique({ where: { slug: params.categorySlug } })
+        : Promise.resolve(null),
+      needsSubcategoryLookup
+        ? prisma.subcategory.findUnique({ where: { slug: params.subcategorySlug } })
+        : Promise.resolve(null),
+    ]);
+    if (cat) where.categoryId = cat.id;
+    if (subcat) where.subcategoryId = subcat.id;
+  }
+
+  // Direct ID filtering (no lookup needed)
   if (params.categoryId) {
     where.categoryId = params.categoryId;
-  } else if (params.categorySlug) {
-    const cat = await prisma.category.findUnique({ where: { slug: params.categorySlug } });
-    if (cat) where.categoryId = cat.id;
+  }
+  if (params.subcategoryId) {
+    where.subcategoryId = params.subcategoryId;
   }
 
   // Legacy category enum filtering
   if (params.category) {
     where.legacyCategory = params.category as ProductCategory;
-  }
-
-  // Dynamic subcategory filtering
-  if (params.subcategoryId) {
-    where.subcategoryId = params.subcategoryId;
-  } else if (params.subcategorySlug) {
-    const subcat = await prisma.subcategory.findUnique({ where: { slug: params.subcategorySlug } });
-    if (subcat) where.subcategoryId = subcat.id;
   }
 
   if (params.customizationType) where.customizationType = params.customizationType as CustomizationType;

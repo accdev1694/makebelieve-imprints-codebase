@@ -221,11 +221,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [user]);
 
-  // Calculate totals
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const tax = subtotal * TAX.VAT_RATE;
-  const total = subtotal + tax;
+  // Calculate totals (memoized to prevent recalculation on every render)
+  const { itemCount, subtotal, tax, total } = useMemo(() => {
+    const count = items.reduce((sum, item) => sum + item.quantity, 0);
+    const sub = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    const taxAmount = sub * TAX.VAT_RATE;
+    return {
+      itemCount: count,
+      subtotal: sub,
+      tax: taxAmount,
+      total: sub + taxAmount,
+    };
+  }, [items]);
 
   // Calculate selected items and their totals
   const selectedItemsArray = useMemo(
@@ -243,12 +250,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [selectedItemsArray]
   );
 
-  const selectedTax = selectedSubtotal * TAX.VAT_RATE;
-  const selectedTotal = selectedSubtotal + selectedTax;
+  const selectedTax = useMemo(() => selectedSubtotal * TAX.VAT_RATE, [selectedSubtotal]);
+  const selectedTotal = useMemo(() => selectedSubtotal + selectedTax, [selectedSubtotal, selectedTax]);
 
-  // Selection state helpers
-  const isAllSelected = items.length > 0 && selectedItemIds.size === items.length;
-  const isIndeterminate = selectedItemIds.size > 0 && selectedItemIds.size < items.length;
+  // Selection state helpers (memoized)
+  const isAllSelected = useMemo(
+    () => items.length > 0 && selectedItemIds.size === items.length,
+    [items.length, selectedItemIds.size]
+  );
+  const isIndeterminate = useMemo(
+    () => selectedItemIds.size > 0 && selectedItemIds.size < items.length,
+    [selectedItemIds.size, items.length]
+  );
 
   // Add item to cart
   const addItem = useCallback(

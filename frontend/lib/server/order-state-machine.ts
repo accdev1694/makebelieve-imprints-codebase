@@ -4,7 +4,7 @@
  */
 
 import { OrderStatus } from '@prisma/client';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 /**
  * Valid state transitions for orders

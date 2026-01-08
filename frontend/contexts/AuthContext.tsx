@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService, User, LoginData, RegisterData } from '@/lib/api/auth';
 
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchUser();
   }, [mounted]);
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     // Only show loading if we don't have a cached user
     if (!user) setLoading(true);
     try {
@@ -95,9 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const login = async (data: LoginData) => {
+  const login = useCallback(async (data: LoginData) => {
     const userData = await authService.login(data);
     setUser(userData);
     setCachedUser(userData);
@@ -107,28 +107,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       router.push('/dashboard');
     }
-  };
+  }, [router]);
 
-  const register = async (data: RegisterData) => {
+  const register = useCallback(async (data: RegisterData) => {
     const userData = await authService.register(data);
     setUser(userData);
     setCachedUser(userData);
     router.push('/dashboard');
-  };
+  }, [router]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await authService.logout();
     setUser(null);
     setCachedUser(null);
     router.push('/');
-  };
+  }, [router]);
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     await fetchUser();
-  };
+  }, [fetchUser]);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({ user, loading, login, register, logout, refetch }),
+    [user, loading, login, register, logout, refetch]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refetch }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

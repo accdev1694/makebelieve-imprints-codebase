@@ -148,9 +148,9 @@ function TemplatesPageContent() {
           </Button>
         </div>
 
-        <div className="flex gap-8">
+        <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Filters - Desktop */}
-          <aside className={`w-72 flex-shrink-0 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
+          <aside className={`lg:w-72 flex-shrink-0 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
             <TemplateFilters
               selectedCategory={selectedCategory}
               onCategoryChange={(cat) => {

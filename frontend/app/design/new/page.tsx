@@ -181,23 +181,24 @@ function DesignEditorContent() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Link href="/dashboard">
               <Button variant="ghost" size="sm">
                 ← Back
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-xl sm:text-2xl font-bold">
               <span className="text-neon-gradient">Create Design</span>
             </h1>
           </div>
-          <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => router.push('/design/my-designs')}>
+          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-initial" onClick={() => router.push('/design/my-designs')}>
               My Designs
             </Button>
             <Button
-              className="btn-gradient"
+              className="btn-gradient flex-1 sm:flex-initial"
+              size="sm"
               onClick={handleSave}
               loading={loading}
               disabled={(!selectedFile && !selectedTemplate) || !name}

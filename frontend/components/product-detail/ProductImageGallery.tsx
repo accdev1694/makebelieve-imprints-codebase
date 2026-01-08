@@ -40,6 +40,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
             sizes="(max-width: 768px) 100vw, 50vw"
             priority={selectedIndex === 0}
             onClick={() => setIsZoomed(!isZoomed)}
+            unoptimized={currentImage.includes('placehold.co')}
           />
 
           {/* Zoom Icon */}
@@ -99,6 +100,7 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
                 fill
                 className="object-cover"
                 sizes="150px"
+                unoptimized={image.includes('placehold.co')}
               />
             </Card>
           ))}

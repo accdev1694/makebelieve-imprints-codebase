@@ -196,6 +196,7 @@ function DownloadsContent() {
                         fill
                         className="object-cover"
                         sizes="(max-width: 640px) 100vw, 160px"
+                        unoptimized={download.product.images[0]?.imageUrl?.includes('placehold.co')}
                       />
                     </div>
 

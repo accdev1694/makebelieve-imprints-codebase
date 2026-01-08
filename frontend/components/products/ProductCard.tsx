@@ -97,6 +97,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               fill
               className="object-cover transition-transform group-hover:scale-105"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              unoptimized={primaryImage.imageUrl.includes('placehold.co')}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">

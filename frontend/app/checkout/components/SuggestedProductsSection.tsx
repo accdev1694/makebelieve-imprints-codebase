@@ -66,6 +66,7 @@ export function SuggestedProductsSection({
                     fill
                     className="object-cover group-hover:scale-105 transition-transform"
                     sizes="(max-width: 768px) 50vw, 25vw"
+                    unoptimized={primaryImage.imageUrl.includes('placehold.co')}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">

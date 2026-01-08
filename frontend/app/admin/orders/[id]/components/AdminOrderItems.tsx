@@ -84,6 +84,7 @@ export function AdminOrderItems({ order }: AdminOrderItemsProps) {
                       alt={item.product?.name || 'Product'}
                       fill
                       className="object-cover"
+                      unoptimized={item.product.images[0].imageUrl.includes('placehold.co')}
                     />
                   ) : (
                     <div className="text-muted-foreground text-xs">No image</div>

@@ -1,16 +1,16 @@
 import { mockReset, DeepMockProxy } from 'jest-mock-extended';
 import { PrismaClient, OrderStatus } from '@prisma/client';
 
-// Mock prisma
+// Mock prisma - must export as named 'prisma' to match the actual module
 jest.mock('@/lib/prisma', () => {
   const mock = jest.requireActual('jest-mock-extended').mockDeep();
   return {
     __esModule: true,
-    default: mock,
+    prisma: mock,
   };
 });
 
-import prismaImport from '@/lib/prisma';
+import { prisma as prismaImport } from '@/lib/prisma';
 const prisma = prismaImport as unknown as DeepMockProxy<PrismaClient>;
 
 import {

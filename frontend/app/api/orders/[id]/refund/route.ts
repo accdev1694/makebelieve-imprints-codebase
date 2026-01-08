@@ -9,6 +9,7 @@ import {
   extractAuditContext,
   ActorType,
 } from '@/lib/server/audit-service';
+import { REFUNDABLE_STATUSES, STATUS_LABELS } from '@/lib/server/order-state-machine';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -61,6 +62,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         { error: 'Order not found' },
         { status: 404 }
+      );
+    }
+
+    // Check if order status allows refund
+    if (!REFUNDABLE_STATUSES.includes(order.status)) {
+      return NextResponse.json(
+        {
+          error: `Cannot refund order with status '${STATUS_LABELS[order.status]}'. Only orders that have been paid can be refunded.`,
+          currentStatus: order.status,
+        },
+        { status: 400 }
       );
     }
 

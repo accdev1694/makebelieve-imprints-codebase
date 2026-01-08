@@ -47,7 +47,8 @@ export function AdminOrderStatus({
         <div className="space-y-2">
           <p className="text-sm font-medium mb-3">Update Status:</p>
 
-          {(order.status === 'pending' || order.status === 'confirmed') && (
+          {/* Manual payment confirmation (rare - usually Stripe webhook handles this) */}
+          {order.status === 'pending' && (
             <Button
               className="w-full"
               onClick={() => onUpdateStatus('payment_confirmed')}
@@ -57,7 +58,19 @@ export function AdminOrderStatus({
             </Button>
           )}
 
+          {/* Admin reviews payment and confirms order is ready for production */}
           {order.status === 'payment_confirmed' && (
+            <Button
+              className="w-full"
+              onClick={() => onUpdateStatus('confirmed')}
+              disabled={updating}
+            >
+              Confirm Order
+            </Button>
+          )}
+
+          {/* Order confirmed - start production */}
+          {order.status === 'confirmed' && (
             <Button
               className="w-full"
               onClick={() => onUpdateStatus('printing')}

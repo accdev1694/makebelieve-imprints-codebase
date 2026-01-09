@@ -51,19 +51,19 @@ function MyDesignsContent() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Link href="/dashboard">
               <Button variant="ghost" size="sm">
                 ← Back
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-xl sm:text-2xl font-bold">
               <span className="text-neon-gradient">My Designs</span>
             </h1>
           </div>
-          <Link href="/design/new">
-            <Button className="btn-gradient">Create New Design</Button>
+          <Link href="/design/new" className="w-full sm:w-auto">
+            <Button className="btn-gradient w-full sm:w-auto">Create New Design</Button>
           </Link>
         </div>
       </header>

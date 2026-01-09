@@ -190,100 +190,100 @@ export function CartItem({
   // Full-size cart item (for cart page)
   return (
     <>
-      <div className="flex gap-4 py-4 border-b border-border last:border-0">
-        {/* Selection Checkbox */}
-        {showCheckbox && (
-          <div className="flex items-start pt-1">
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={(checked: boolean | 'indeterminate') =>
-                onSelectionChange?.(item.id, checked === true)
-              }
-              className="h-5 w-5"
+      <div className="flex flex-col gap-3 py-4 border-b border-border last:border-0">
+        {/* Row 1: Checkbox + Image + Product Info */}
+        <div className="flex items-start justify-between">
+          {/* Selection Checkbox */}
+          {showCheckbox && (
+            <div className="flex items-start pt-1">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={(checked: boolean | 'indeterminate') =>
+                  onSelectionChange?.(item.id, checked === true)
+                }
+                className="h-5 w-5"
+              />
+            </div>
+          )}
+
+          {/* Product Image */}
+          <div className="relative w-20 h-20 sm:w-28 sm:h-28 xl:w-32 xl:h-32 2xl:w-36 2xl:h-36 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+            <Image
+              src={item.productImage || '/placeholder-product.svg'}
+              alt={item.productName}
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 80px, (max-width: 1280px) 112px, (max-width: 1536px) 128px, 144px"
             />
           </div>
-        )}
 
-        {/* Product Image */}
-        <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-          <Image
-            src={item.productImage || '/placeholder-product.svg'}
-            alt={item.productName}
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 96px, 128px"
-          />
-        </div>
-
-        {/* Product Details */}
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between">
-            <div>
-              <Link
-                href={`/product/${item.productSlug || item.productId}`}
-                className="font-medium text-foreground hover:text-primary line-clamp-2"
-              >
-                {item.productName}
-              </Link>
-              {variantDescription && (
-                <p className="text-sm text-muted-foreground mt-1">{variantDescription}</p>
-              )}
-              {item.customization && (
-                <p className="text-sm text-primary mt-1">
-                  {item.customization.type === 'TEMPLATE_BASED' && `Template: ${item.customization.templateName}`}
-                  {item.customization.type === 'UPLOAD_OWN' && 'Custom Design'}
-                  {item.customization.type === 'FULLY_CUSTOM' && 'Fully Custom'}
-                </p>
-              )}
-            </div>
+          {/* Product Name + Delete */}
+          <div className="min-w-0 flex flex-col gap-1 max-w-[50%]">
+            <Link
+              href={`/product/${item.productSlug || item.productId}`}
+              className="font-medium text-foreground hover:text-primary line-clamp-2 text-base sm:text-lg"
+            >
+              {item.productName}
+            </Link>
+            {variantDescription && (
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{variantDescription}</p>
+            )}
+            {item.customization && (
+              <p className="text-xs sm:text-sm text-primary mt-0.5">
+                {item.customization.type === 'TEMPLATE_BASED' && `Template: ${item.customization.templateName}`}
+                {item.customization.type === 'UPLOAD_OWN' && 'Custom Design'}
+                {item.customization.type === 'FULLY_CUSTOM' && 'Fully Custom'}
+              </p>
+            )}
             <Button
               variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
+              size="sm"
+              className="h-7 w-fit px-2 text-muted-foreground hover:text-destructive self-start"
               onClick={handleRemove}
               disabled={isOperating}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3 w-3 mr-1" />
+              <span className="text-xs">Remove</span>
             </Button>
           </div>
+        </div>
 
-          {/* Price and Quantity */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={handleDecrement}
-                disabled={isOperating}
-              >
-                {isOperating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Minus className="h-4 w-4" />
-                )}
-              </Button>
-              <span className="w-12 text-center font-medium">{item.quantity}</span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={handleIncrement}
-                disabled={isOperating}
-              >
-                {isOperating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            <div className="text-right">
-              <p className="text-lg font-semibold">{formatPrice(itemTotal)}</p>
-              {item.quantity > 1 && (
-                <p className="text-sm text-muted-foreground">{formatPrice(item.unitPrice)} each</p>
+        {/* Row 2: Quantity + Price */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleDecrement}
+              disabled={isOperating}
+            >
+              {isOperating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Minus className="h-4 w-4" />
               )}
-            </div>
+            </Button>
+            <span className="w-10 text-center font-medium">{item.quantity}</span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleIncrement}
+              disabled={isOperating}
+            >
+              {isOperating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <div className="text-right">
+            <p className="text-lg font-semibold">{formatPrice(itemTotal)}</p>
+            {item.quantity > 1 && (
+              <p className="text-sm text-muted-foreground">{formatPrice(item.unitPrice)} each</p>
+            )}
           </div>
         </div>
       </div>

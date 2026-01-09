@@ -305,7 +305,7 @@ function DesignEditorContent() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Tab Buttons */}
-                <div className="flex gap-2 p-1 bg-muted/50 rounded-lg">
+                <div className="flex gap-4 p-1.5 bg-muted/50 rounded-lg">
                   <Button
                     variant={designMode === 'upload' ? 'default' : 'ghost'}
                     className={`flex-1 ${designMode === 'upload' ? 'btn-gradient' : ''}`}

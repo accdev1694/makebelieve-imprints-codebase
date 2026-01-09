@@ -215,7 +215,7 @@ export function FileUpload({
 
             {isCameraAvailable ? (
               /* Native platform - show camera and gallery buttons */
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center mt-2">
                 <Button
                   type="button"
                   className="btn-gradient gap-2"
@@ -238,7 +238,7 @@ export function FileUpload({
               </div>
             ) : (
               /* Web platform - show file chooser */
-              <label htmlFor="file-upload">
+              <label htmlFor="file-upload" className="mt-2 inline-block">
                 <Button type="button" className="btn-gradient" asChild>
                   <span>Choose File</span>
                 </Button>

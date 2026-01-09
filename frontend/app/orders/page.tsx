@@ -156,12 +156,12 @@ function OrderHistoryContent() {
               <span className="text-neon-gradient">Your Orders</span>
             </h1>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Link href="/products">
-              <Button variant="outline" size="sm">Continue Shopping</Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Link href="/products" className="flex-1 sm:flex-initial">
+              <Button variant="outline" size="sm" className="w-full">Continue Shopping</Button>
             </Link>
-            <Link href="/design/new">
-              <Button className="btn-gradient" size="sm">Create New Design</Button>
+            <Link href="/design/new" className="flex-1 sm:flex-initial">
+              <Button className="btn-gradient w-full" size="sm">Create New Design</Button>
             </Link>
           </div>
         </div>
@@ -174,14 +174,14 @@ function OrderHistoryContent() {
 
         {/* Tab Navigation and Sort */}
         <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between">
-          <div className="flex gap-2 flex-wrap overflow-x-auto pb-2">
+          <div className="grid grid-cols-3 sm:flex gap-2 w-full sm:w-auto">
             {ORDER_TABS.map((tab) => (
               <Button
                 key={tab}
                 variant={activeTab === tab ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleTabChange(tab)}
-                className={activeTab === tab ? 'btn-gradient' : ''}
+                className={`${activeTab === tab ? 'btn-gradient' : ''} w-full sm:w-auto`}
               >
                 {ORDER_TAB_LABELS[tab]}
               </Button>

@@ -113,14 +113,14 @@ function TemplatesPageContent() {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
             Choose from our curated collection of professionally designed templates. Customize colors, add your text, and create something unique.
           </p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/design/new">
-              <Button size="lg" className="btn-gradient">
+              <Button size="lg" className="btn-gradient w-full sm:w-auto">
                 Upload Your Own Design
               </Button>
             </Link>
             <Link href="/products">
-              <Button size="lg" variant="outline">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto">
                 Browse Products
               </Button>
             </Link>
